@@ -1,38 +1,28 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Components';
-import { Users, Plus, Search, Pencil, Trash2, Phone, Mail, FolderKanban, Activity, Link2 } from 'lucide-react';
+import { Users, Plus, Search, Pencil, Trash2, Phone, Mail } from 'lucide-react';
 
 const EMPTY_FORM = { name: '', empId: '', role: '', phone: '', email: '', status: 'Active' };
 const ROLES = ['Senior Welder', 'Pipe Welder', 'MIG/MAG Welder', 'TIG Welder', 'Welding Inspector', 'Foreman', 'Helper', 'Other'];
 const STATUS_OPTIONS = ['Active', 'Inactive'];
 
-const WORK_STATUS_LABELS = {
-  offline:        { label: 'Offline',        cls: 'badge-neutral'  },
-  logged_in:      { label: 'Logged In',      cls: 'badge-warning'  },
-  working:        { label: 'Working',        cls: 'badge-success'  },
-  on_break:       { label: 'On Break',       cls: 'badge-info'     },
-  work_completed: { label: 'Work Completed', cls: 'badge-info'     },
-};
-
 export default function Employees() {
   const {
     employees, addEmployee, updateEmployee, deleteEmployee,
-    workEntries, getEmployeeCurrentStatus, getPrimaryProjectForEmployee,
+    workEntries,
   } = useApp();
   const { t } = useLanguage();
-  const navigate = useNavigate();
 
-  const [search, setSearch]           = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [modalOpen, setModalOpen]     = useState(false);
-  const [editItem, setEditItem]       = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [form, setForm]               = useState(EMPTY_FORM);
-  const [errors, setErrors]           = useState({});
+  const [search,        setSearch]        = useState('');
+  const [filterStatus,  setFilterStatus]  = useState('');
+  const [modalOpen,     setModalOpen]     = useState(false);
+  const [editItem,      setEditItem]      = useState(null);
+  const [deleteTarget,  setDeleteTarget]  = useState(null);
+  const [form,          setForm]          = useState(EMPTY_FORM);
+  const [errors,        setErrors]        = useState({});
 
   const filtered = employees.filter(e => {
     const q = search.toLowerCase();
@@ -64,9 +54,8 @@ export default function Employees() {
   const handleSubmit = () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
-    const data = { ...form };
-    if (editItem) updateEmployee(editItem.id, data);
-    else addEmployee(data);
+    if (editItem) updateEmployee(editItem.id, form);
+    else addEmployee(form);
     setModalOpen(false);
   };
 
@@ -75,8 +64,8 @@ export default function Employees() {
   const getWorkCount = (empId) => workEntries.filter(w => w.employeeId === empId).length;
   const getTotalHrs  = (empId) => workEntries.filter(w => w.employeeId === empId).reduce((s, w) => s + (parseFloat(w.hours) || 0), 0).toFixed(1);
 
-  const getInitials    = (name) => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
-  const avatarColors   = ['#1D4ED8', '#16A34A', '#7C3AED', '#D97706', '#0891B2', '#DC2626'];
+  const getInitials  = (name) => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+  const avatarColors = ['#1D4ED8', '#16A34A', '#7C3AED', '#D97706', '#0891B2', '#DC2626'];
 
   const FInput = ({ field, label, type = 'text', placeholder, required }) => (
     <div className="form-group">
@@ -120,74 +109,51 @@ export default function Employees() {
                 <th>{t('emp_col_employee')}</th>
                 <th>{t('emp_col_id')}</th>
                 <th>{t('emp_col_role')}</th>
-                <th>{t('emp_col_project')}</th>
-                <th>{t('emp_col_live')}</th>
-                <th>{t('emp_col_worklog')}</th>
+                <th>Contact</th>
+                <th>Work Log</th>
                 <th>{t('emp_col_status')}</th>
                 <th>{t('emp_col_actions')}</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((e, i) => {
-                const assignedProject = getPrimaryProjectForEmployee(e.id);
-                const liveStatus      = getEmployeeCurrentStatus(e.id);
-                const lsCfg           = WORK_STATUS_LABELS[liveStatus] || WORK_STATUS_LABELS.offline;
-                return (
-                  <tr key={e.id}>
-                    <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: '50%', background: avatarColors[i % avatarColors.length], display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
-                          {getInitials(e.name)}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{e.name}</div>
-                          {e.phone && <div style={{ fontSize: 11, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}><Phone size={10} />{e.phone}</div>}
-                        </div>
+              {filtered.map((e, i) => (
+                <tr key={e.id}>
+                  <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: avatarColors[i % avatarColors.length], display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+                        {getInitials(e.name)}
                       </div>
-                    </td>
-                    <td><span className="badge badge-neutral">{e.empId}</span></td>
-                    <td>{e.role || '—'}</td>
-                    <td>
-                      {assignedProject ? (
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <FolderKanban size={13} color="var(--color-text-muted)" />
-                            {assignedProject.name}
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{assignedProject.number}</div>
-                        </div>
-                      ) : (
-                        <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>{t('emp_not_assigned')}</span>
-                      )}
-                    </td>
-                    <td>
-                      {e.status === 'Active' ? (
-                        <span className={`badge ${lsCfg.cls}`} style={{ display: 'flex', alignItems: 'center', gap: 4, width: 'fit-content' }}>
-                          <Activity size={10} />
-                          {t(`lbl_status_${liveStatus}`)}
-                        </span>
-                      ) : (
-                        <span className="badge badge-neutral">Inactive</span>
-                      )}
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 700 }}>{getTotalHrs(e.id)}h</div>
-                      <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{getWorkCount(e.id)} {t('emp_entries')}</div>
-                    </td>
-                    <td><Badge status={e.status} /></td>
-                    <td>
-                      <div className="table-actions">
-                        <button className="btn btn-ghost btn-icon btn-sm" title="Assign Project" onClick={() => navigate('/assignments')} style={{ color: 'var(--color-primary)' }}><Link2 size={15} /></button>
-                        <button className="btn btn-ghost btn-icon btn-sm" title="Edit" onClick={() => openEdit(e)}><Pencil size={15} /></button>
-                        <button className="btn btn-ghost btn-icon btn-sm" title="Delete" onClick={() => setDeleteTarget(e)} style={{ color: 'var(--color-danger)' }}><Trash2 size={15} /></button>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{e.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{e.email || '—'}</div>
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                    </div>
+                  </td>
+                  <td><span className="badge badge-neutral">{e.empId}</span></td>
+                  <td>{e.role || '—'}</td>
+                  <td>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {e.phone && <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}><Phone size={11} color="var(--color-text-muted)" /> {e.phone}</span>}
+                      {e.email && <a href={`mailto:${e.email}`} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--color-primary)', textDecoration: 'none' }}><Mail size={11} /> {e.email}</a>}
+                      {!e.phone && !e.email && <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>—</span>}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 700 }}>{getTotalHrs(e.id)}h</div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{getWorkCount(e.id)} {t('emp_entries')}</div>
+                  </td>
+                  <td><Badge status={e.status} /></td>
+                  <td>
+                    <div className="table-actions">
+                      <button className="btn btn-ghost btn-icon btn-sm" title="Edit" onClick={() => openEdit(e)}><Pencil size={15} /></button>
+                      <button className="btn btn-ghost btn-icon btn-sm" title="Delete" onClick={() => setDeleteTarget(e)} style={{ color: 'var(--color-danger)' }}><Trash2 size={15} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={9}>
+                <tr><td colSpan={8}>
                   <div className="empty-state">
                     <div className="empty-state-icon"><Users size={32} /></div>
                     <h3>{t('emp_empty_title')}</h3>
@@ -225,9 +191,6 @@ export default function Employees() {
           <FInput field="phone" label={t('emp_form_phone')} placeholder={t('emp_form_phone_ph')} />
           <FInput field="email" label={t('emp_form_email')} type="email" placeholder={t('emp_form_email_ph')} />
         </div>
-        <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '4px 0 0' }}>
-          Project assignments are managed from the Assignments page.
-        </p>
         <div className="form-group">
           <label>{t('emp_form_status')}</label>
           <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>

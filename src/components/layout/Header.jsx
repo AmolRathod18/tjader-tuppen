@@ -4,16 +4,12 @@ import { Bell, Menu } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 const PAGE_KEYS = {
-  '/dashboard':           { title: 'page_dashboard',    subtitle: 'page_dashboard_sub'    },
-  '/companies':           { title: 'page_companies',    subtitle: 'page_companies_sub'    },
-  '/projects':            { title: 'page_projects',     subtitle: 'page_projects_sub'     },
-  '/employees':           { title: 'page_employees',    subtitle: 'page_employees_sub'    },
-  '/work-entry':          { title: 'page_work_entry',   subtitle: 'page_work_entry_sub'   },
-  '/attendance':          { title: 'page_attendance',   subtitle: 'page_attendance_sub'   },
-  '/reports':             { title: 'page_reports',      subtitle: 'page_reports_sub'      },
-  '/assignments':         { title: 'page_assignments',  subtitle: 'page_assignments_sub'  },
-  '/employee/dashboard':  { title: 'page_my_dashboard', subtitle: 'page_my_dashboard_sub' },
-  '/employee/attendance': { title: 'page_my_attendance',subtitle: 'page_my_attendance_sub'},
+  '/dashboard':  { title: 'page_dashboard',   subtitle: 'page_dashboard_sub'   },
+  '/companies':  { title: 'page_companies',   subtitle: 'page_companies_sub'   },
+  '/projects':   { title: 'page_projects',    subtitle: 'page_projects_sub'    },
+  '/employees':  { title: 'page_employees',   subtitle: 'page_employees_sub'   },
+  '/work-entry': { title: 'page_work_entry',  subtitle: 'page_work_entry_sub'  },
+  '/reports':    { title: 'page_reports',     subtitle: 'page_reports_sub'     },
 };
 
 export default function Header({ onMenuToggle }) {
@@ -38,7 +34,7 @@ export default function Header({ onMenuToggle }) {
       <div className="header-right">
         <span className="header-date">📅 {dateStr}</span>
 
-        {/* ── Language Switcher ── */}
+        {/* Language Switcher */}
         <div style={{
           display: 'flex', gap: 0,
           border: '1px solid var(--color-border)',

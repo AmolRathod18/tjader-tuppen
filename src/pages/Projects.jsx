@@ -1,33 +1,30 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Components';
-import { FolderKanban, Plus, Search, Pencil, Trash2, MapPin, Calendar, Link2, Users } from 'lucide-react';
+import { FolderKanban, Plus, Search, Pencil, Trash2, MapPin, Calendar } from 'lucide-react';
 
 const EMPTY_FORM = { companyId: '', number: '', name: '', location: '', startDate: '', endDate: '', status: 'Active' };
-
 const STATUS_OPTIONS = ['Active', 'Completed', 'On Hold'];
 
 export default function Projects() {
-  const { projects, companies, addProject, updateProject, deleteProject, getCompanyById, workEntries, getAssignmentsByProject } = useApp();
+  const { projects, companies, addProject, updateProject, deleteProject, getCompanyById, workEntries } = useApp();
   const { t } = useLanguage();
-  const navigate = useNavigate();
-  const [search, setSearch] = useState('');
-  const [filterCompany, setFilterCompany] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editItem, setEditItem] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [errors, setErrors] = useState({});
+  const [search,         setSearch]         = useState('');
+  const [filterCompany,  setFilterCompany]  = useState('');
+  const [filterStatus,   setFilterStatus]   = useState('');
+  const [modalOpen,      setModalOpen]      = useState(false);
+  const [editItem,       setEditItem]       = useState(null);
+  const [deleteTarget,   setDeleteTarget]   = useState(null);
+  const [form,           setForm]           = useState(EMPTY_FORM);
+  const [errors,         setErrors]         = useState({});
 
   const filtered = projects.filter(p => {
     const q = search.toLowerCase();
-    const matchSearch = p.name.toLowerCase().includes(q) || p.number?.toLowerCase().includes(q) || p.location?.toLowerCase().includes(q);
+    const matchSearch  = p.name.toLowerCase().includes(q) || p.number?.toLowerCase().includes(q) || p.location?.toLowerCase().includes(q);
     const matchCompany = !filterCompany || p.companyId === filterCompany;
-    const matchStatus = !filterStatus || p.status === filterStatus;
+    const matchStatus  = !filterStatus  || p.status === filterStatus;
     return matchSearch && matchCompany && matchStatus;
   });
 
@@ -41,11 +38,11 @@ export default function Projects() {
 
   const validate = () => {
     const e = {};
-    if (!form.companyId) e.companyId = t('proj_err_company');
-    if (!form.number.trim()) e.number = t('proj_err_number');
-    if (!form.name.trim()) e.name = t('proj_err_name');
-    if (!form.startDate) e.startDate = t('proj_err_start');
-    if (!form.endDate) e.endDate = t('proj_err_end');
+    if (!form.companyId)      e.companyId = t('proj_err_company');
+    if (!form.number.trim())  e.number    = t('proj_err_number');
+    if (!form.name.trim())    e.name      = t('proj_err_name');
+    if (!form.startDate)      e.startDate = t('proj_err_start');
+    if (!form.endDate)        e.endDate   = t('proj_err_end');
     if (form.startDate && form.endDate && form.endDate < form.startDate) e.endDate = t('proj_err_dates');
     return e;
   };
@@ -54,14 +51,14 @@ export default function Projects() {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     if (editItem) updateProject(editItem.id, form);
-    else addProject(form);
+    else          addProject(form);
     setModalOpen(false);
   };
 
   const handleDelete = () => { deleteProject(deleteTarget.id); setDeleteTarget(null); };
 
   const getEntryCount = (projectId) => workEntries.filter(w => w.projectId === projectId).length;
-  const getTotalHrs = (projectId) => {
+  const getTotalHrs   = (projectId) => {
     const hrs = workEntries.filter(w => w.projectId === projectId).reduce((s, w) => s + (parseFloat(w.hours) || 0), 0);
     return hrs.toFixed(1);
   };
@@ -114,8 +111,7 @@ export default function Projects() {
                 <th>{t('proj_col_location')}</th>
                 <th>{t('proj_col_start')}</th>
                 <th>{t('proj_col_end')}</th>
-                <th>{t('proj_col_assigned')}</th>
-                <th>{t('proj_col_hours')}</th>
+                <th>Work Log</th>
                 <th>{t('proj_col_status')}</th>
                 <th>{t('proj_col_actions')}</th>
               </tr>
@@ -144,21 +140,12 @@ export default function Projects() {
                     <td style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={13} color="var(--color-text-muted)" />{p.startDate}</td>
                     <td>{p.endDate}</td>
                     <td>
-                      {(() => { const count = getAssignmentsByProject(p.id).filter(a => a.status === 'Active').length; return (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontWeight: 700 }}>{count}</span>
-                          <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{count !== 1 ? t('proj_employee_many') : t('proj_employee_one')}</span>
-                        </div>
-                      ); })()}
-                    </td>
-                    <td>
                       <div style={{ fontWeight: 700 }}>{getTotalHrs(p.id)}h</div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{getEntryCount(p.id)} entries</div>
                     </td>
                     <td><Badge status={p.status} /></td>
                     <td>
                       <div className="table-actions">
-                        <button className="btn btn-ghost btn-icon btn-sm" title="Assign Employee" onClick={() => navigate('/assignments')} style={{ color: 'var(--color-primary)' }}><Link2 size={15} /></button>
                         <button className="btn btn-ghost btn-icon btn-sm" title="Edit" onClick={() => openEdit(p)}><Pencil size={15} /></button>
                         <button className="btn btn-ghost btn-icon btn-sm" title="Delete" onClick={() => setDeleteTarget(p)} style={{ color: 'var(--color-danger)' }}><Trash2 size={15} /></button>
                       </div>
@@ -167,7 +154,7 @@ export default function Projects() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={10}>
+                <tr><td colSpan={9}>
                   <div className="empty-state">
                     <div className="empty-state-icon"><FolderKanban size={32} /></div>
                     <h3>{t('proj_empty_title')}</h3>
@@ -191,7 +178,7 @@ export default function Projects() {
         </>}
       >
         <div className="form-group">
-          <label>{t('proj_form_company')}</label>
+          <label>{t('proj_form_company')} *</label>
           <select value={form.companyId} onChange={e => setForm(f => ({ ...f, companyId: e.target.value }))}
             style={errors.companyId ? { borderColor: 'var(--color-danger)' } : {}}>
             <option value="">{t('proj_form_company_ph')}</option>
@@ -206,16 +193,13 @@ export default function Projects() {
         <FInput field="location" label={t('proj_form_location')} placeholder={t('proj_form_location_ph')} />
         <div className="form-row">
           <FInput field="startDate" label={t('proj_form_start')} type="date" required />
-          <FInput field="endDate" label={t('proj_form_end')} type="date" required />
+          <FInput field="endDate"   label={t('proj_form_end')}   type="date" required />
         </div>
         <div className="form-group">
           <label>{t('proj_form_status')}</label>
           <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
             {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-        </div>
-        <div className="note-box" style={{ marginTop: 4 }}>
-          {t('proj_note')}
         </div>
       </Modal>
 

@@ -116,16 +116,15 @@ body {
   gap: 12px;
 }
 
-.sidebar-logo-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #1D4ED8, #3B82F6);
+.sidebar-brand-logo {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
   border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: #FFFFFF;
+  padding: 4px;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(29,78,216,0.4);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
 }
 
 .sidebar-logo-text h2 {
@@ -798,15 +797,15 @@ select {
   margin-bottom: 36px;
 }
 
-.login-logo-icon {
-  width: 52px;
-  height: 52px;
-  background: linear-gradient(135deg, #1D4ED8, #3B82F6);
+.login-brand-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
   border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 6px 20px rgba(29,78,216,0.5);
+  background: #FFFFFF;
+  padding: 5px;
+  flex-shrink: 0;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
 }
 
 .login-logo-text h1 {

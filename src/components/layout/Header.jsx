@@ -16,7 +16,7 @@ const PAGE_META = {
 
 export default function Header() {
   const { pathname } = useLocation();
-  const meta = PAGE_META[pathname] || { title: 'WeldPro', subtitle: '' };
+  const meta = PAGE_META[pathname] || { title: 'TJÄDERTUPPEN', subtitle: '' };
 
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-SE', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });

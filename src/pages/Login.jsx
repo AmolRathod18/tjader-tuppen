@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { Flame, Eye, EyeOff, LogIn, Shield, User } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Shield, User } from 'lucide-react';
+import logo from '../assets/TJADERTUPPEN_Logo.jpeg';
 
 export default function Login() {
   const { login } = useApp();
@@ -39,11 +40,13 @@ export default function Login() {
 
         {/* Logo */}
         <div className="login-logo">
-          <div className="login-logo-icon">
-            <Flame size={26} color="#fff" strokeWidth={2.5} />
-          </div>
+          <img
+            src={logo}
+            alt="TJÄDERTUPPEN"
+            className="login-brand-logo"
+          />
           <div className="login-logo-text">
-            <h1>WeldPro</h1>
+            <h1>TJÄDERTUPPEN</h1>
             <span>Project Management System</span>
           </div>
         </div>
@@ -162,7 +165,7 @@ export default function Login() {
         </form>
 
         <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, textAlign: 'center', marginTop: 24 }}>
-          WeldPro v1.0 © 2026 — Welding Project Management System
+          TJÄDERTUPPEN © 2026 — Project Management System
         </p>
       </div>
     </div>

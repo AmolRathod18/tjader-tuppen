@@ -3,8 +3,9 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import {
   LayoutDashboard, Building2, FolderKanban, Users,
-  ClipboardList, BarChart3, LogOut, Flame, CalendarCheck, Link2
+  ClipboardList, BarChart3, LogOut, CalendarCheck, Link2
 } from 'lucide-react';
+import logo from '../../assets/TJADERTUPPEN_Logo.jpeg';
 
 const adminNav = [
   { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
@@ -39,11 +40,13 @@ export default function Sidebar() {
     <aside className="sidebar">
       {/* Logo */}
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">
-          <Flame size={22} color="#fff" strokeWidth={2.5} />
-        </div>
+        <img
+          src={logo}
+          alt="TJÄDERTUPPEN"
+          className="sidebar-brand-logo"
+        />
         <div className="sidebar-logo-text">
-          <h2>WeldPro</h2>
+          <h2>TJÄDERTUPPEN</h2>
           <span>{isEmployee ? 'Employee Portal' : 'Admin Panel'}</span>
         </div>
       </div>
@@ -80,7 +83,7 @@ export default function Sidebar() {
           </div>
           <div className="sidebar-user-info">
             <p>{loggedEmp ? loggedEmp.name : 'Administrator'}</p>
-            <span>{loggedEmp ? loggedEmp.empId : 'admin@weldpro.se'}</span>
+            <span>{loggedEmp ? loggedEmp.empId : 'admin@tjadertuppen.se'}</span>
           </div>
         </div>
       </div>

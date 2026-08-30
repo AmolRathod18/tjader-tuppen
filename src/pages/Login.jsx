@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Eye, EyeOff, LogIn, Shield, User } from 'lucide-react';
 import logo from '../assets/TJADERTUPPEN_Logo.jpeg';
 
 export default function Login() {
   const { login } = useApp();
+  const { t } = useLanguage();
   const navigate = useNavigate();
-  const [role, setRole]         = useState('admin'); // 'admin' | 'employee'
+  const [role, setRole]         = useState('admin');
   const [form, setForm]         = useState({ username: '', password: '' });
   const [showPass, setShowPass] = useState(false);
   const [error, setError]       = useState('');
@@ -23,11 +25,7 @@ export default function Login() {
         if (result.role === 'admin') navigate('/dashboard');
         else navigate('/employee/dashboard');
       } else {
-        setError(
-          role === 'admin'
-            ? 'Invalid admin credentials. Try admin / admin123'
-            : 'Invalid employee ID or password. Use your Employee ID and password emp123'
-        );
+        setError(role === 'admin' ? t('login_error_admin') : t('login_error_employee'));
         setLoading(false);
       }
     }, 600);
@@ -47,7 +45,7 @@ export default function Login() {
           />
           <div className="login-logo-text">
             <h1>TJÄDERTUPPEN</h1>
-            <span>Project Management System</span>
+            <span>{t('login_system')}</span>
           </div>
         </div>
 
@@ -69,7 +67,7 @@ export default function Login() {
               transition: 'all 0.2s',
             }}
           >
-            <Shield size={15} /> Admin
+            <Shield size={15} /> {t('login_tab_admin')}
           </button>
           <button
             type="button"
@@ -83,28 +81,28 @@ export default function Login() {
               transition: 'all 0.2s',
             }}
           >
-            <User size={15} /> Employee
+            <User size={15} /> {t('login_tab_employee')}
           </button>
         </div>
 
         <h2 className="login-title" style={{ fontSize: 20 }}>
-          {role === 'admin' ? 'Admin Sign In' : 'Employee Sign In'}
+          {role === 'admin' ? t('login_title_admin') : t('login_title_employee')}
         </h2>
         <p className="login-subtitle">
-          {role === 'admin' ? 'Access the full project management dashboard' : 'Access your personal attendance portal'}
+          {role === 'admin' ? t('login_subtitle_admin') : t('login_subtitle_employee')}
         </p>
 
         {/* Demo credentials hint */}
         <div className="login-demo">
           {role === 'admin' ? (
             <>
-              <p>Admin demo credentials:</p>
-              <strong>Username: admin &nbsp;|&nbsp; Password: admin123</strong>
+              <p>{t('login_demo_admin_label')}</p>
+              <strong>{t('login_demo_admin_creds')}</strong>
             </>
           ) : (
             <>
-              <p>Employee demo credentials:</p>
-              <strong>Employee ID: EMP-001 &nbsp;|&nbsp; Password: emp123</strong>
+              <p>{t('login_demo_employee_label')}</p>
+              <strong>{t('login_demo_employee_creds')}</strong>
             </>
           )}
         </div>
@@ -112,10 +110,10 @@ export default function Login() {
         {/* Form */}
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>{role === 'admin' ? 'Username' : 'Employee ID'}</label>
+            <label>{role === 'admin' ? t('lbl_username') : t('lbl_employee_id')}</label>
             <input
               type="text"
-              placeholder={role === 'admin' ? 'Enter admin username' : 'Enter Employee ID (e.g. EMP-001)'}
+              placeholder={role === 'admin' ? t('login_ph_username') : t('login_ph_employee_id')}
               value={form.username}
               onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
               required
@@ -124,11 +122,11 @@ export default function Login() {
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label>{t('lbl_password')}</label>
             <div style={{ position: 'relative' }}>
               <input
                 type={showPass ? 'text' : 'password'}
-                placeholder="Enter your password"
+                placeholder={t('login_ph_password')}
                 value={form.password}
                 onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                 required
@@ -160,12 +158,12 @@ export default function Login() {
             }}
             disabled={loading}
           >
-            {loading ? '● Signing in...' : <><LogIn size={16} /> Sign In as {role === 'admin' ? 'Admin' : 'Employee'}</>}
+            {loading ? t('login_signing_in') : <><LogIn size={16} /> {role === 'admin' ? t('login_btn_admin') : t('login_btn_employee')}</>}
           </button>
         </form>
 
         <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, textAlign: 'center', marginTop: 24 }}>
-          TJÄDERTUPPEN © 2026 — Project Management System
+          {t('login_footer')}
         </p>
       </div>
     </div>

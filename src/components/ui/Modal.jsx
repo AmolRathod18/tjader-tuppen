@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, AlertTriangle } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export function Modal({ isOpen, onClose, title, subtitle, children, footer, size = 'md' }) {
   if (!isOpen) return null;
@@ -26,6 +27,7 @@ export function Modal({ isOpen, onClose, title, subtitle, children, footer, size
 }
 
 export function ConfirmDeleteModal({ isOpen, onClose, onConfirm, itemName }) {
+  const { t } = useLanguage();
   if (!isOpen) return null;
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -35,13 +37,13 @@ export function ConfirmDeleteModal({ isOpen, onClose, onConfirm, itemName }) {
             <div className="danger-icon">
               <AlertTriangle size={28} />
             </div>
-            <h3>Delete Confirmation</h3>
-            <p>Are you sure you want to delete <strong>"{itemName}"</strong>? This action cannot be undone.</p>
+            <h3>{t('delete_title')}</h3>
+            <p>{t('delete_message')} <strong>"{itemName}"</strong>? {t('delete_warning')}</p>
           </div>
         </div>
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-danger" onClick={onConfirm}>Delete</button>
+          <button className="btn btn-ghost" onClick={onClose}>{t('btn_cancel')}</button>
+          <button className="btn btn-danger" onClick={onConfirm}>{t('btn_delete')}</button>
         </div>
       </div>
     </div>

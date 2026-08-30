@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { StatCard } from '../components/ui/Components';
 import { Badge } from '../components/ui/Components';
 import {
@@ -47,6 +48,7 @@ export default function Dashboard() {
     companies, projects, employees, workEntries, attendance,
     getProjectById, getEmployeeById, getCompanyById, getEmployeeCurrentStatus,
   } = useApp();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const today = todayStr();
@@ -73,39 +75,39 @@ export default function Dashboard() {
     <div>
       {/* ── Stat Cards ── */}
       <div className="stat-grid">
-        <StatCard label="Client Companies"  value={companies.length}            subtext="Total registered"                    colorClass="blue"   icon={Building2} />
-        <StatCard label="Active Projects"   value={activeProjects}              subtext={`${projects.length} total projects`}  colorClass="green"  icon={FolderKanban} />
-        <StatCard label="Active Employees"  value={activeEmployees}             subtext={`${employees.length} total`}          colorClass="purple" icon={Users} />
-        <StatCard label="Total Hours Logged" value={totalHours.toFixed(0) + 'h'} subtext={`${workEntries.length} work entries`} colorClass="orange" icon={Clock} />
+        <StatCard label={t('dash_stat_companies')}  value={companies.length}            subtext={t('dash_stat_companies_sub')}                colorClass="blue"   icon={Building2} />
+        <StatCard label={t('dash_stat_projects')}   value={activeProjects}              subtext={`${projects.length} ${t('lbl_total').toLowerCase()}`}  colorClass="green"  icon={FolderKanban} />
+        <StatCard label={t('dash_stat_employees')}  value={activeEmployees}             subtext={`${employees.length} ${t('lbl_total').toLowerCase()}`}   colorClass="purple" icon={Users} />
+        <StatCard label={t('dash_stat_hours')} value={totalHours.toFixed(0) + 'h'} subtext={`${workEntries.length} ${t('lbl_entries')}`} colorClass="orange" icon={Clock} />
       </div>
 
       {/* ── Live Work Status Summary ── */}
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="card-header">
           <div>
-            <h3>Live Work Status — Today</h3>
-            <p>{today} · Real-time employee activity</p>
+            <h3>{t('dash_live_title')}</h3>
+            <p>{today} · {t('dash_live_sub')}</p>
           </div>
           <button className="btn btn-outline btn-sm" onClick={() => navigate('/attendance')}>
-            <Activity size={14} /> View Details
+            <Activity size={14} /> {t('btn_view_details')}
           </button>
         </div>
         <div style={{ padding: '0 24px 20px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           {[
-            { label: 'Working',        count: workingNow,   color: '#16A34A', bg: '#F0FDF4', icon: Play,        dot: '#22C55E' },
-            { label: 'On Break',       count: onBreakNow,   color: '#7C3AED', bg: '#F5F3FF', icon: Coffee,      dot: '#A78BFA' },
-            { label: 'Logged In',      count: loggedInNow,  color: '#D97706', bg: '#FFFBEB', icon: LogIn,       dot: '#F59E0B' },
-            { label: 'Work Completed', count: workDoneNow,  color: '#0891B2', bg: '#ECFEFF', icon: StopCircle,  dot: '#22D3EE' },
-            { label: 'GPS Verified',   count: presentToday, color: '#16A34A', bg: '#F0FDF4', icon: CheckCircle, dot: '#22C55E' },
-            { label: 'GPS Flagged',    count: flaggedToday, color: '#DC2626', bg: '#FEF2F2', icon: AlertTriangle,dot: '#FCA5A5' },
-          ].map(({ label, count, color, bg, icon: Icon, dot }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', background: bg, borderRadius: 12, border: `1.5px solid ${color}25`, minWidth: 140 }}>
+            { labelKey: 'status_working',        count: workingNow,   color: '#16A34A', bg: '#F0FDF4', icon: Play,        dot: '#22C55E' },
+            { labelKey: 'status_on_break',       count: onBreakNow,   color: '#7C3AED', bg: '#F5F3FF', icon: Coffee,      dot: '#A78BFA' },
+            { labelKey: 'status_logged_in',      count: loggedInNow,  color: '#D97706', bg: '#FFFBEB', icon: LogIn,       dot: '#F59E0B' },
+            { labelKey: 'status_work_completed', count: workDoneNow,  color: '#0891B2', bg: '#ECFEFF', icon: StopCircle,  dot: '#22D3EE' },
+            { labelKey: 'status_gps_verified',   count: presentToday, color: '#16A34A', bg: '#F0FDF4', icon: CheckCircle, dot: '#22C55E' },
+            { labelKey: 'status_gps_flagged',    count: flaggedToday, color: '#DC2626', bg: '#FEF2F2', icon: AlertTriangle,dot: '#FCA5A5' },
+          ].map(({ labelKey, count, color, bg, icon: Icon, dot }) => (
+            <div key={labelKey} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', background: bg, borderRadius: 12, border: `1.5px solid ${color}25`, minWidth: 140 }}>
               <div style={{ width: 36, height: 36, borderRadius: '50%', background: color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', color }}>
                 <Icon size={18} />
               </div>
               <div>
                 <div style={{ fontSize: 22, fontWeight: 800, color, lineHeight: 1 }}>{count}</div>
-                <div style={{ fontSize: 11, color, fontWeight: 600, opacity: 0.8 }}>{label}</div>
+                <div style={{ fontSize: 11, color, fontWeight: 600, opacity: 0.8 }}>{t(labelKey)}</div>
               </div>
             </div>
           ))}
@@ -141,29 +143,29 @@ export default function Dashboard() {
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="card-header">
           <div>
-            <h3>Today's Attendance — {today}</h3>
-            <p>{workingNow} working · {onBreakNow} on break · {todayAttendance.length} total records</p>
+            <h3>{t('dash_attendance_title')} — {today}</h3>
+            <p>{workingNow} {t('dash_working_dot')} · {onBreakNow} {t('dash_on_break_dot')} · {todayAttendance.length} {t('dash_total_records')}</p>
           </div>
           <button className="btn btn-outline btn-sm" onClick={() => navigate('/attendance')}>
-            <CalendarCheck size={14} /> View All
+            <CalendarCheck size={14} /> {t('btn_view_all')}
           </button>
         </div>
         <div className="table-wrapper">
           <table>
             <thead>
               <tr>
-                <th>Employee</th>
-                <th>Project</th>
-                <th>Login</th>
-                <th>Work Start</th>
-                <th>Work End</th>
-                <th>GPS Check-In</th>
-                <th>Work Status</th>
+                <th>{t('dash_col_employee')}</th>
+                <th>{t('dash_col_project')}</th>
+                <th>{t('dash_col_login')}</th>
+                <th>{t('dash_col_work_start')}</th>
+                <th>{t('dash_col_work_end')}</th>
+                <th>{t('dash_col_gps_checkin')}</th>
+                <th>{t('dash_col_work_status')}</th>
               </tr>
             </thead>
             <tbody>
               {todayAttendance.length === 0 && (
-                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: 24 }}>No attendance records for today yet.</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: 24 }}>{t('dash_no_attendance')}</td></tr>
               )}
               {todayAttendance.map((a, i) => {
                 const emp   = getEmployeeById(a.employeeId);
@@ -204,8 +206,8 @@ export default function Dashboard() {
         <div className="card">
           <div className="card-header">
             <div>
-              <h3>Work Hours — Last 7 Days</h3>
-              <p>Daily hours logged across all projects</p>
+              <h3>{t('dash_chart_title')}</h3>
+              <p>{t('dash_chart_sub')}</p>
             </div>
             <TrendingUp size={20} color="var(--color-text-muted)" />
           </div>
@@ -230,13 +232,13 @@ export default function Dashboard() {
         <div className="card">
           <div className="card-header">
             <div>
-              <h3>Recent Work Entries</h3>
-              <p>Latest logged work activities</p>
+              <h3>{t('dash_recent_title')}</h3>
+              <p>{t('dash_recent_sub')}</p>
             </div>
           </div>
           <div className="card-body">
             {recentEntries.length === 0 ? (
-              <p className="text-muted" style={{ textAlign: 'center', padding: '24px 0' }}>No entries yet.</p>
+              <p className="text-muted" style={{ textAlign: 'center', padding: '24px 0' }}>{t('dash_no_entries')}</p>
             ) : (
               <div className="recent-activity">
                 {recentEntries.map((entry, i) => {
@@ -262,23 +264,23 @@ export default function Dashboard() {
       <div className="card">
         <div className="card-header">
           <div>
-            <h3>Projects Overview</h3>
-            <p>All projects with their current status</p>
+            <h3>{t('dash_projects_title')}</h3>
+            <p>{t('dash_projects_sub')}</p>
           </div>
           <button className="btn btn-primary btn-sm" onClick={() => navigate('/projects')}>
-            <Plus size={14} /> Add Project
+            <Plus size={14} /> {t('btn_add_project')}
           </button>
         </div>
         <div className="table-wrapper">
           <table>
             <thead>
               <tr>
-                <th>Project</th>
-                <th>Client Company</th>
-                <th>Location</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Status</th>
+                <th>{t('dash_col_project')}</th>
+                <th>{t('dash_col_client')}</th>
+                <th>{t('dash_col_location')}</th>
+                <th>{t('dash_col_start')}</th>
+                <th>{t('dash_col_end')}</th>
+                <th>{t('dash_col_status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -296,7 +298,7 @@ export default function Dashboard() {
                 </tr>
               ))}
               {projects.length === 0 && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: 32 }}>No projects yet.</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: 32 }}>{t('dash_no_projects')}</td></tr>
               )}
             </tbody>
           </table>

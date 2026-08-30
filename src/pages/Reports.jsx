@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer
@@ -541,6 +542,7 @@ export default function Reports() {
     companies, projects, employees, workEntries,
     getProjectById, getEmployeeById, getCompanyById
   } = useApp();
+  const { t } = useLanguage();
 
   // ── Weekly tab state ──
   const [selEmployee, setSelEmployee] = useState('');
@@ -625,7 +627,7 @@ export default function Reports() {
       {/* ── PAGE HEADER ── */}
       <div className="page-header">
         <div className="page-header-info">
-          <h2>Reports</h2>
+          <h2>{t('rep_title')}</h2>
           <p>Weekly employee timesheets and general work reports</p>
         </div>
       </div>

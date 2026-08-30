@@ -40,28 +40,34 @@ function formatTimestamp(ts) {
   return new Date(ts).toLocaleTimeString('en-SE', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 }
 
-function calcDuration(start, end) {
-  if (!start) return '—';
-  const s = new Date(start);
-  const e = end ? new Date(end) : new Date();
-  const diff = Math.floor((e - s) / 60000);
-  if (diff < 0) return '—';
-  return `${Math.floor(diff / 60)}h ${diff % 60}m`;
+function calcWorkedDuration(record, now) {
+  if (!record?.workStartTime) return '—';
+  const end = record.workEndTime ? new Date(record.workEndTime) : now;
+  const breaks = record.breaks ?? (record.breakStartTime && record.breakEndTime
+    ? [{ startTime: record.breakStartTime, endTime: record.breakEndTime }]
+    : []);
+  const breakMinutes = breaks.reduce((total, item) => {
+    if (!item.startTime) return total;
+    const breakEnd = item.endTime ? new Date(item.endTime) : (record.workStatus === 'on_break' ? now : null);
+    return breakEnd ? total + Math.max(0, Math.floor((breakEnd - new Date(item.startTime)) / 60000)) : total;
+  }, 0);
+  const minutes = Math.max(0, Math.floor((end - new Date(record.workStartTime)) / 60000) - breakMinutes);
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
 export default function EmployeeDashboard() {
   const {
-    loggedInEmployeeId, employees, projects, companies,
+    loggedInEmployeeId, employees, projects,
     attendance, getTodayAttendance, createAttendanceRecord,
     checkIn, checkOut, saveWorkDetails, getCompanyById,
     startWork, startBreak, endBreak, endWork,
-    getEmployeeTodayRecord, getAssignmentsByEmployee,
+    getAssignmentsByEmployee, getPrimaryProjectForEmployee,
   } = useApp();
 
   const today = todayStr();
   const emp = employees.find(e => e.id === loggedInEmployeeId);
-  // Primary project for GPS check-in / attendance (from employee record)
-  const assignedProject = emp?.assignedProjectId ? projects.find(p => p.id === emp.assignedProjectId) : null;
+  // The active assignment is the authoritative project for today's attendance.
+  const assignedProject = getPrimaryProjectForEmployee(loggedInEmployeeId, today);
   const company = assignedProject ? getCompanyById(assignedProject.companyId) : null;
   // All projects from the assignments table for this employee
   const myAssignments = getAssignmentsByEmployee(loggedInEmployeeId);
@@ -70,7 +76,8 @@ export default function EmployeeDashboard() {
   const [gpsState, setGpsState]     = useState('idle');
   const [gpsError, setGpsError]     = useState('');
   const [lastResult, setLastResult] = useState(null);
-  const [workForm, setWorkForm]     = useState({ workDescription: '', normalHours: '', extraHours: '' });
+  const [workForm, setWorkForm]     = useState({ workDescription: '' });
+  const [workError, setWorkError]   = useState('');
   const [workSaved, setWorkSaved]   = useState(false);
   const [showActivity, setShowActivity] = useState(true);
   const [liveTime, setLiveTime]     = useState(new Date());
@@ -86,11 +93,7 @@ export default function EmployeeDashboard() {
     const r = getTodayAttendance(loggedInEmployeeId, today);
     if (r) {
       setRecord(r);
-      setWorkForm({
-        workDescription: r.workDescription || '',
-        normalHours: r.normalHours ? String(r.normalHours) : '',
-        extraHours: r.extraHours ? String(r.extraHours) : '',
-      });
+      setWorkForm({ workDescription: r.workDescription || '' });
     } else if (emp && assignedProject) {
       const loginTime = new Date().toISOString();
       const newRecord = createAttendanceRecord(loggedInEmployeeId, assignedProject.id, today, loginTime);
@@ -108,7 +111,8 @@ export default function EmployeeDashboard() {
         assignedProject.lat, assignedProject.lng,
         pos.lat, pos.lng, assignedProject.allowedRadius || 200
       );
-      checkIn(record.id, { lat: pos.lat, lng: pos.lng, distance, status: verified ? 'verified' : 'flagged' });
+      const result = checkIn(record.id, { lat: pos.lat, lng: pos.lng, distance, status: verified ? 'verified' : 'flagged' });
+      if (!result.success) throw new Error(result.error);
       setGpsState('success');
       setLastResult({ verified, distance, action: 'check-in', lat: pos.lat, lng: pos.lng });
     } catch (err) { setGpsState('error'); setGpsError(err.message); }
@@ -123,7 +127,8 @@ export default function EmployeeDashboard() {
         assignedProject.lat, assignedProject.lng,
         pos.lat, pos.lng, assignedProject.allowedRadius || 200
       );
-      checkOut(record.id, { lat: pos.lat, lng: pos.lng, distance, status: verified ? 'verified' : 'flagged' });
+      const result = checkOut(record.id, { lat: pos.lat, lng: pos.lng, distance, status: verified ? 'verified' : 'flagged' });
+      if (!result.success) throw new Error(result.error);
       setGpsState('success');
       setLastResult({ verified, distance, action: 'check-out' });
     } catch (err) { setGpsState('error'); setGpsError(err.message); }
@@ -132,35 +137,31 @@ export default function EmployeeDashboard() {
   // ── Work lifecycle handlers ──
   const handleStartWork = () => {
     if (!record) return;
-    startWork(record.id);
+    const result = startWork(record.id);
+    if (!result.success) setWorkError(result.error);
   };
 
   const handleStartBreak = () => {
     if (!record) return;
-    startBreak(record.id);
+    const result = startBreak(record.id);
+    if (!result.success) setWorkError(result.error);
   };
 
   const handleEndBreak = () => {
     if (!record) return;
-    endBreak(record.id);
+    const result = endBreak(record.id);
+    if (!result.success) setWorkError(result.error);
   };
 
   const handleEndWork = () => {
     if (!record) return;
-    endWork(record.id, {
-      workDescription: workForm.workDescription,
-      normalHours: parseFloat(workForm.normalHours) || 0,
-      extraHours: parseFloat(workForm.extraHours) || 0,
-    });
+    const result = endWork(record.id, { workDescription: workForm.workDescription });
+    if (!result.success) setWorkError(result.error);
   };
 
   const handleSaveDescription = () => {
     if (!record) return;
-    saveWorkDetails(record.id, {
-      workDescription: workForm.workDescription,
-      normalHours: parseFloat(workForm.normalHours) || 0,
-      extraHours: parseFloat(workForm.extraHours) || 0,
-    });
+    saveWorkDetails(record.id, { workDescription: workForm.workDescription });
     setWorkSaved(true);
     setTimeout(() => setWorkSaved(false), 3000);
   };
@@ -235,9 +236,9 @@ export default function EmployeeDashboard() {
           <div className="stat-icon purple"><Clock size={24} /></div>
           <div className="stat-info">
             <p>Work Duration</p>
-            <h3>{calcDuration(record?.workStartTime, record?.workEndTime)}</h3>
+            <h3>{calcWorkedDuration(record, liveTime)}</h3>
             {record?.breakStartTime && (
-              <small>Break: {calcDuration(record.breakStartTime, record.breakEndTime)}</small>
+              <small>Breaks: {(record.breaks || []).length}</small>
             )}
           </div>
         </div>
@@ -265,7 +266,7 @@ export default function EmployeeDashboard() {
                 {myAssignments.map(asgn => {
                   const proj = projects.find(p => p.id === asgn.projectId);
                   const co   = proj ? getCompanyById(proj.companyId) : null;
-                  const isPrimary = proj?.id === emp?.assignedProjectId;
+                  const isPrimary = proj?.id === assignedProject?.id;
                   const statusCls = asgn.status === 'Active' ? 'badge-success' : asgn.status === 'Completed' ? 'badge-info' : 'badge-neutral';
                   return proj ? (
                     <div key={asgn.id} style={{
@@ -352,9 +353,9 @@ export default function EmployeeDashboard() {
               {/* Start Work */}
               <button
                 onClick={handleStartWork}
-                disabled={workStarted || workDone}
+                disabled={!checkedIn || workStarted || workDone}
                 style={{
-                  padding: '11px 8px', borderRadius: 10, border: 'none', cursor: workStarted || workDone ? 'default' : 'pointer',
+                  padding: '11px 8px', borderRadius: 10, border: 'none', cursor: !checkedIn || workStarted || workDone ? 'default' : 'pointer',
                   background: workStarted ? '#DCFCE7' : '#16A34A',
                   color: workStarted ? '#16A34A' : '#fff',
                   fontWeight: 700, fontSize: 13, fontFamily: 'Inter, sans-serif',
@@ -420,6 +421,11 @@ export default function EmployeeDashboard() {
                 <Coffee size={14} /> Break started at {formatTimestamp(record?.breakStartTime)} — click "End Break" to resume.
               </div>
             )}
+            {workError && (
+              <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 8, padding: '10px 14px', fontSize: 12.5, color: '#DC2626', display: 'flex', gap: 8, alignItems: 'center' }}>
+                <AlertTriangle size={14} /> {workError}
+              </div>
+            )}
           </div>
         </div>
 
@@ -441,24 +447,9 @@ export default function EmployeeDashboard() {
                 disabled={workDone}
               />
             </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Normal Working Hours</label>
-                <input type="number" min="0" max="24" step="0.5"
-                  placeholder="e.g. 8"
-                  value={workForm.normalHours}
-                  onChange={e => setWorkForm(f => ({ ...f, normalHours: e.target.value }))}
-                  disabled={workDone} />
-              </div>
-              <div className="form-group">
-                <label>Extra / Overtime Hours</label>
-                <input type="number" min="0" max="12" step="0.5"
-                  placeholder="e.g. 2"
-                  value={workForm.extraHours}
-                  onChange={e => setWorkForm(f => ({ ...f, extraHours: e.target.value }))}
-                  disabled={workDone} />
-              </div>
-            </div>
+            <p style={{ margin: '4px 0 14px', fontSize: 12, color: 'var(--color-text-muted)' }}>
+              Normal and overtime hours are calculated automatically from your work and break timestamps when you end the session.
+            </p>
             {!workDone && (
               <button className="btn btn-primary" onClick={handleSaveDescription} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Save size={16} /> Save Description
@@ -514,12 +505,12 @@ export default function EmployeeDashboard() {
               </button>
               <button
                 onClick={handleCheckOut}
-                disabled={!checkedIn || checkedOut || gpsState === 'loading'}
+                disabled={!workDone || checkedOut || gpsState === 'loading'}
                 style={{
                   flex: 1, padding: '12px', borderRadius: 10, border: 'none',
-                  background: checkedOut ? '#FEE2E2' : (!checkedIn ? '#F1F5F9' : '#DC2626'),
-                  color: checkedOut ? '#DC2626' : (!checkedIn ? '#94A3B8' : '#fff'),
-                  fontWeight: 700, fontSize: 14, cursor: (!checkedIn || checkedOut) ? 'default' : 'pointer',
+                  background: checkedOut ? '#FEE2E2' : (!workDone ? '#F1F5F9' : '#DC2626'),
+                  color: checkedOut ? '#DC2626' : (!workDone ? '#94A3B8' : '#fff'),
+                  fontWeight: 700, fontSize: 14, cursor: (!workDone || checkedOut) ? 'default' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   transition: 'all 0.2s', fontFamily: 'Inter, sans-serif',
                 }}

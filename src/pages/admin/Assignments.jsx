@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../../components/ui/Modal';
 import {
   Link2, Plus, Search, Pencil, Trash2, FolderKanban,
@@ -24,6 +25,7 @@ export default function Assignments() {
     employees, projects, companies,
     getEmployeeById, getProjectById, getCompanyById, hasAssignment,
   } = useApp();
+  const { t } = useLanguage();
 
   const [search,       setSearch]       = useState('');
   const [filterEmp,    setFilterEmp]    = useState('');
@@ -89,14 +91,14 @@ export default function Assignments() {
 
   const validate = () => {
     const e = {};
-    if (!form.employeeId) e.employeeId = 'Please select an employee';
-    if (!form.projectId)  e.projectId  = 'Please select a project';
-    if (!form.startDate)  e.startDate  = 'Start date is required';
-    if (!form.endDate)    e.endDate    = 'End date is required';
+    if (!form.employeeId) e.employeeId = t('asgn_err_employee');
+    if (!form.projectId)  e.projectId  = t('asgn_err_project');
+    if (!form.startDate)  e.startDate  = t('asgn_err_start');
+    if (!form.endDate)    e.endDate    = t('asgn_err_end');
     if (form.startDate && form.endDate && form.endDate < form.startDate)
-      e.endDate = 'End date must be after start date';
+      e.endDate = t('asgn_err_dates');
     if (hasAssignment(form.employeeId, form.projectId, editItem?.id))
-      e.projectId = 'This employee is already assigned to this project';
+      e.projectId = t('asgn_err_duplicate');
     return e;
   };
 
@@ -118,11 +120,11 @@ export default function Assignments() {
     <div>
       <div className="page-header">
         <div className="page-header-info">
-          <h2>Project Assignments</h2>
-          <p>{assignments.length} total · {totalActive} active</p>
+          <h2>{t('asgn_title')}</h2>
+          <p>{assignments.length} {t('lbl_total')} · {totalActive} {t('lbl_active').toLowerCase()}</p>
         </div>
         <button id="add-assignment-btn" className="btn btn-primary" onClick={() => openAdd()}>
-          <Plus size={16} /> Assign Project
+          <Plus size={16} /> {t('btn_assign_project')}
         </button>
       </div>
 
@@ -131,33 +133,33 @@ export default function Assignments() {
         <div className="stat-card green">
           <div className="stat-icon green"><CheckCircle size={24} /></div>
           <div className="stat-info">
-            <p>Active Assignments</p>
+            <p>{t('asgn_stat_active')}</p>
             <h3>{totalActive}</h3>
-            <small>Currently running</small>
+            <small>{t('asgn_stat_active_sub')}</small>
           </div>
         </div>
         <div className="stat-card blue">
           <div className="stat-icon blue"><Users size={24} /></div>
           <div className="stat-info">
-            <p>Employees Assigned</p>
+            <p>{t('asgn_stat_employees')}</p>
             <h3>{[...new Set(assignments.filter(a => a.status === 'Active').map(a => a.employeeId))].length}</h3>
-            <small>With active assignments</small>
+            <small>{t('asgn_stat_employees_sub')}</small>
           </div>
         </div>
         <div className="stat-card purple">
           <div className="stat-icon purple"><FolderKanban size={24} /></div>
           <div className="stat-info">
-            <p>Projects Covered</p>
+            <p>{t('asgn_stat_projects')}</p>
             <h3>{[...new Set(assignments.filter(a => a.status === 'Active').map(a => a.projectId))].length}</h3>
-            <small>With active assignments</small>
+            <small>{t('asgn_stat_projects_sub')}</small>
           </div>
         </div>
         <div className="stat-card orange">
           <div className="stat-icon orange"><Clock size={24} /></div>
           <div className="stat-info">
-            <p>Completed</p>
+            <p>{t('asgn_stat_completed')}</p>
             <h3>{totalCompleted}</h3>
-            <small>Finished assignments</small>
+            <small>{t('asgn_stat_completed_sub')}</small>
           </div>
         </div>
       </div>
@@ -165,7 +167,7 @@ export default function Assignments() {
       {/* ── Quick-assign per project ── */}
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="card-header">
-          <div><h3>Quick Assign by Project</h3><p>Click a project to assign employees directly</p></div>
+          <div><h3>{t('asgn_quick_title')}</h3><p>{t('asgn_quick_sub')}</p></div>
           <FolderKanban size={20} color="var(--color-text-muted)" />
         </div>
         <div style={{ padding: '0 24px 20px', display: 'flex', flexWrap: 'wrap', gap: 10 }}>
@@ -183,7 +185,7 @@ export default function Assignments() {
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{p.name}</div>
                     <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{p.number} · {company?.name}</div>
                   </div>
-                  <span className="badge badge-success">{assigned} assigned</span>
+                  <span className="badge badge-success">{assigned} {t('asgn_assigned')}</span>
                 </div>
                 {/* Assigned avatars */}
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
@@ -217,7 +219,7 @@ export default function Assignments() {
             );
           })}
           {projects.filter(p => p.status === 'Active').length === 0 && (
-            <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>No active projects yet.</p>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>{t('asgn_no_active_projects')}</p>
           )}
         </div>
       </div>
@@ -227,33 +229,33 @@ export default function Assignments() {
         <div style={{ padding: '14px 24px', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="search-input-wrapper">
             <Search size={16} className="search-icon" />
-            <input placeholder="Search employee or project..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input placeholder={t('asgn_search_ph')} value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Employee</label>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>{t('asgn_filter_employee')}</label>
             <select value={filterEmp} onChange={e => setFilterEmp(e.target.value)} style={{ maxWidth: 200 }}>
-              <option value="">All Employees</option>
+              <option value="">{t('asgn_all_employees')}</option>
               {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.empId})</option>)}
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Project</label>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>{t('asgn_filter_project')}</label>
             <select value={filterProj} onChange={e => setFilterProj(e.target.value)} style={{ maxWidth: 200 }}>
-              <option value="">All Projects</option>
+              <option value="">{t('asgn_all_projects')}</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Status</label>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>{t('asgn_filter_status')}</label>
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ maxWidth: 150 }}>
-              <option value="">All</option>
+              <option value="">{t('asgn_all_statuses')}</option>
               {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           {(search || filterEmp || filterProj || filterStatus) && (
             <button className="btn btn-ghost btn-sm" style={{ marginBottom: 0 }}
               onClick={() => { setSearch(''); setFilterEmp(''); setFilterProj(''); setFilterStatus(''); }}>
-              Clear
+              {t('btn_clear')}
             </button>
           )}
         </div>
@@ -262,21 +264,21 @@ export default function Assignments() {
       {/* ── Assignments Table ── */}
       <div className="card">
         <div className="card-header">
-          <div><h3>All Assignments</h3><p>{filtered.length} records</p></div>
+          <div><h3>{t('asgn_table_title')}</h3><p>{filtered.length} {t('asgn_records')}</p></div>
         </div>
         <div className="table-wrapper">
           <table>
             <thead>
               <tr>
-                <th>#</th>
-                <th>Employee</th>
-                <th>Project</th>
-                <th>Company</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Status</th>
-                <th>Notes</th>
-                <th>Actions</th>
+                <th>{t('asgn_col_num')}</th>
+                <th>{t('asgn_col_employee')}</th>
+                <th>{t('asgn_col_project')}</th>
+                <th>{t('asgn_col_company')}</th>
+                <th>{t('asgn_col_start')}</th>
+                <th>{t('asgn_col_end')}</th>
+                <th>{t('asgn_col_status')}</th>
+                <th>{t('asgn_col_notes')}</th>
+                <th>{t('asgn_col_actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -334,10 +336,10 @@ export default function Assignments() {
                 <tr><td colSpan={9}>
                   <div className="empty-state">
                     <div className="empty-state-icon"><Link2 size={32} /></div>
-                    <h3>No assignments found</h3>
-                    <p>{search || filterEmp || filterProj ? 'Try different filters.' : 'Click "Assign Project" to create your first assignment.'}</p>
+                    <h3>{t('asgn_empty_title')}</h3>
+                    <p>{search || filterEmp || filterProj ? t('asgn_empty_search') : t('asgn_empty_start')}</p>
                     {!search && !filterEmp && !filterProj && (
-                      <button className="btn btn-primary" onClick={() => openAdd()}><Plus size={16} /> Assign Project</button>
+                      <button className="btn btn-primary" onClick={() => openAdd()}><Plus size={16} /> {t('btn_assign_project')}</button>
                     )}
                   </div>
                 </td></tr>
@@ -351,25 +353,25 @@ export default function Assignments() {
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editItem ? 'Edit Assignment' : 'Assign Project to Employee'}
-        subtitle={editItem ? 'Update assignment details' : 'Link an employee to a project'}
+        title={editItem ? t('asgn_modal_edit_title') : t('asgn_modal_add_title')}
+        subtitle={editItem ? t('asgn_modal_edit_sub') : t('asgn_modal_add_sub')}
         footer={<>
-          <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
+          <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>{t('btn_cancel')}</button>
           <button id="save-assignment-btn" className="btn btn-primary" onClick={handleSubmit}>
-            {editItem ? 'Save Changes' : 'Create Assignment'}
+            {editItem ? t('btn_save') : t('btn_create_assignment')}
           </button>
         </>}
       >
         {/* Employee */}
         <div className="form-group">
-          <label>Employee *</label>
+          <label>{t('asgn_form_employee')}</label>
           <select
             value={form.employeeId}
             onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))}
             style={errors.employeeId ? { borderColor: 'var(--color-danger)' } : {}}
             disabled={!!editItem}
           >
-            <option value="">— Select Employee —</option>
+            <option value="">{t('asgn_form_employee_ph')}</option>
             {employees.filter(e => e.status === 'Active').map(e => (
               <option key={e.id} value={e.id}>{e.name} ({e.empId}) · {e.role}</option>
             ))}
@@ -379,14 +381,14 @@ export default function Assignments() {
 
         {/* Project */}
         <div className="form-group">
-          <label>Project *</label>
+          <label>{t('asgn_form_project')}</label>
           <select
             value={form.projectId}
             onChange={e => setForm(f => ({ ...f, projectId: e.target.value }))}
             style={errors.projectId ? { borderColor: 'var(--color-danger)' } : {}}
             disabled={!!editItem}
           >
-            <option value="">— Select Project —</option>
+            <option value="">{t('asgn_form_project_ph')}</option>
             {projects.map(p => {
               const co = getCompanyById(p.companyId);
               return (
@@ -399,7 +401,7 @@ export default function Assignments() {
           {errors.projectId && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors.projectId}</p>}
           {editItem && (
             <p style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4 }}>
-              ℹ️ To change the employee or project, delete this assignment and create a new one.
+              {t('asgn_form_edit_note')}
             </p>
           )}
         </div>
@@ -407,14 +409,14 @@ export default function Assignments() {
         {/* Dates */}
         <div className="form-row">
           <div className="form-group">
-            <label>Assignment Start Date *</label>
+            <label>{t('asgn_form_start')}</label>
             <input type="date" value={form.startDate}
               onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
               style={errors.startDate ? { borderColor: 'var(--color-danger)' } : {}} />
             {errors.startDate && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors.startDate}</p>}
           </div>
           <div className="form-group">
-            <label>Assignment End Date *</label>
+            <label>{t('asgn_form_end')}</label>
             <input type="date" value={form.endDate}
               onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
               style={errors.endDate ? { borderColor: 'var(--color-danger)' } : {}} />
@@ -424,7 +426,7 @@ export default function Assignments() {
 
         {/* Status */}
         <div className="form-group">
-          <label>Assignment Status</label>
+          <label>{t('asgn_form_status')}</label>
           <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
             {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -432,9 +434,9 @@ export default function Assignments() {
 
         {/* Notes */}
         <div className="form-group">
-          <label>Notes / Role Description</label>
+          <label>{t('asgn_form_notes')}</label>
           <textarea
-            placeholder="e.g. Lead welder for section A, TIG specialist..."
+            placeholder={t('asgn_form_notes_ph')}
             value={form.notes}
             onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
             style={{ minHeight: 70 }}
@@ -442,7 +444,7 @@ export default function Assignments() {
         </div>
 
         <div className="note-box" style={{ marginTop: 4 }}>
-          💡 After saving, this project will automatically appear on the employee's dashboard under "My Assigned Projects".
+          {t('asgn_note')}
         </div>
       </Modal>
 

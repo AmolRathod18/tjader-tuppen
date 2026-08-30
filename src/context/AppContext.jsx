@@ -145,6 +145,9 @@ export function AppProvider({ children }) {
       workEndTime: null,
       activityLog: [],
       ...a,
+      breaks: a.breaks ?? (a.breakStartTime && a.breakEndTime
+        ? [{ startTime: a.breakStartTime, endTime: a.breakEndTime }]
+        : []),
     }));
   });
   const [assignments, setAssignments] = useState(() => {
@@ -200,7 +203,7 @@ export function AppProvider({ children }) {
             return prev;
           }
           // Create new record
-          const projectId = emp.assignedProjectId || null;
+          const projectId = getPrimaryProjectForEmployee(emp.id)?.id || null;
           const newRecord = {
             id: generateId(), employeeId: emp.id, projectId, date: today,
             loginTime, checkInTime: null, checkOutTime: null,
@@ -236,8 +239,11 @@ export function AppProvider({ children }) {
   const deleteProject = (id) => { setProjects(p => p.filter(x => x.id !== id)); setWorkEntries(p => p.filter(w => w.projectId !== id)); };
 
   // ── Employees ──
-  const addEmployee    = (d) => { const n = { ...d, id: generateId(), createdAt: todayStr() }; setEmployees(p => [...p, n]); return n; };
-  const updateEmployee = (id, d) => setEmployees(p => p.map(e => e.id === id ? { ...e, ...d } : e));
+  const addEmployee    = (d) => { const { assignedProjectId: _legacyProjectId, ...employee } = d; const n = { ...employee, id: generateId(), createdAt: todayStr() }; setEmployees(p => [...p, n]); return n; };
+  const updateEmployee = (id, d) => {
+    const { assignedProjectId: _legacyProjectId, ...employee } = d;
+    setEmployees(p => p.map(e => e.id === id ? { ...e, ...employee } : e));
+  };
   const deleteEmployee = (id) => {
     setEmployees(p => p.filter(e => e.id !== id));
     setWorkEntries(p => p.filter(w => w.employeeId !== id));
@@ -273,6 +279,7 @@ export function AppProvider({ children }) {
       checkInStatus: 'not_checked_in', checkOutStatus: null,
       workStatus: loginTime ? 'logged_in' : 'offline',
       workStartTime: null, breakStartTime: null, breakEndTime: null, workEndTime: null,
+      breaks: [],
       workDescription: '', normalHours: 0, extraHours: 0,
       activityLog: loginTime ? [{ action: 'login', time: loginTime, note: 'Employee logged in' }] : [],
       createdAt: todayStr(),
@@ -283,6 +290,10 @@ export function AppProvider({ children }) {
 
   const checkIn = (attendanceId, { lat, lng, distance, status }) => {
     const time = new Date().toISOString();
+    const record = attendance.find(a => a.id === attendanceId);
+    if (!record || record.checkInTime || record.workStatus !== 'logged_in') {
+      return { success: false, error: 'Check-in is not available for this work session.' };
+    }
     setAttendance(p => p.map(a => a.id === attendanceId ? {
       ...a,
       checkInTime: time,
@@ -295,10 +306,15 @@ export function AppProvider({ children }) {
         note: `GPS check-in — ${status === 'verified' ? `verified (${distance}m)` : `flagged (${distance}m from site)`}`,
       }],
     } : a));
+    return { success: true };
   };
 
   const checkOut = (attendanceId, { lat, lng, distance, status }) => {
     const time = new Date().toISOString();
+    const record = attendance.find(a => a.id === attendanceId);
+    if (!record?.checkInTime || record.checkOutTime || record.workStatus !== 'work_completed') {
+      return { success: false, error: 'End work before checking out.' };
+    }
     setAttendance(p => p.map(a => a.id === attendanceId ? {
       ...a,
       checkOutTime: time,
@@ -311,11 +327,12 @@ export function AppProvider({ children }) {
         note: `GPS check-out — ${status === 'verified' ? 'verified' : 'flagged'}`,
       }],
     } : a));
+    return { success: true };
   };
 
-  const saveWorkDetails = (attendanceId, { workDescription, normalHours, extraHours }) => {
+  const saveWorkDetails = (attendanceId, { workDescription }) => {
     setAttendance(p => p.map(a => a.id === attendanceId ? {
-      ...a, workDescription, normalHours, extraHours,
+      ...a, workDescription,
     } : a));
   };
 
@@ -323,46 +340,71 @@ export function AppProvider({ children }) {
 
   const startWork = (attendanceId) => {
     const time = new Date().toISOString();
+    const record = attendance.find(a => a.id === attendanceId);
+    if (!record?.checkInTime || record.workStatus !== 'logged_in') {
+      return { success: false, error: 'GPS check-in is required before starting work.' };
+    }
     setAttendance(p => p.map(a => a.id === attendanceId ? {
       ...a,
       workStartTime: a.workStartTime || time,  // don't overwrite if already set
       workStatus: 'working',
       activityLog: [...(a.activityLog || []), { action: 'start_work', time, note: 'Work started' }],
     } : a));
+    return { success: true };
   };
 
   const startBreak = (attendanceId) => {
     const time = new Date().toISOString();
+    const record = attendance.find(a => a.id === attendanceId);
+    if (record?.workStatus !== 'working') return { success: false, error: 'Start work before starting a break.' };
     setAttendance(p => p.map(a => a.id === attendanceId ? {
       ...a,
       breakStartTime: time,
       breakEndTime: null,  // reset if multiple breaks (track last)
+      breaks: [...(a.breaks || []), { startTime: time, endTime: null }],
       workStatus: 'on_break',
       activityLog: [...(a.activityLog || []), { action: 'start_break', time, note: 'Break started' }],
     } : a));
+    return { success: true };
   };
 
   const endBreak = (attendanceId) => {
     const time = new Date().toISOString();
+    const record = attendance.find(a => a.id === attendanceId);
+    if (record?.workStatus !== 'on_break') return { success: false, error: 'There is no active break to end.' };
     setAttendance(p => p.map(a => a.id === attendanceId ? {
       ...a,
       breakEndTime: time,
+      breaks: (a.breaks || []).map((b, index, all) => index === all.length - 1 && !b.endTime ? { ...b, endTime: time } : b),
       workStatus: 'working',
       activityLog: [...(a.activityLog || []), { action: 'end_break', time, note: 'Break ended, resumed work' }],
     } : a));
+    return { success: true };
   };
 
-  const endWork = (attendanceId, { workDescription, normalHours, extraHours }) => {
+  const endWork = (attendanceId, { workDescription }) => {
     const time = new Date().toISOString();
+    const record = attendance.find(a => a.id === attendanceId);
+    if (record?.workStatus !== 'working' || !record.workStartTime) {
+      return { success: false, error: 'Resume work before ending the session.' };
+    }
+    const breakMinutes = (record.breaks || []).reduce((total, b) => {
+      if (!b.startTime || !b.endTime) return total;
+      return total + Math.max(0, Math.round((new Date(b.endTime) - new Date(b.startTime)) / 60000));
+    }, 0);
+    const workedMinutes = Math.max(0, Math.round((new Date(time) - new Date(record.workStartTime)) / 60000) - breakMinutes);
+    const normalHours = Math.min(workedMinutes, 8 * 60) / 60;
+    const extraHours = Math.max(0, workedMinutes - 8 * 60) / 60;
     setAttendance(p => p.map(a => a.id === attendanceId ? {
       ...a,
       workEndTime: time,
       workStatus: 'work_completed',
       workDescription: workDescription || a.workDescription,
-      normalHours: normalHours !== undefined ? normalHours : a.normalHours,
-      extraHours: extraHours !== undefined ? extraHours : a.extraHours,
+      normalHours,
+      extraHours,
       activityLog: [...(a.activityLog || []), { action: 'end_work', time, note: 'Work ended — session completed' }],
     } : a));
+    return { success: true, workedMinutes, normalHours, extraHours };
   };
 
   // ── Status helpers ──
@@ -397,9 +439,17 @@ export function AppProvider({ children }) {
   const getTotalHours   = (entries) => entries.reduce((s, w) => s + (parseFloat(w.hours) || 0), 0);
   const getAttendanceByDate = (date) => attendance.filter(a => a.date === date);
   const getAttendanceByEmployee = (empId) => attendance.filter(a => a.employeeId === empId);
-  /** Get active project IDs assigned to an employee via the assignments table */
-  const getEmployeeActiveProjectIds = (empId) =>
-    assignments.filter(a => a.employeeId === empId && a.status === 'Active').map(a => a.projectId);
+  /** Active assignments on a date are the source of truth for employee projects. */
+  const getEmployeeActiveAssignments = (empId, date = todayStr()) =>
+    assignments
+      .filter(a => a.employeeId === empId && a.status === 'Active' && a.startDate <= date && a.endDate >= date)
+      .sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const getEmployeeActiveProjectIds = (empId, date) =>
+    getEmployeeActiveAssignments(empId, date).map(a => a.projectId);
+  const getPrimaryProjectForEmployee = (empId, date) => {
+    const projectId = getEmployeeActiveProjectIds(empId, date)[0];
+    return projectId ? projects.find(p => p.id === projectId) : null;
+  };
 
   return (
     <AppContext.Provider value={{
@@ -426,7 +476,7 @@ export function AppProvider({ children }) {
       // assignments
       assignments, addAssignment, updateAssignment, deleteAssignment,
       getAssignmentsByEmployee, getAssignmentsByProject, hasAssignment,
-      getEmployeeActiveProjectIds,
+      getEmployeeActiveAssignments, getEmployeeActiveProjectIds, getPrimaryProjectForEmployee,
       // helpers
       getCompanyById, getProjectById, getEmployeeById,
       getProjectsByCompany, getWorkEntriesByProject, getTotalHours,

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
 import { Building2, Plus, Search, Pencil, Trash2, Phone, Mail, MapPin } from 'lucide-react';
 
@@ -7,6 +8,7 @@ const EMPTY_FORM = { name: '', contact: '', email: '', phone: '', address: '' };
 
 export default function Companies() {
   const { companies, addCompany, updateCompany, deleteCompany, getProjectsByCompany } = useApp();
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -25,9 +27,9 @@ export default function Companies() {
 
   const validate = () => {
     const e = {};
-    if (!form.name.trim()) e.name = 'Company name is required';
-    if (!form.contact.trim()) e.contact = 'Contact person is required';
-    if (form.email && !/\S+@\S+\.\S+/.test(form.email)) e.email = 'Invalid email address';
+    if (!form.name.trim()) e.name = t('co_err_name');
+    if (!form.contact.trim()) e.contact = t('co_err_contact');
+    if (form.email && !/\S+@\S+\.\S+/.test(form.email)) e.email = t('co_err_email');
     return e;
   };
 
@@ -62,11 +64,11 @@ export default function Companies() {
     <div>
       <div className="page-header">
         <div className="page-header-info">
-          <h2>Client Companies</h2>
-          <p>{companies.length} companies registered</p>
+          <h2>{t('co_title')}</h2>
+          <p>{companies.length} {t('co_registered')}</p>
         </div>
         <button id="add-company-btn" className="btn btn-primary" onClick={openAdd}>
-          <Plus size={16} /> Add Company
+          <Plus size={16} /> {t('btn_add_company')}
         </button>
       </div>
 
@@ -77,7 +79,7 @@ export default function Companies() {
             <Search size={16} className="search-icon" />
             <input
               id="search-companies"
-              placeholder="Search companies..."
+              placeholder={t('co_search_ph')}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -89,14 +91,14 @@ export default function Companies() {
           <table>
             <thead>
               <tr>
-                <th>#</th>
-                <th>Company Name</th>
-                <th>Contact Person</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Address</th>
-                <th>Projects</th>
-                <th>Actions</th>
+                <th>{t('co_col_num')}</th>
+                <th>{t('co_col_name')}</th>
+                <th>{t('co_col_contact')}</th>
+                <th>{t('co_col_email')}</th>
+                <th>{t('co_col_phone')}</th>
+                <th>{t('co_col_address')}</th>
+                <th>{t('co_col_projects')}</th>
+                <th>{t('co_col_actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -141,7 +143,7 @@ export default function Companies() {
                       ) : '—'}
                     </td>
                     <td>
-                      <span className="badge badge-primary">{projectCount} project{projectCount !== 1 ? 's' : ''}</span>
+                      <span className="badge badge-primary">{projectCount} {projectCount !== 1 ? t('co_project_count_many') : t('co_project_count_one')}</span>
                     </td>
                     <td>
                       <div className="table-actions">
@@ -162,9 +164,9 @@ export default function Companies() {
                   <td colSpan={8}>
                     <div className="empty-state">
                       <div className="empty-state-icon"><Building2 size={32} /></div>
-                      <h3>No companies found</h3>
-                      <p>{search ? 'Try a different search term.' : 'Get started by adding your first client company.'}</p>
-                      {!search && <button className="btn btn-primary" onClick={openAdd}><Plus size={16} /> Add Company</button>}
+                      <h3>{t('co_empty_title')}</h3>
+                      <p>{search ? t('co_empty_search') : t('co_empty_start')}</p>
+                      {!search && <button className="btn btn-primary" onClick={openAdd}><Plus size={16} /> {t('btn_add_company')}</button>}
                     </div>
                   </td>
                 </tr>
@@ -178,24 +180,24 @@ export default function Companies() {
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editItem ? 'Edit Company' : 'Add Client Company'}
-        subtitle={editItem ? 'Update company details' : 'Register a new client company'}
+        title={editItem ? t('co_modal_edit_title') : t('co_modal_add_title')}
+        subtitle={editItem ? t('co_modal_edit_sub') : t('co_modal_add_sub')}
         footer={
           <>
-            <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
+            <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>{t('btn_cancel')}</button>
             <button id="save-company-btn" className="btn btn-primary" onClick={handleSubmit}>
-              {editItem ? 'Save Changes' : 'Add Company'}
+              {editItem ? t('btn_save') : t('co_btn_save')}
             </button>
           </>
         }
       >
-        <F field="name" label="Company Name" placeholder="e.g. XYZ Construction AB" />
-        <F field="contact" label="Contact Person" placeholder="e.g. Erik Lindqvist" />
+        <F field="name" label={t('co_form_name')} placeholder={t('co_form_name_ph')} />
+        <F field="contact" label={t('co_form_contact')} placeholder={t('co_form_contact_ph')} />
         <div className="form-row">
-          <F field="email" label="Email Address" type="email" placeholder="contact@company.se" />
-          <F field="phone" label="Phone Number" placeholder="+46 70 123 4567" />
+          <F field="email" label={t('co_form_email')} type="email" placeholder={t('co_form_email_ph')} />
+          <F field="phone" label={t('co_form_phone')} placeholder={t('co_form_phone_ph')} />
         </div>
-        <F field="address" label="Address / Location" placeholder="e.g. Stockholm, Sweden" />
+        <F field="address" label={t('co_form_address')} placeholder={t('co_form_address_ph')} />
       </Modal>
 
       {/* Delete Modal */}

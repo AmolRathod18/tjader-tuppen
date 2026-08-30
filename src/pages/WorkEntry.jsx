@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
 import { ClipboardList, Plus, Search, Pencil, Trash2, Clock } from 'lucide-react';
 
@@ -7,6 +8,7 @@ const EMPTY_FORM = { projectId: '', employeeId: '', date: '', hours: '', descrip
 
 export default function WorkEntry() {
   const { workEntries, projects, employees, addWorkEntry, updateWorkEntry, deleteWorkEntry, getProjectById, getEmployeeById, getCompanyById } = useApp();
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [filterProject, setFilterProject] = useState('');
   const [filterDate, setFilterDate] = useState('');
@@ -50,12 +52,12 @@ export default function WorkEntry() {
 
   const validate = () => {
     const e = {};
-    if (!form.projectId) e.projectId = 'Please select a project';
-    if (!form.employeeId) e.employeeId = 'Please select an employee';
-    if (!form.date) e.date = 'Date is required';
-    if (!form.hours || isNaN(form.hours) || parseFloat(form.hours) <= 0) e.hours = 'Enter valid hours (e.g. 8 or 7.5)';
-    if (parseFloat(form.hours) > 24) e.hours = 'Hours cannot exceed 24';
-    if (!form.description.trim()) e.description = 'Work description is required';
+    if (!form.projectId) e.projectId = t('we_err_project');
+    if (!form.employeeId) e.employeeId = t('we_err_employee');
+    if (!form.date) e.date = t('we_err_date');
+    if (!form.hours || isNaN(form.hours) || parseFloat(form.hours) <= 0) e.hours = t('we_err_hours');
+    if (parseFloat(form.hours) > 24) e.hours = t('we_err_hours');
+    if (!form.description.trim()) e.description = t('we_err_description');
     return e;
   };
 
@@ -76,30 +78,30 @@ export default function WorkEntry() {
     <div>
       <div className="page-header">
         <div className="page-header-info">
-          <h2>Daily Work Entry</h2>
-          <p>{workEntries.length} entries recorded · {totalHours.toFixed(1)}h shown</p>
+          <h2>{t('we_title')}</h2>
+          <p>{workEntries.length} {t('lbl_entries')} · {totalHours.toFixed(1)}h</p>
         </div>
         <button id="add-work-btn" className="btn btn-primary" onClick={openAdd}>
-          <Plus size={16} /> Log Work Entry
+          <Plus size={16} /> {t('we_btn_log')}
         </button>
       </div>
 
       {/* Summary row */}
       <div className="summary-row" style={{ marginBottom: 20 }}>
         <div className="summary-item">
-          <p>Shown Entries</p>
+          <p>{t('we_total_entries')}</p>
           <h4>{filtered.length}</h4>
         </div>
         <div className="summary-item">
-          <p>Total Hours</p>
+          <p>{t('we_total_hours')}</p>
           <h4>{totalHours.toFixed(1)}h</h4>
         </div>
         <div className="summary-item">
-          <p>Avg per Entry</p>
+          <p>{t('we_avg_hours')}</p>
           <h4>{filtered.length > 0 ? (totalHours / filtered.length).toFixed(1) : '0'}h</h4>
         </div>
         <div className="summary-item">
-          <p>Active Projects</p>
+          <p>{t('lbl_active')}</p>
           <h4>{activeProjects.length}</h4>
         </div>
       </div>
@@ -109,14 +111,14 @@ export default function WorkEntry() {
         <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border-light)', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <div className="search-input-wrapper">
             <Search size={16} className="search-icon" />
-            <input id="search-entries" placeholder="Search entries..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input id="search-entries" placeholder={t('emp_search_ph')} value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <select value={filterProject} onChange={e => setFilterProject(e.target.value)} style={{ maxWidth: 220 }}>
-            <option value="">All Projects</option>
+            <option value="">{t('we_all_projects')}</option>
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} style={{ maxWidth: 180 }} title="Filter by date" />
-          {filterDate && <button className="btn btn-ghost btn-sm" onClick={() => setFilterDate('')}>Clear Date</button>}
+          <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} style={{ maxWidth: 180 }} title={t('lbl_date')} />
+          {filterDate && <button className="btn btn-ghost btn-sm" onClick={() => setFilterDate('')}>{t('btn_clear')}</button>}
         </div>
 
         <div className="table-wrapper">
@@ -124,13 +126,13 @@ export default function WorkEntry() {
             <thead>
               <tr>
                 <th>#</th>
-                <th>Date</th>
-                <th>Project</th>
-                <th>Employee</th>
-                <th>Hours</th>
-                <th>Work Description</th>
-                <th>Notes</th>
-                <th>Actions</th>
+                <th>{t('we_col_date')}</th>
+                <th>{t('we_col_project')}</th>
+                <th>{t('we_col_employee')}</th>
+                <th>{t('we_col_hours')}</th>
+                <th>{t('we_col_description')}</th>
+                <th>{t('we_col_notes')}</th>
+                <th>{t('we_col_actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -183,9 +185,9 @@ export default function WorkEntry() {
                 <tr><td colSpan={8}>
                   <div className="empty-state">
                     <div className="empty-state-icon"><ClipboardList size={32} /></div>
-                    <h3>No work entries found</h3>
-                    <p>{search || filterProject || filterDate ? 'Try adjusting your filters.' : 'Log your first work entry.'}</p>
-                    {!search && !filterProject && !filterDate && <button className="btn btn-primary" onClick={openAdd}><Plus size={16} /> Log Work Entry</button>}
+                    <h3>{t('we_empty_title')}</h3>
+                    <p>{search || filterProject || filterDate ? t('we_empty_search') : t('we_empty_start')}</p>
+                    {!search && !filterProject && !filterDate && <button className="btn btn-primary" onClick={openAdd}><Plus size={16} /> {t('we_btn_log')}</button>}
                   </div>
                 </td></tr>
               )}
@@ -196,17 +198,17 @@ export default function WorkEntry() {
 
       {/* Modal */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}
-        title={editItem ? 'Edit Work Entry' : 'Log Work Entry'}
-        subtitle={editItem ? 'Update this work record' : 'Record daily work for an employee'}
+        title={editItem ? t('we_modal_edit_title') : t('we_modal_add_title')}
+        subtitle={editItem ? t('we_modal_edit_sub') : t('we_modal_add_sub')}
         footer={<>
-          <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
-          <button id="save-work-btn" className="btn btn-primary" onClick={handleSubmit}>{editItem ? 'Save Changes' : 'Log Entry'}</button>
+          <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>{t('btn_cancel')}</button>
+          <button id="save-work-btn" className="btn btn-primary" onClick={handleSubmit}>{editItem ? t('btn_save') : t('we_btn_log')}</button>
         </>}
       >
         <div className="form-group">
-          <label>Project *</label>
+          <label>{t('we_form_project')}</label>
           <select value={form.projectId} onChange={e => setForm(f => ({ ...f, projectId: e.target.value }))} style={errors.projectId ? { borderColor: 'var(--color-danger)' } : {}}>
-            <option value="">-- Select Project --</option>
+            <option value="">{t('we_form_project_ph')}</option>
             {activeProjects.map(p => {
               const co = getCompanyById(p.companyId);
               return <option key={p.id} value={p.id}>{p.name} ({co?.name || 'Unknown'})</option>;
@@ -215,33 +217,33 @@ export default function WorkEntry() {
           <Err field="projectId" />
         </div>
         <div className="form-group">
-          <label>Employee *</label>
+          <label>{t('we_form_employee')}</label>
           <select value={form.employeeId} onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))} style={errors.employeeId ? { borderColor: 'var(--color-danger)' } : {}}>
-            <option value="">-- Select Employee --</option>
+            <option value="">{t('we_form_employee_ph')}</option>
             {activeEmployees.map(e => <option key={e.id} value={e.id}>{e.name} — {e.role}</option>)}
           </select>
           <Err field="employeeId" />
         </div>
         <div className="form-row">
           <div className="form-group">
-            <label>Date *</label>
+            <label>{t('we_form_date')}</label>
             <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} style={errors.date ? { borderColor: 'var(--color-danger)' } : {}} />
             <Err field="date" />
           </div>
           <div className="form-group">
-            <label>Hours Worked *</label>
-            <input type="number" step="0.5" min="0.5" max="24" placeholder="e.g. 8 or 7.5" value={form.hours} onChange={e => setForm(f => ({ ...f, hours: e.target.value }))} style={errors.hours ? { borderColor: 'var(--color-danger)' } : {}} />
+            <label>{t('we_form_hours')}</label>
+            <input type="number" step="0.5" min="0.5" max="24" placeholder={t('we_form_hours_ph')} value={form.hours} onChange={e => setForm(f => ({ ...f, hours: e.target.value }))} style={errors.hours ? { borderColor: 'var(--color-danger)' } : {}} />
             <Err field="hours" />
           </div>
         </div>
         <div className="form-group">
-          <label>Work Description *</label>
-          <textarea placeholder="e.g. Welding steel beams section A, completed 12 joints..." value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} style={errors.description ? { borderColor: 'var(--color-danger)' } : {}} />
+          <label>{t('we_form_description')}</label>
+          <textarea placeholder={t('we_form_description_ph')} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} style={errors.description ? { borderColor: 'var(--color-danger)' } : {}} />
           <Err field="description" />
         </div>
         <div className="form-group">
-          <label>Notes (Optional)</label>
-          <textarea placeholder="Any additional notes, issues, or observations..." value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} style={{ minHeight: 60 }} />
+          <label>{t('we_form_notes')}</label>
+          <textarea placeholder={t('we_form_notes_ph')} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} style={{ minHeight: 60 }} />
         </div>
       </Modal>
 

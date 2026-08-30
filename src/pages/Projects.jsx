@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Components';
 import { FolderKanban, Plus, Search, Pencil, Trash2, MapPin, Calendar, Link2, Users } from 'lucide-react';
@@ -11,6 +12,7 @@ const STATUS_OPTIONS = ['Active', 'Completed', 'On Hold'];
 
 export default function Projects() {
   const { projects, companies, addProject, updateProject, deleteProject, getCompanyById, workEntries, getAssignmentsByProject } = useApp();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
@@ -39,12 +41,12 @@ export default function Projects() {
 
   const validate = () => {
     const e = {};
-    if (!form.companyId) e.companyId = 'Please select a client company';
-    if (!form.number.trim()) e.number = 'Project number is required';
-    if (!form.name.trim()) e.name = 'Project name is required';
-    if (!form.startDate) e.startDate = 'Start date is required';
-    if (!form.endDate) e.endDate = 'End date is required';
-    if (form.startDate && form.endDate && form.endDate < form.startDate) e.endDate = 'End date must be after start date';
+    if (!form.companyId) e.companyId = t('proj_err_company');
+    if (!form.number.trim()) e.number = t('proj_err_number');
+    if (!form.name.trim()) e.name = t('proj_err_name');
+    if (!form.startDate) e.startDate = t('proj_err_start');
+    if (!form.endDate) e.endDate = t('proj_err_end');
+    if (form.startDate && form.endDate && form.endDate < form.startDate) e.endDate = t('proj_err_dates');
     return e;
   };
 
@@ -78,11 +80,11 @@ export default function Projects() {
     <div>
       <div className="page-header">
         <div className="page-header-info">
-          <h2>Projects</h2>
-          <p>{projects.length} total projects · {projects.filter(p => p.status === 'Active').length} active</p>
+          <h2>{t('proj_title')}</h2>
+          <p>{projects.length} {t('lbl_total')} · {projects.filter(p => p.status === 'Active').length} {t('lbl_active').toLowerCase()}</p>
         </div>
         <button id="add-project-btn" className="btn btn-primary" onClick={openAdd}>
-          <Plus size={16} /> Add Project
+          <Plus size={16} /> {t('btn_add_project')}
         </button>
       </div>
 
@@ -90,14 +92,14 @@ export default function Projects() {
         <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border-light)', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <div className="search-input-wrapper">
             <Search size={16} className="search-icon" />
-            <input id="search-projects" placeholder="Search projects..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input id="search-projects" placeholder={t('proj_search_ph')} value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <select value={filterCompany} onChange={e => setFilterCompany(e.target.value)} style={{ maxWidth: 200 }}>
-            <option value="">All Companies</option>
+            <option value="">{t('proj_all_companies')}</option>
             {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ maxWidth: 160 }}>
-            <option value="">All Statuses</option>
+            <option value="">{t('proj_all_statuses')}</option>
             {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
@@ -107,15 +109,15 @@ export default function Projects() {
             <thead>
               <tr>
                 <th>#</th>
-                <th>Project</th>
-                <th>Client Company</th>
-                <th>Location</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Assigned</th>
-                <th>Hours</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>{t('proj_col_project')}</th>
+                <th>{t('proj_col_company')}</th>
+                <th>{t('proj_col_location')}</th>
+                <th>{t('proj_col_start')}</th>
+                <th>{t('proj_col_end')}</th>
+                <th>{t('proj_col_assigned')}</th>
+                <th>{t('proj_col_hours')}</th>
+                <th>{t('proj_col_status')}</th>
+                <th>{t('proj_col_actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -145,7 +147,7 @@ export default function Projects() {
                       {(() => { const count = getAssignmentsByProject(p.id).filter(a => a.status === 'Active').length; return (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span style={{ fontWeight: 700 }}>{count}</span>
-                          <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>employee{count !== 1 ? 's' : ''}</span>
+                          <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{count !== 1 ? t('proj_employee_many') : t('proj_employee_one')}</span>
                         </div>
                       ); })()}
                     </td>
@@ -168,9 +170,9 @@ export default function Projects() {
                 <tr><td colSpan={10}>
                   <div className="empty-state">
                     <div className="empty-state-icon"><FolderKanban size={32} /></div>
-                    <h3>No projects found</h3>
-                    <p>{search ? 'Try a different search term.' : 'Create your first project to get started.'}</p>
-                    {!search && <button className="btn btn-primary" onClick={openAdd}><Plus size={16} /> Add Project</button>}
+                    <h3>{t('proj_empty_title')}</h3>
+                    <p>{search ? t('proj_empty_search') : t('proj_empty_start')}</p>
+                    {!search && <button className="btn btn-primary" onClick={openAdd}><Plus size={16} /> {t('btn_add_project')}</button>}
                   </div>
                 </td></tr>
               )}
@@ -181,39 +183,39 @@ export default function Projects() {
 
       {/* Modal */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}
-        title={editItem ? 'Edit Project' : 'Create New Project'}
-        subtitle={editItem ? 'Update project details' : 'Fill in all required fields'}
+        title={editItem ? t('proj_modal_edit_title') : t('proj_modal_add_title')}
+        subtitle={editItem ? t('proj_modal_edit_sub') : t('proj_modal_add_sub')}
         footer={<>
-          <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
-          <button id="save-project-btn" className="btn btn-primary" onClick={handleSubmit}>{editItem ? 'Save Changes' : 'Create Project'}</button>
+          <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>{t('btn_cancel')}</button>
+          <button id="save-project-btn" className="btn btn-primary" onClick={handleSubmit}>{editItem ? t('btn_save') : t('btn_create_project')}</button>
         </>}
       >
         <div className="form-group">
-          <label>Client Company *</label>
+          <label>{t('proj_form_company')}</label>
           <select value={form.companyId} onChange={e => setForm(f => ({ ...f, companyId: e.target.value }))}
             style={errors.companyId ? { borderColor: 'var(--color-danger)' } : {}}>
-            <option value="">-- Select Company --</option>
+            <option value="">{t('proj_form_company_ph')}</option>
             {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           {errors.companyId && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors.companyId}</p>}
         </div>
         <div className="form-row">
-          <FInput field="number" label="Project Number" placeholder="e.g. P-1015" required />
-          <FInput field="name" label="Project Name" placeholder="e.g. Factory Welding" required />
+          <FInput field="number" label={t('proj_form_number')} placeholder={t('proj_form_number_ph')} required />
+          <FInput field="name" label={t('proj_form_name')} placeholder={t('proj_form_name_ph')} required />
         </div>
-        <FInput field="location" label="Project Location" placeholder="e.g. Stockholm, Sweden" />
+        <FInput field="location" label={t('proj_form_location')} placeholder={t('proj_form_location_ph')} />
         <div className="form-row">
-          <FInput field="startDate" label="Start Date" type="date" required />
-          <FInput field="endDate" label="End Date" type="date" required />
+          <FInput field="startDate" label={t('proj_form_start')} type="date" required />
+          <FInput field="endDate" label={t('proj_form_end')} type="date" required />
         </div>
         <div className="form-group">
-          <label>Status</label>
+          <label>{t('proj_form_status')}</label>
           <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
             {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <div className="note-box" style={{ marginTop: 4 }}>
-          💡 One Client Company can have multiple Projects.
+          {t('proj_note')}
         </div>
       </Modal>
 

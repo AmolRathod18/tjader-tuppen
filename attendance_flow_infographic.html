@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee Attendance &amp; Location Verification Flow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #F0F4F8;
+      color: #1E293B;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .page {
+      background: #FFFFFF;
+      border-radius: 20px;
+      box-shadow: 0 8px 48px rgba(30,64,175,0.10);
+      padding: 40px 44px 44px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #E2E8F0;
+      padding-bottom: 20px;
+      margin-bottom: 32px;
+    }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .header-badge {
+      background: linear-gradient(135deg, #1D4ED8, #3B82F6);
+      color: #fff;
+      border-radius: 12px;
+      width: 52px; height: 52px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .header-title { font-size: 22px; font-weight: 800; color: #1E293B; letter-spacing: -.4px; line-height: 1.2; }
+    .header-sub { font-size: 12px; color: #64748B; font-weight: 400; margin-top: 2px; letter-spacing: .5px; text-transform: uppercase; }
+    .header-meta { display: flex; gap: 10px; align-items: center; }
+    .meta-pill {
+      background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE;
+      border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: 600;
+      letter-spacing: .3px;
+    }
+    .meta-pill.green { background:#F0FDF4; color:#15803D; border-color:#BBF7D0; }
+    .meta-pill.orange { background:#FFF7ED; color:#C2410C; border-color:#FED7AA; }
+
+    /* Layout */
+    .layout { display: grid; grid-template-columns: 1fr 300px; gap: 28px; }
+
+    /* Card */
+    .card {
+      background: #fff;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 14px;
+      padding: 16px 20px;
+      box-shadow: 0 2px 12px rgba(30,64,175,.06);
+    }
+    .card-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .8px;
+      text-transform: uppercase; color: #1D4ED8; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    /* Flow Section */
+    .flow-section {
+      display: flex; flex-direction: column; align-items: stretch;
+      background: #FAFBFF; border: 1.5px solid #E2E8F0; border-radius: 16px;
+      padding: 18px 20px; gap: 0; margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(30,64,175,.04);
+    }
+    .flow-section-title {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: #94A3B8; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .flow-section-title::before {
+      content: ''; display: block; width: 14px; height: 2px;
+      background: linear-gradient(90deg, #1D4ED8, #3B82F6); border-radius: 2px;
+    }
+
+    /* Section arrow */
+    .sec-arrow {
+      display: flex; flex-direction: column; align-items: center; padding: 4px 0;
+    }
+    .sec-arrow-line { width: 2px; background: linear-gradient(to bottom, #93C5FD, #3B82F6); height: 18px; }
+    .sec-arrow-head { color: #3B82F6; font-size: 14px; }
+
+    /* Employee node */
+    .employee-circle {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: linear-gradient(135deg, #DBEAFE, #EFF6FF);
+      border: 2px solid #93C5FD;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+    }
+    .employee-label { font-size: 11px; font-weight: 700; color: #1D4ED8; letter-spacing: .5px; text-transform: uppercase; }
+
+    /* Inputs */
+    .input-field {
+      background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 8px;
+      padding: 7px 10px; font-size: 11px; color: #475569; margin-bottom: 6px;
+      font-family: inherit; width: 100%; display: block;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #1D4ED8, #3B82F6);
+      color: #fff; border: none; border-radius: 8px;
+      padding: 8px 0; font-size: 11px; font-weight: 700;
+      width: 100%; cursor: pointer; letter-spacing: .3px;
+    }
+
+    /* Identity rows */
+    .identity-row {
+      display: flex; align-items: center; gap: 8px;
+      background: #F8FAFC; border: 1px solid #E2E8F0;
+      border-radius: 8px; padding: 7px 10px; margin-bottom: 6px;
+    }
+    .identity-text { font-size: 11px; color: #334155; font-weight: 500; }
+    .role-badge { background:#DBEAFE; color:#1D4ED8; border-radius:20px; padding:2px 8px; font-size:10px; font-weight:700; }
+
+    /* Dashboard grid */
+    .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .dash-mini {
+      border-radius: 8px; padding: 8px 10px; font-size: 10px; font-weight: 600;
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .dash-mini.blue { background: #EFF6FF; border: 1px solid #BFDBFE; color: #1D4ED8; }
+    .dash-mini.amber { background: #FFFBEB; border: 1px solid #FDE68A; color: #B45309; }
+    .dash-mini-label { font-size: 9px; font-weight: 500; opacity: .8; }
+    .dash-divider { border: none; border-top: 1px dashed #E2E8F0; margin: 8px 0; }
+
+    /* Project card */
+    .project-item { display: flex; align-items: baseline; gap: 6px; margin-bottom: 5px; }
+    .pitem-key { font-size: 9px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: .5px; min-width: 54px; }
+    .pitem-val { font-size: 11px; font-weight: 700; color: #1E293B; }
+    .pitem-loc { font-size: 10px; font-weight: 600; color: #0369A1; }
+    .map-stub {
+      margin-top: 8px; background: #EFF6FF; border: 1px dashed #93C5FD;
+      border-radius: 8px; height: 42px; display: flex; align-items: center;
+      justify-content: center; gap: 6px; font-size: 10px; color: #3B82F6; font-weight: 600;
+    }
+
+    /* Check-in button */
+    .checkin-big-btn {
+      background: linear-gradient(135deg, #059669, #10B981);
+      color: #fff; border-radius: 12px; padding: 14px 18px;
+      font-size: 13px; font-weight: 800; text-align: center;
+      box-shadow: 0 4px 16px rgba(16,185,129,.3);
+      letter-spacing: .2px; line-height: 1.4;
+    }
+    .checkin-big-btn small { display: block; font-size: 9px; font-weight: 500; opacity: .85; margin-top: 4px; }
+
+    /* Permission popup */
+    .popup-box {
+      background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 12px;
+      padding: 12px; text-align: center;
+    }
+    .popup-title { font-size: 11px; font-weight: 700; color: #1E293B; margin: 4px 0; }
+    .popup-sub { font-size: 9px; color: #64748B; margin-bottom: 8px; }
+    .popup-btns { display: flex; gap: 6px; justify-content: center; }
+    .btn-deny { background:#F1F5F9; color:#64748B; border:1px solid #CBD5E1; border-radius:6px; padding:5px 12px; font-size:10px; font-weight:600; }
+    .btn-allow { background:linear-gradient(135deg,#1D4ED8,#3B82F6); color:#fff; border:none; border-radius:6px; padding:5px 12px; font-size:10px; font-weight:700; }
+
+    /* GPS visual */
+    .gps-visual {
+      background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+      border: 1px solid #93C5FD; border-radius: 10px;
+      height: 90px; position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .gps-rings {
+      position: absolute; width: 80px; height: 80px;
+      border: 2px solid rgba(59,130,246,.2);
+      border-radius: 50%; animation: pulse 2s infinite;
+    }
+    .gps-rings2 {
+      position: absolute; width: 50px; height: 50px;
+      border: 2px solid rgba(59,130,246,.35);
+      border-radius: 50%; animation: pulse 2s infinite .5s;
+    }
+    .gps-pin { font-size: 26px; position: relative; z-index: 2; }
+    @keyframes pulse { 0%{transform:scale(.8);opacity:1} 100%{transform:scale(1.4);opacity:0} }
+
+    /* Verification engine */
+    .engine-compare {
+      display: flex; align-items: center; gap: 8px;
+      background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px;
+    }
+    .engine-loc { flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .engine-loc-icon { font-size: 22px; }
+    .engine-loc-label { font-size: 9px; font-weight: 600; color: #64748B; }
+    .engine-loc-val { font-size: 10px; font-weight: 700; color: #1E293B; }
+    .engine-vs { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 0 4px; }
+    .engine-vs-line { width: 1px; height: 18px; background: #CBD5E1; }
+    .engine-vs-text { font-size: 8px; font-weight: 800; color: #94A3B8; }
+    .engine-calc {
+      margin-top: 8px; background: linear-gradient(135deg, #1D4ED8, #3B82F6);
+      border-radius: 8px; padding: 7px 10px; color: #fff; font-size: 10px;
+      font-weight: 700; text-align: center;
+    }
+    .engine-calc-val { font-size: 13px; font-weight: 800; margin-top: 1px; }
+
+    /* Diamond */
+    .diamond-outer {
+      width: 130px; height: 130px; position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .diamond-shape {
+      width: 96px; height: 96px;
+      background: linear-gradient(135deg, #1D4ED8, #2563EB);
+      transform: rotate(45deg);
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(29,78,216,.3);
+    }
+    .diamond-content {
+      position: absolute; inset: 0; display: flex; align-items: center;
+      justify-content: center; text-align: center; padding: 8px;
+    }
+    .diamond-text { color: #fff; font-size: 9px; font-weight: 800; line-height: 1.35; letter-spacing: .2px; text-transform: uppercase; }
+    .diamond-text span { display: block; font-size: 8px; font-weight: 500; opacity: .85; margin-top: 2px; }
+
+    /* Success card */
+    .success-card {
+      background: linear-gradient(135deg, #F0FDF4, #DCFCE7);
+      border: 1.5px solid #86EFAC; border-radius: 14px; padding: 14px 16px;
+      width: 100%;
+    }
+    .success-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .success-title { font-size: 12px; font-weight: 800; color: #166534; }
+    .save-row { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #166534; margin-bottom: 4px; }
+    .save-dot { width: 5px; height: 5px; background: #22C55E; border-radius: 50%; flex-shrink: 0; }
+    .verified-badge {
+      margin-top: 8px; display: inline-flex; align-items: center; gap: 5px;
+      background: #22C55E; color: #fff; border-radius: 20px; padding: 3px 10px;
+      font-size: 9px; font-weight: 800; letter-spacing: .3px;
+    }
+
+    /* Deny card */
+    .deny-card {
+      background: linear-gradient(135deg, #FFF7ED, #FEF2F2);
+      border: 1.5px solid #FECACA; border-radius: 14px; padding: 14px 16px;
+      width: 100%;
+    }
+    .deny-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .deny-title { font-size: 12px; font-weight: 800; color: #991B1B; }
+    .deny-option {
+      display: flex; align-items: center; gap: 6px;
+      background: #fff; border: 1px solid #FECACA; border-radius: 8px;
+      padding: 7px 10px; margin-bottom: 6px; font-size: 10px; font-weight: 600; color: #7F1D1D;
+    }
+
+    /* Work entry */
+    .work-field-label { font-size: 9px; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 2px; }
+    .work-field-input {
+      background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 8px;
+      padding: 8px 10px; font-size: 10px; color: #334155; width: 100%; font-family: inherit;
+    }
+    .btn-save-work {
+      background: linear-gradient(135deg, #1D4ED8, #3B82F6); color: #fff;
+      border: none; border-radius: 8px; padding: 9px 0; font-size: 11px;
+      font-weight: 700; width: 100%; margin-top: 4px; cursor: pointer;
+    }
+
+    /* Checkout */
+    .checkout-btn {
+      background: linear-gradient(135deg, #DC2626, #EF4444);
+      color: #fff; border-radius: 10px; padding: 12px;
+      font-size: 13px; font-weight: 800; text-align: center;
+      box-shadow: 0 4px 16px rgba(239,68,68,.25); width: 100%;
+    }
+
+    /* Admin send */
+    .admin-send-card {
+      background: linear-gradient(135deg, #1E293B, #0F172A);
+      border-radius: 14px; padding: 14px 16px; color: #fff; width: 100%;
+    }
+    .admin-send-title { font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 8px; }
+    .admin-send-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .admin-send-item {
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px; padding: 7px 8px; font-size: 9px; color: rgba(255,255,255,.7);
+    }
+    .admin-send-item strong { display: block; font-size: 10px; color: #fff; margin-bottom: 1px; }
+
+    /* Admin table */
+    table.admin-tbl {
+      width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px;
+    }
+    table.admin-tbl thead tr th {
+      background: linear-gradient(135deg, #1D4ED8, #2563EB);
+      color: #fff; padding: 10px 14px; font-size: 10px; font-weight: 700;
+      letter-spacing: .5px; text-transform: uppercase; text-align: left;
+    }
+    table.admin-tbl thead tr th:first-child { border-radius: 10px 0 0 0; }
+    table.admin-tbl thead tr th:last-child { border-radius: 0 10px 0 0; }
+    table.admin-tbl tbody tr:nth-child(odd) td { background: #F8FAFC; }
+    table.admin-tbl tbody tr:nth-child(even) td { background: #fff; }
+    table.admin-tbl tbody td {
+      padding: 10px 14px; border-bottom: 1px solid #E2E8F0;
+      color: #334155; font-weight: 500; font-size: 12px;
+    }
+    table.admin-tbl tbody tr:last-child td:first-child { border-radius: 0 0 0 10px; }
+    table.admin-tbl tbody tr:last-child td:last-child { border-radius: 0 0 10px 0; }
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      border-radius: 20px; padding: 3px 10px; font-size: 10px; font-weight: 700;
+    }
+    .status-present { background: #DCFCE7; color: #166534; }
+    .status-notchecked { background: #FFF7ED; color: #C2410C; }
+    .status-noactivity { background: #F1F5F9; color: #475569; }
+    .employee-cell { display: flex; align-items: center; gap: 8px; }
+    .emp-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0;
+    }
+    .emp-sub { font-size: 10px; color: #94A3B8; font-weight: 400; }
+
+    /* Sidebar */
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+    .arch-card {
+      background: #fff; border: 1.5px solid #E2E8F0; border-radius: 16px;
+      padding: 18px 16px; box-shadow: 0 2px 8px rgba(30,64,175,.05);
+    }
+    .arch-title {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: #94A3B8; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .arch-flow { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .arch-step {
+      background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+      border: 1.5px solid #93C5FD; border-radius: 8px;
+      padding: 7px 14px; font-size: 10px; font-weight: 700;
+      color: #1D4ED8; text-align: center; width: 100%; letter-spacing: .2px;
+    }
+    .arch-step.decision { background: linear-gradient(135deg, #1D4ED8, #2563EB); color: #fff; border-color: #1D4ED8; }
+    .arch-step.success { background: linear-gradient(135deg, #F0FDF4, #DCFCE7); border-color: #86EFAC; color: #166534; }
+    .arch-step.danger { background: linear-gradient(135deg, #FEF2F2, #FEE2E2); border-color: #FECACA; color: #991B1B; }
+    .arch-step.dark { background: linear-gradient(135deg, #1E293B, #334155); color: #fff; border-color: #475569; }
+    .arch-arrow-down { text-align: center; font-size: 13px; color: #3B82F6; padding: 2px 0; }
+
+    /* Info panel */
+    .info-panel {
+      background: linear-gradient(135deg, #1E40AF, #1D4ED8);
+      border-radius: 16px; padding: 18px 16px; color: #fff;
+    }
+    .info-panel-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 12px; }
+    .info-item { display: flex; gap: 8px; margin-bottom: 10px; }
+    .info-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+    .info-text { font-size: 10px; line-height: 1.5; color: rgba(255,255,255,.85); }
+    .info-text strong { color: #fff; display: block; margin-bottom: 1px; font-size: 10px; }
+
+    /* Arrow SVG helper */
+    .arrow-h {
+      display: flex; align-items: center; align-self: center;
+      flex-shrink: 0; padding: 0 6px; margin-top: -14px;
+    }
+
+    /* Footer */
+    .footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 24px; padding-top: 14px; border-top: 1px solid #E2E8F0;
+    }
+    .footer-left { font-size: 10px; color: #94A3B8; }
+    .footer-right { display: flex; gap: 12px; }
+    .footer-tag { background: #F1F5F9; color: #64748B; border-radius: 6px; padding: 3px 10px; font-size: 10px; font-weight: 600; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-badge">📍</div>
+      <div>
+        <div class="header-title">EMPLOYEE ATTENDANCE &amp; LOCATION VERIFICATION FLOW</div>
+        <div class="header-sub">SaaS Platform &nbsp;·&nbsp; System Architecture &amp; User Flow Diagram &nbsp;·&nbsp; v2.4</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <span class="meta-pill">📐 Software Architecture</span>
+      <span class="meta-pill green">✅ GPS Verified</span>
+      <span class="meta-pill orange">📡 Location-On-Action</span>
+    </div>
+  </div>
+
+  <!-- MAIN LAYOUT -->
+  <div class="layout">
+    <div style="display:flex;flex-direction:column;gap:0;">
+
+      <!-- PHASE 1 -->
+      <div class="flow-section">
+        <div class="flow-section-title">Phase 1 — Authentication &amp; Dashboard</div>
+        <div style="display:flex;align-items:flex-start;gap:0;width:100%;">
+
+          <!-- Employee -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:72px;">
+            <div class="employee-circle">👷</div>
+            <div class="employee-label">Employee</div>
+          </div>
+
+          <!-- Arrow LOGS IN -->
+          <div class="arrow-h">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+              <span style="font-size:9px;font-weight:700;color:#3B82F6;white-space:nowrap;">LOGS IN</span>
+              <svg width="36" height="10" viewBox="0 0 36 10"><line x1="0" y1="5" x2="28" y2="5" stroke="#93C5FD" stroke-width="2"/><polygon points="28,1 36,5 28,9" fill="#3B82F6"/></svg>
+            </div>
+          </div>
+
+          <!-- Login -->
+          <div style="flex:1;min-width:0;">
+            <div class="card" style="width:100%;">
+              <div class="card-title">🔐 Login Page</div>
+              <input class="input-field" type="text" value="Email / Employee ID" readonly />
+              <input class="input-field" type="password" value="••••••••" readonly />
+              <button class="btn-primary">Login</button>
+            </div>
+          </div>
+
+          <div class="arrow-h"><svg width="28" height="10" viewBox="0 0 28 10"><line x1="0" y1="5" x2="20" y2="5" stroke="#93C5FD" stroke-width="2"/><polygon points="20,1 28,5 20,9" fill="#3B82F6"/></svg></div>
+
+          <!-- System Identifies -->
+          <div style="flex:1.1;min-width:0;">
+            <div class="card" style="width:100%;">
+              <div class="card-title">🔍 System Identifies Employee</div>
+              <div class="identity-row"><span style="font-size:13px;">👤</span><div><div style="font-size:11px;font-weight:700;color:#1E293B;">John Anderson</div><div style="font-size:9px;color:#94A3B8;">Employee Name</div></div></div>
+              <div class="identity-row"><span style="font-size:13px;">🪪</span><div><div style="font-size:11px;font-weight:700;color:#1E293B;">EMP-10042</div><div style="font-size:9px;color:#94A3B8;">Employee ID</div></div></div>
+              <div class="identity-row"><span style="font-size:13px;">🏷️</span><div class="identity-text">Role &nbsp;<span class="role-badge">Employee</span></div></div>
+            </div>
+          </div>
+
+          <div class="arrow-h"><svg width="28" height="10" viewBox="0 0 28 10"><line x1="0" y1="5" x2="20" y2="5" stroke="#93C5FD" stroke-width="2"/><polygon points="20,1 28,5 20,9" fill="#3B82F6"/></svg></div>
+
+          <!-- Dashboard -->
+          <div style="flex:1.4;min-width:0;">
+            <div class="card" style="width:100%;">
+              <div class="card-title">📊 Employee Dashboard</div>
+              <div class="dash-grid">
+                <div class="dash-mini blue"><span>📁</span><span>Today's Project</span><span class="dash-mini-label">P-1015 · Active</span></div>
+                <div class="dash-mini amber"><span>📋</span><span>Attendance Status</span><span class="dash-mini-label">Not Checked In</span></div>
+                <div class="dash-mini" style="background:#F0FDF4;border:1.5px solid #86EFAC;color:#166534;border-radius:8px;padding:8px 10px;font-size:10px;font-weight:600;display:flex;flex-direction:column;gap:3px;"><span>🟢</span><span style="font-weight:800;">Check-In</span><span class="dash-mini-label">Click to check in</span></div>
+                <div class="dash-mini" style="background:#FFF1F2;border:1px solid #FECDD3;color:#BE123C;border-radius:8px;padding:8px 10px;font-size:10px;font-weight:600;display:flex;flex-direction:column;gap:3px;"><span>🔴</span><span style="font-weight:800;">Check-Out</span><span class="dash-mini-label">End of work</span></div>
+              </div>
+              <div class="dash-divider"></div>
+              <div style="font-size:9px;color:#94A3B8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Today's Work Entry</div>
+              <div style="background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:6px;margin-top:4px;padding:5px 8px;font-size:9px;color:#94A3B8;">No entry yet — check in first</div>
+            </div>
+          </div>
+
+          <div class="arrow-h"><svg width="28" height="10" viewBox="0 0 28 10"><line x1="0" y1="5" x2="20" y2="5" stroke="#93C5FD" stroke-width="2"/><polygon points="20,1 28,5 20,9" fill="#3B82F6"/></svg></div>
+
+          <!-- Project -->
+          <div style="flex:1;min-width:0;">
+            <div class="card" style="width:100%;">
+              <div class="card-title">📍 Today's Assigned Project</div>
+              <div class="project-item"><span class="pitem-key">Project</span><span class="pitem-val">P-1015</span></div>
+              <div class="project-item"><span class="pitem-key">Client</span><span class="pitem-val">XYZ AB</span></div>
+              <div class="project-item"><span class="pitem-key">Location</span><span class="pitem-loc">📌 Stockholm, Sweden</span></div>
+              <div class="map-stub">🗺️ &nbsp;Project Site Map</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Down arrow -->
+      <div class="sec-arrow"><div class="sec-arrow-line"></div><div class="sec-arrow-head">▼</div></div>
+
+      <!-- PHASE 2 -->
+      <div class="flow-section">
+        <div class="flow-section-title">Phase 2 — Check-In &amp; Location Verification</div>
+        <div style="display:flex;align-items:flex-start;gap:0;width:100%;">
+
+          <!-- Check In -->
+          <div style="flex:1;min-width:0;">
+            <div class="checkin-big-btn">
+              🟢 Employee Clicks<br/><strong>CHECK-IN</strong>
+              <small>Manual action — location checked on click only</small>
+            </div>
+          </div>
+
+          <div class="arrow-h" style="margin-top:0;padding:0 8px;"><svg width="28" height="10" viewBox="0 0 28 10"><line x1="0" y1="5" x2="20" y2="5" stroke="#93C5FD" stroke-width="2"/><polygon points="20,1 28,5 20,9" fill="#3B82F6"/></svg></div>
+
+          <!-- Permission -->
+          <div style="flex:1.1;min-width:0;">
+            <div class="card" style="width:100%;">
+              <div class="card-title">📡 Location Permission</div>
+              <div class="popup-box">
+                <div style="font-size:22px;">📍</div>
+                <div class="popup-title">"Allow Location Access?"</div>
+                <div class="popup-sub">This app needs your current location to verify your presence at the project site.</div>
+                <div class="popup-btns">
+                  <button class="btn-deny">Deny</button>
+                  <button class="btn-allow">Allow</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="arrow-h" style="margin-top:0;padding:0 8px;"><svg width="28" height="10" viewBox="0 0 28 10"><line x1="0" y1="5" x2="20" y2="5" stroke="#93C5FD" stroke-width="2"/><polygon points="20,1 28,5 20,9" fill="#3B82F6"/></svg></div>
+
+          <!-- GPS -->
+          <div style="flex:1;min-width:0;">
+            <div class="card" style="width:100%;">
+              <div class="card-title">🛰️ Capture Current Location</div>
+              <div class="gps-visual">
+                <div class="gps-rings"></div>
+                <div class="gps-rings2"></div>
+                <div class="gps-pin">📍</div>
+              </div>
+              <div style="font-size:9px;font-weight:600;color:#1D4ED8;text-align:center;margin-top:6px;">GPS coordinates acquired</div>
+            </div>
+          </div>
+
+          <div class="arrow-h" style="margin-top:0;padding:0 8px;"><svg width="28" height="10" viewBox="0 0 28 10"><line x1="0" y1="5" x2="20" y2="5" stroke="#93C5FD" stroke-width="2"/><polygon points="20,1 28,5 20,9" fill="#3B82F6"/></svg></div>
+
+          <!-- Engine -->
+          <div style="flex:1.4;min-width:0;">
+            <div class="card" style="width:100%;">
+              <div class="card-title">⚙️ Location Verification Engine</div>
+              <div class="engine-compare">
+                <div class="engine-loc">
+                  <div class="engine-loc-icon">📌</div>
+                  <div class="engine-loc-label">Project Location</div>
+                  <div class="engine-loc-val">Stockholm, SE</div>
+                </div>
+                <div class="engine-vs">
+                  <div class="engine-vs-line"></div>
+                  <div class="engine-vs-text">VS</div>
+                  <div class="engine-vs-line"></div>
+                </div>
+                <div class="engine-loc">
+                  <div class="engine-loc-icon">📍</div>
+                  <div class="engine-loc-label">Employee Location</div>
+                  <div class="engine-loc-val">Current GPS</div>
+                </div>
+              </div>
+              <div class="engine-calc">
+                Calculate Distance
+                <div class="engine-calc-val">🧮 Haversine Formula</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="arrow-h" style="margin-top:0;padding:0 8px;"><svg width="28" height="10" viewBox="0 0 28 10"><line x1="0" y1="5" x2="20" y2="5" stroke="#93C5FD" stroke-width="2"/><polygon points="20,1 28,5 20,9" fill="#3B82F6"/></svg></div>
+
+          <!-- Diamond -->
+          <div style="flex:1.1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div class="diamond-outer">
+              <div class="diamond-shape"></div>
+              <div class="diamond-content">
+                <div class="diamond-text">
+                  Within Allowed Radius?
+                  <span>Allowed: 200 m</span>
+                  <span>Distance: 120 m</span>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:38px;">
+              <span style="font-size:9px;font-weight:800;color:#166534;">✓ YES</span>
+              <span style="font-size:9px;font-weight:800;color:#991B1B;">✗ NO</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Down arrow -->
+      <div class="sec-arrow"><div class="sec-arrow-line"></div><div class="sec-arrow-head">▼</div></div>
+
+      <!-- PHASE 3 -->
+      <div class="flow-section">
+        <div class="flow-section-title">Phase 3 — Decision Branches</div>
+        <div style="display:flex;gap:16px;align-items:flex-start;width:100%;">
+
+          <!-- YES -->
+          <div style="flex:1.6;display:flex;flex-direction:column;gap:0;border-right:1.5px dashed #E2E8F0;padding-right:16px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+              <div style="width:8px;height:8px;background:#22C55E;border-radius:50%;"></div>
+              <div style="font-size:10px;font-weight:800;color:#166534;letter-spacing:.5px;text-transform:uppercase;">YES — Within Radius</div>
+            </div>
+
+            <div class="success-card">
+              <div class="success-header"><span style="font-size:20px;">✅</span><div class="success-title">Check-In Successful</div></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <div class="save-row"><span class="save-dot"></span><span style="font-weight:500;color:#15803D;">Employee</span>&nbsp;<span style="font-weight:700;color:#166534;">John Anderson</span></div>
+                <div class="save-row"><span class="save-dot"></span><span style="font-weight:500;color:#15803D;">Project</span>&nbsp;<span style="font-weight:700;color:#166534;">P-1015</span></div>
+                <div class="save-row"><span class="save-dot"></span><span style="font-weight:500;color:#15803D;">Check-In</span>&nbsp;<span style="font-weight:700;color:#166534;">08:02 AM</span></div>
+                <div class="save-row"><span class="save-dot"></span><span style="font-weight:500;color:#15803D;">Date</span>&nbsp;<span style="font-weight:700;color:#166534;">2026-08-26</span></div>
+                <div class="save-row"><span class="save-dot"></span><span style="font-weight:500;color:#15803D;">Distance</span>&nbsp;<span style="font-weight:700;color:#166534;">120 m</span></div>
+                <div class="save-row"><span class="save-dot"></span><span style="font-weight:500;color:#15803D;">Location</span>&nbsp;<span style="font-weight:700;color:#166534;">Stockholm, SE</span></div>
+              </div>
+              <div class="verified-badge">✔ Location Verification Status: Verified</div>
+            </div>
+
+            <div style="text-align:center;color:#22C55E;padding:6px 0;font-size:14px;">▼</div>
+
+            <div class="card" style="width:100%;">
+              <div class="card-title">📝 Employee Enters Today's Work</div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div>
+                  <div class="work-field-label">Work Description</div>
+                  <textarea class="work-field-input" rows="2" readonly placeholder="Describe tasks completed today…"></textarea>
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <div style="flex:1;">
+                    <div class="work-field-label">Normal Working Hours</div>
+                    <input class="work-field-input" type="text" value="8 hrs" readonly />
+                  </div>
+                  <div style="flex:1;">
+                    <div class="work-field-label">Extra Working Hours</div>
+                    <input class="work-field-input" type="text" value="1.5 hrs" readonly />
+                  </div>
+                </div>
+                <button class="btn-save-work">💾 Save Work Entry</button>
+              </div>
+            </div>
+
+            <div style="text-align:center;color:#3B82F6;padding:6px 0;font-size:14px;">▼</div>
+
+            <div class="card" style="width:100%;">
+              <div class="card-title">🔴 Check-Out</div>
+              <div class="checkout-btn">Employee Clicks CHECK-OUT</div>
+              <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px;">
+                <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#475569;">💾&nbsp;<strong>Check-Out Time Saved:</strong>&nbsp;17:30 PM</div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#475569;">📅&nbsp;<strong>Total Hours Logged:</strong>&nbsp;9.5 hrs</div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#475569;">📍&nbsp;<strong>Location re-verified at check-out</strong></div>
+              </div>
+            </div>
+
+            <div style="text-align:center;color:#3B82F6;padding:6px 0;font-size:14px;">▼</div>
+
+            <div class="admin-send-card">
+              <div class="admin-send-title">📤 Send Data to Admin Dashboard</div>
+              <div class="admin-send-grid">
+                <div class="admin-send-item"><strong>John Anderson</strong>Employee</div>
+                <div class="admin-send-item"><strong>P-1015 · XYZ AB</strong>Project</div>
+                <div class="admin-send-item"><strong>08:02 → 17:30</strong>Check-In / Out</div>
+                <div class="admin-send-item"><strong>120 m · ✔ Verified</strong>Distance / Status</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- NO -->
+          <div style="flex:1;display:flex;flex-direction:column;gap:0;padding-left:16px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+              <div style="width:8px;height:8px;background:#EF4444;border-radius:50%;"></div>
+              <div style="font-size:10px;font-weight:800;color:#991B1B;letter-spacing:.5px;text-transform:uppercase;">NO — Outside Radius</div>
+            </div>
+
+            <div class="deny-card">
+              <div class="deny-header"><span style="font-size:20px;">⚠️</span><div class="deny-title">Location Outside Project Area</div></div>
+              <div style="font-size:10px;color:#7F1D1D;margin-bottom:8px;font-weight:500;">System rejects the check-in attempt and presents these options:</div>
+              <div class="deny-option"><span style="font-size:12px;">🚫</span>Check-In Not Allowed — Location unverified</div>
+              <div class="deny-option"><span style="font-size:12px;">🚩</span>Flag for Admin Review — Admin notified</div>
+              <div style="margin-top:8px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:8px 10px;">
+                <div style="font-size:9px;font-weight:700;color:#991B1B;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Rejection Details Saved</div>
+                <div style="font-size:9px;color:#7F1D1D;line-height:1.6;">
+                  • Employee: John Anderson<br/>
+                  • Project: P-1015<br/>
+                  • Attempted At: 08:02 AM<br/>
+                  • Distance: 850 m (Limit: 200 m)<br/>
+                  • Status: <strong>Location Not Verified</strong>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:10px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:12px 14px;">
+              <div style="font-size:10px;font-weight:800;color:#92400E;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📌 Important Note</div>
+              <div style="font-size:10px;color:#78350F;line-height:1.6;">
+                Location is checked <strong>only</strong> when the employee manually clicks <strong>Check-In</strong> or <strong>Check-Out</strong>.
+                There is <strong>no continuous</strong> or background location tracking between actions.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Down arrow -->
+      <div class="sec-arrow"><div class="sec-arrow-line"></div><div class="sec-arrow-head">▼</div></div>
+
+      <!-- PHASE 4 -->
+      <div class="flow-section">
+        <div class="flow-section-title">Phase 4 — Admin Dashboard View</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:14px;font-weight:800;color:#1E293B;">📊 Admin Attendance Overview — Project P-1015 · Stockholm, Sweden</div>
+          <div style="display:flex;gap:8px;">
+            <span class="meta-pill green">3 Employees Assigned</span>
+            <span class="meta-pill">2026-08-26</span>
+          </div>
+        </div>
+
+        <table class="admin-tbl">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Login Time</th>
+              <th>Check-In Time</th>
+              <th>Check-Out Time</th>
+              <th>Project</th>
+              <th>Distance from Site</th>
+              <th>Verification</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="employee-cell">
+                  <div class="emp-avatar" style="background:linear-gradient(135deg,#1D4ED8,#3B82F6);">JA</div>
+                  <div><div style="font-weight:700;color:#1E293B;">John Anderson</div><div class="emp-sub">EMP-10042</div></div>
+                </div>
+              </td>
+              <td>07:55 AM</td><td>08:02 AM</td><td>17:30 PM</td>
+              <td><span style="font-weight:700;">P-1015</span><br/><span class="emp-sub">XYZ AB</span></td>
+              <td><strong>120 m</strong></td>
+              <td>✅ Verified</td>
+              <td><span class="status-badge status-present">● Present</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="employee-cell">
+                  <div class="emp-avatar" style="background:linear-gradient(135deg,#0369A1,#0EA5E9);">DM</div>
+                  <div><div style="font-weight:700;color:#1E293B;">David Martinez</div><div class="emp-sub">EMP-10055</div></div>
+                </div>
+              </td>
+              <td>08:10 AM</td>
+              <td><span style="color:#94A3B8;">— —</span></td>
+              <td><span style="color:#94A3B8;">— —</span></td>
+              <td><span style="font-weight:700;">P-1015</span><br/><span class="emp-sub">XYZ AB</span></td>
+              <td><span style="color:#94A3B8;">— —</span></td>
+              <td><span style="color:#94A3B8;font-size:10px;">Pending</span></td>
+              <td><span class="status-badge status-notchecked">● Not Checked In</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="employee-cell">
+                  <div class="emp-avatar" style="background:linear-gradient(135deg,#6D28D9,#8B5CF6);">MW</div>
+                  <div><div style="font-weight:700;color:#1E293B;">Mark Williams</div><div class="emp-sub">EMP-10068</div></div>
+                </div>
+              </td>
+              <td><span style="color:#94A3B8;">— —</span></td>
+              <td><span style="color:#94A3B8;">— —</span></td>
+              <td><span style="color:#94A3B8;">— —</span></td>
+              <td><span style="font-weight:700;">P-1015</span><br/><span class="emp-sub">XYZ AB</span></td>
+              <td><span style="color:#94A3B8;">— —</span></td>
+              <td><span style="color:#94A3B8;font-size:10px;">—</span></td>
+              <td><span class="status-badge status-noactivity">● No Activity</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Summary bar -->
+        <div style="display:flex;gap:12px;margin-top:14px;">
+          <div style="flex:1;background:#DCFCE7;border:1px solid #86EFAC;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:20px;">✅</span>
+            <div><div style="font-size:16px;font-weight:800;color:#166534;">1</div><div style="font-size:10px;color:#15803D;font-weight:600;">Present</div></div>
+          </div>
+          <div style="flex:1;background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:20px;">⏳</span>
+            <div><div style="font-size:16px;font-weight:800;color:#C2410C;">1</div><div style="font-size:10px;color:#C2410C;font-weight:600;">Not Checked In</div></div>
+          </div>
+          <div style="flex:1;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:20px;">🔕</span>
+            <div><div style="font-size:16px;font-weight:800;color:#475569;">1</div><div style="font-size:10px;color:#475569;font-weight:600;">No Activity</div></div>
+          </div>
+          <div style="flex:2;background:linear-gradient(135deg,#1E293B,#334155);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:20px;">📡</span>
+            <div>
+              <div style="font-size:11px;font-weight:800;color:#fff;">Real-Time Sync</div>
+              <div style="font-size:9px;color:rgba(255,255,255,.7);font-weight:500;">Data updates whenever employees check in or out. Location is only captured on manual action.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main col -->
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+
+      <!-- Architecture Flowchart -->
+      <div class="arch-card">
+        <div class="arch-title">⬛ System Architecture Flow</div>
+        <div class="arch-flow">
+          <div class="arch-step">Employee Login</div>
+          <div class="arch-arrow-down">▼</div>
+          <div class="arch-step">Employee Dashboard</div>
+          <div class="arch-arrow-down">▼</div>
+          <div class="arch-step">Today's Project Loaded</div>
+          <div class="arch-arrow-down">▼</div>
+          <div class="arch-step">Employee Clicks Check-In</div>
+          <div class="arch-arrow-down">▼</div>
+          <div class="arch-step">Location Permission</div>
+          <div class="arch-arrow-down">▼</div>
+          <div class="arch-step">GPS Coordinates Captured</div>
+          <div class="arch-arrow-down">▼</div>
+          <div class="arch-step decision">Location Verification Engine</div>
+          <div class="arch-arrow-down">▼</div>
+          <div class="arch-step decision" style="font-size:9px;">Within Project Radius?</div>
+          <div style="display:flex;width:100%;gap:6px;margin-top:4px;">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;border-right:1px dashed #93C5FD;padding-right:4px;">
+              <span style="font-size:8px;font-weight:800;color:#166534;padding:2px 0;">YES</span>
+              <div class="arch-arrow-down" style="font-size:10px;">▼</div>
+              <div class="arch-step success" style="font-size:9px;">Check-In Saved</div>
+              <div class="arch-arrow-down" style="font-size:10px;">▼</div>
+              <div class="arch-step success" style="font-size:9px;">Work Entry Form</div>
+              <div class="arch-arrow-down" style="font-size:10px;">▼</div>
+              <div class="arch-step success" style="font-size:9px;">Check-Out</div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding-left:4px;">
+              <span style="font-size:8px;font-weight:800;color:#991B1B;padding:2px 0;">NO</span>
+              <div class="arch-arrow-down" style="font-size:10px;">▼</div>
+              <div class="arch-step danger" style="font-size:9px;">Flag / Deny</div>
+              <div class="arch-arrow-down" style="font-size:10px;">▼</div>
+              <div class="arch-step danger" style="font-size:9px;">Admin Notified</div>
+            </div>
+          </div>
+          <div class="arch-arrow-down" style="margin-top:4px;">▼</div>
+          <div class="arch-step dark">Admin Dashboard</div>
+        </div>
+      </div>
+
+      <!-- Key System Rules -->
+      <div class="info-panel">
+        <div class="info-panel-title">📌 Key System Rules</div>
+        <div class="info-item">
+          <span class="info-icon">📍</span>
+          <div class="info-text"><strong>Location-on-Action Only</strong>GPS is captured only when the employee manually clicks Check-In or Check-Out. No continuous background tracking.</div>
+        </div>
+        <div class="info-item">
+          <span class="info-icon">📏</span>
+          <div class="info-text"><strong>Radius Verification</strong>Default allowed radius: 200 metres from project coordinates. Configurable per project by admin.</div>
+        </div>
+        <div class="info-item">
+          <span class="info-icon">🗄️</span>
+          <div class="info-text"><strong>Data Saved on Success</strong>Employee ID, Project, Check-In time, Distance, and Verification Status are persisted to the database.</div>
+        </div>
+        <div class="info-item">
+          <span class="info-icon">🚩</span>
+          <div class="info-text"><strong>Flagging System</strong>Failed verifications are flagged in the admin panel with full details for manual review.</div>
+        </div>
+        <div class="info-item">
+          <span class="info-icon">🔒</span>
+          <div class="info-text"><strong>Privacy-First Design</strong>Location data is used only for attendance verification and is never stored beyond what is necessary.</div>
+        </div>
+      </div>
+
+      <!-- Tech Stack -->
+      <div class="arch-card">
+        <div class="arch-title">🛠️ Technology Stack</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;align-items:center;gap:8px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:7px 10px;"><span>🌐</span><div><div style="font-size:10px;font-weight:700;">Frontend</div><div style="font-size:9px;color:#64748B;">React.js / Next.js · TypeScript</div></div></div>
+          <div style="display:flex;align-items:center;gap:8px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:7px 10px;"><span>⚡</span><div><div style="font-size:10px;font-weight:700;">Backend API</div><div style="font-size:9px;color:#64748B;">Node.js · REST API</div></div></div>
+          <div style="display:flex;align-items:center;gap:8px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:7px 10px;"><span>🗃️</span><div><div style="font-size:10px;font-weight:700;">Database</div><div style="font-size:9px;color:#64748B;">PostgreSQL · Redis Cache</div></div></div>
+          <div style="display:flex;align-items:center;gap:8px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:7px 10px;"><span>📡</span><div><div style="font-size:10px;font-weight:700;">Location Services</div><div style="font-size:9px;color:#64748B;">Browser Geolocation API · Haversine</div></div></div>
+          <div style="display:flex;align-items:center;gap:8px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:7px 10px;"><span>☁️</span><div><div style="font-size:10px;font-weight:700;">Hosting</div><div style="font-size:9px;color:#64748B;">AWS · Docker · CI/CD</div></div></div>
+        </div>
+      </div>
+
+    </div><!-- /sidebar -->
+  </div><!-- /layout -->
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-left">
+      <strong>Employee Attendance &amp; Location Verification System</strong> &nbsp;·&nbsp;
+      Architecture Diagram v2.4 &nbsp;·&nbsp; Confidential &nbsp;·&nbsp; © 2026
+    </div>
+    <div class="footer-right">
+      <span class="footer-tag">SaaS Platform</span>
+      <span class="footer-tag">GPS Verified</span>
+      <span class="footer-tag">Location-On-Action</span>
+      <span class="footer-tag">Admin Dashboard</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,457 @@
+import React, { useState } from 'react';
+import { useApp } from '../../context/AppContext';
+import { Modal, ConfirmDeleteModal } from '../../components/ui/Modal';
+import {
+  Link2, Plus, Search, Pencil, Trash2, FolderKanban,
+  Users, Calendar, AlertTriangle, CheckCircle, Clock
+} from 'lucide-react';
+
+const EMPTY_FORM = {
+  employeeId: '', projectId: '', startDate: '', endDate: '',
+  status: 'Active', notes: '',
+};
+const STATUS_OPTIONS = ['Active', 'Inactive', 'Completed'];
+
+const STATUS_CFG = {
+  Active:    { cls: 'badge-success', label: 'Active'    },
+  Inactive:  { cls: 'badge-neutral', label: 'Inactive'  },
+  Completed: { cls: 'badge-info',    label: 'Completed' },
+};
+
+export default function Assignments() {
+  const {
+    assignments, addAssignment, updateAssignment, deleteAssignment,
+    employees, projects, companies,
+    getEmployeeById, getProjectById, getCompanyById, hasAssignment,
+  } = useApp();
+
+  const [search,       setSearch]       = useState('');
+  const [filterEmp,    setFilterEmp]    = useState('');
+  const [filterProj,   setFilterProj]   = useState('');
+  const [filterStatus, setFilterStatus] = useState('Active');
+  const [modalOpen,    setModalOpen]    = useState(false);
+  const [editItem,     setEditItem]     = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [form,         setForm]         = useState(EMPTY_FORM);
+  const [errors,       setErrors]       = useState({});
+
+  // Pre-fill from URL-like context (employee or project pre-select)
+  const [preEmployee, setPreEmployee]   = useState('');
+  const [preProject,  setPreProject]    = useState('');
+
+  const activeEmps  = employees.filter(e => e.status === 'Active');
+  const allProjects = projects;
+
+  // ── Filtered list ──
+  const filtered = assignments
+    .filter(a => {
+      const emp  = getEmployeeById(a.employeeId);
+      const proj = getProjectById(a.projectId);
+      const q    = search.toLowerCase();
+      const matchSearch  = !search ||
+        emp?.name?.toLowerCase().includes(q) ||
+        emp?.empId?.toLowerCase().includes(q) ||
+        proj?.name?.toLowerCase().includes(q) ||
+        proj?.number?.toLowerCase().includes(q);
+      const matchEmp     = !filterEmp    || a.employeeId === filterEmp;
+      const matchProj    = !filterProj   || a.projectId  === filterProj;
+      const matchStatus  = !filterStatus || a.status     === filterStatus;
+      return matchSearch && matchEmp && matchProj && matchStatus;
+    })
+    .sort((a, b) => b.createdAt?.localeCompare(a.createdAt) || 0);
+
+  // ── Stats ──
+  const totalActive    = assignments.filter(a => a.status === 'Active').length;
+  const totalInactive  = assignments.filter(a => a.status === 'Inactive').length;
+  const totalCompleted = assignments.filter(a => a.status === 'Completed').length;
+
+  // ── Modal helpers ──
+  const openAdd = (empId = '', projId = '') => {
+    setEditItem(null);
+    setForm({ ...EMPTY_FORM, employeeId: empId, projectId: projId });
+    setErrors({});
+    setModalOpen(true);
+  };
+
+  const openEdit = (item) => {
+    setEditItem(item);
+    setForm({
+      employeeId: item.employeeId,
+      projectId:  item.projectId,
+      startDate:  item.startDate,
+      endDate:    item.endDate,
+      status:     item.status,
+      notes:      item.notes || '',
+    });
+    setErrors({});
+    setModalOpen(true);
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.employeeId) e.employeeId = 'Please select an employee';
+    if (!form.projectId)  e.projectId  = 'Please select a project';
+    if (!form.startDate)  e.startDate  = 'Start date is required';
+    if (!form.endDate)    e.endDate    = 'End date is required';
+    if (form.startDate && form.endDate && form.endDate < form.startDate)
+      e.endDate = 'End date must be after start date';
+    if (hasAssignment(form.employeeId, form.projectId, editItem?.id))
+      e.projectId = 'This employee is already assigned to this project';
+    return e;
+  };
+
+  const handleSubmit = () => {
+    const e = validate();
+    if (Object.keys(e).length > 0) { setErrors(e); return; }
+    if (editItem) updateAssignment(editItem.id, form);
+    else addAssignment(form);
+    setModalOpen(false);
+  };
+
+  const handleDelete = () => { deleteAssignment(deleteTarget.id); setDeleteTarget(null); };
+
+  const avatarColors = ['#1D4ED8', '#16A34A', '#7C3AED', '#D97706', '#0891B2', '#DC2626'];
+  const getInitials  = (name = '') => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+  const empIndex     = (id) => employees.findIndex(e => e.id === id);
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-header-info">
+          <h2>Project Assignments</h2>
+          <p>{assignments.length} total · {totalActive} active</p>
+        </div>
+        <button id="add-assignment-btn" className="btn btn-primary" onClick={() => openAdd()}>
+          <Plus size={16} /> Assign Project
+        </button>
+      </div>
+
+      {/* ── Stats ── */}
+      <div className="stat-grid" style={{ marginBottom: 24 }}>
+        <div className="stat-card green">
+          <div className="stat-icon green"><CheckCircle size={24} /></div>
+          <div className="stat-info">
+            <p>Active Assignments</p>
+            <h3>{totalActive}</h3>
+            <small>Currently running</small>
+          </div>
+        </div>
+        <div className="stat-card blue">
+          <div className="stat-icon blue"><Users size={24} /></div>
+          <div className="stat-info">
+            <p>Employees Assigned</p>
+            <h3>{[...new Set(assignments.filter(a => a.status === 'Active').map(a => a.employeeId))].length}</h3>
+            <small>With active assignments</small>
+          </div>
+        </div>
+        <div className="stat-card purple">
+          <div className="stat-icon purple"><FolderKanban size={24} /></div>
+          <div className="stat-info">
+            <p>Projects Covered</p>
+            <h3>{[...new Set(assignments.filter(a => a.status === 'Active').map(a => a.projectId))].length}</h3>
+            <small>With active assignments</small>
+          </div>
+        </div>
+        <div className="stat-card orange">
+          <div className="stat-icon orange"><Clock size={24} /></div>
+          <div className="stat-info">
+            <p>Completed</p>
+            <h3>{totalCompleted}</h3>
+            <small>Finished assignments</small>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Quick-assign per project ── */}
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div className="card-header">
+          <div><h3>Quick Assign by Project</h3><p>Click a project to assign employees directly</p></div>
+          <FolderKanban size={20} color="var(--color-text-muted)" />
+        </div>
+        <div style={{ padding: '0 24px 20px', display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          {projects.filter(p => p.status === 'Active').map(p => {
+            const assigned = assignments.filter(a => a.projectId === p.id && a.status === 'Active').length;
+            const company  = getCompanyById(p.companyId);
+            return (
+              <div key={p.id} style={{
+                padding: '12px 16px', background: 'var(--color-bg)', borderRadius: 12,
+                border: '1.5px solid var(--color-border-light)', minWidth: 200, flex: '1 1 200px',
+                display: 'flex', flexDirection: 'column', gap: 6,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>{p.name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{p.number} · {company?.name}</div>
+                  </div>
+                  <span className="badge badge-success">{assigned} assigned</span>
+                </div>
+                {/* Assigned avatars */}
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                  {assignments.filter(a => a.projectId === p.id && a.status === 'Active').map(a => {
+                    const emp = getEmployeeById(a.employeeId);
+                    const idx = empIndex(a.employeeId);
+                    return emp ? (
+                      <div key={a.id} title={emp.name} style={{
+                        width: 26, height: 26, borderRadius: '50%',
+                        background: avatarColors[idx % 6],
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#fff', fontWeight: 700, fontSize: 9,
+                      }}>
+                        {getInitials(emp.name)}
+                      </div>
+                    ) : null;
+                  })}
+                  <button
+                    onClick={() => openAdd('', p.id)}
+                    title="Add employee to this project"
+                    style={{
+                      width: 26, height: 26, borderRadius: '50%',
+                      border: '2px dashed var(--color-border-light)',
+                      background: 'transparent', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'var(--color-text-muted)', fontSize: 14, lineHeight: 1,
+                    }}
+                  >+</button>
+                </div>
+              </div>
+            );
+          })}
+          {projects.filter(p => p.status === 'Active').length === 0 && (
+            <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>No active projects yet.</p>
+          )}
+        </div>
+      </div>
+
+      {/* ── Filters ── */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div style={{ padding: '14px 24px', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div className="search-input-wrapper">
+            <Search size={16} className="search-icon" />
+            <input placeholder="Search employee or project..." value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Employee</label>
+            <select value={filterEmp} onChange={e => setFilterEmp(e.target.value)} style={{ maxWidth: 200 }}>
+              <option value="">All Employees</option>
+              {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.empId})</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Project</label>
+            <select value={filterProj} onChange={e => setFilterProj(e.target.value)} style={{ maxWidth: 200 }}>
+              <option value="">All Projects</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Status</label>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ maxWidth: 150 }}>
+              <option value="">All</option>
+              {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          {(search || filterEmp || filterProj || filterStatus) && (
+            <button className="btn btn-ghost btn-sm" style={{ marginBottom: 0 }}
+              onClick={() => { setSearch(''); setFilterEmp(''); setFilterProj(''); setFilterStatus(''); }}>
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Assignments Table ── */}
+      <div className="card">
+        <div className="card-header">
+          <div><h3>All Assignments</h3><p>{filtered.length} records</p></div>
+        </div>
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Employee</th>
+                <th>Project</th>
+                <th>Company</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Status</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((a, i) => {
+                const emp  = getEmployeeById(a.employeeId);
+                const proj = getProjectById(a.projectId);
+                const co   = getCompanyById(proj?.companyId);
+                const idx  = empIndex(a.employeeId);
+                const cfg  = STATUS_CFG[a.status] || STATUS_CFG.Inactive;
+                return (
+                  <tr key={a.id}>
+                    <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 34, height: 34, borderRadius: '50%', background: avatarColors[idx % 6], display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
+                          {getInitials(emp?.name)}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>{emp?.name || '—'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{emp?.empId} · {emp?.role}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <FolderKanban size={13} color="var(--color-text-muted)" />
+                        {proj?.name || '—'}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{proj?.number}</div>
+                    </td>
+                    <td style={{ fontSize: 13 }}>{co?.name || '—'}</td>
+                    <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Calendar size={12} color="var(--color-text-muted)" />
+                        {a.startDate}
+                      </div>
+                    </td>
+                    <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{a.endDate}</td>
+                    <td><span className={`badge ${cfg.cls}`}>{cfg.label}</span></td>
+                    <td style={{ maxWidth: 180 }}>
+                      {a.notes
+                        ? <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }} title={a.notes}>{a.notes.slice(0, 40)}{a.notes.length > 40 ? '…' : ''}</span>
+                        : '—'}
+                    </td>
+                    <td>
+                      <div className="table-actions">
+                        <button className="btn btn-ghost btn-icon btn-sm" title="Edit" onClick={() => openEdit(a)}><Pencil size={15} /></button>
+                        <button className="btn btn-ghost btn-icon btn-sm" title="Remove" onClick={() => setDeleteTarget(a)} style={{ color: 'var(--color-danger)' }}><Trash2 size={15} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filtered.length === 0 && (
+                <tr><td colSpan={9}>
+                  <div className="empty-state">
+                    <div className="empty-state-icon"><Link2 size={32} /></div>
+                    <h3>No assignments found</h3>
+                    <p>{search || filterEmp || filterProj ? 'Try different filters.' : 'Click "Assign Project" to create your first assignment.'}</p>
+                    {!search && !filterEmp && !filterProj && (
+                      <button className="btn btn-primary" onClick={() => openAdd()}><Plus size={16} /> Assign Project</button>
+                    )}
+                  </div>
+                </td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Add / Edit Modal ── */}
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editItem ? 'Edit Assignment' : 'Assign Project to Employee'}
+        subtitle={editItem ? 'Update assignment details' : 'Link an employee to a project'}
+        footer={<>
+          <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
+          <button id="save-assignment-btn" className="btn btn-primary" onClick={handleSubmit}>
+            {editItem ? 'Save Changes' : 'Create Assignment'}
+          </button>
+        </>}
+      >
+        {/* Employee */}
+        <div className="form-group">
+          <label>Employee *</label>
+          <select
+            value={form.employeeId}
+            onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))}
+            style={errors.employeeId ? { borderColor: 'var(--color-danger)' } : {}}
+            disabled={!!editItem}
+          >
+            <option value="">— Select Employee —</option>
+            {employees.filter(e => e.status === 'Active').map(e => (
+              <option key={e.id} value={e.id}>{e.name} ({e.empId}) · {e.role}</option>
+            ))}
+          </select>
+          {errors.employeeId && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors.employeeId}</p>}
+        </div>
+
+        {/* Project */}
+        <div className="form-group">
+          <label>Project *</label>
+          <select
+            value={form.projectId}
+            onChange={e => setForm(f => ({ ...f, projectId: e.target.value }))}
+            style={errors.projectId ? { borderColor: 'var(--color-danger)' } : {}}
+            disabled={!!editItem}
+          >
+            <option value="">— Select Project —</option>
+            {projects.map(p => {
+              const co = getCompanyById(p.companyId);
+              return (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.number}) — {co?.name} [{p.status}]
+                </option>
+              );
+            })}
+          </select>
+          {errors.projectId && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors.projectId}</p>}
+          {editItem && (
+            <p style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4 }}>
+              ℹ️ To change the employee or project, delete this assignment and create a new one.
+            </p>
+          )}
+        </div>
+
+        {/* Dates */}
+        <div className="form-row">
+          <div className="form-group">
+            <label>Assignment Start Date *</label>
+            <input type="date" value={form.startDate}
+              onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
+              style={errors.startDate ? { borderColor: 'var(--color-danger)' } : {}} />
+            {errors.startDate && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors.startDate}</p>}
+          </div>
+          <div className="form-group">
+            <label>Assignment End Date *</label>
+            <input type="date" value={form.endDate}
+              onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
+              style={errors.endDate ? { borderColor: 'var(--color-danger)' } : {}} />
+            {errors.endDate && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors.endDate}</p>}
+          </div>
+        </div>
+
+        {/* Status */}
+        <div className="form-group">
+          <label>Assignment Status</label>
+          <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+
+        {/* Notes */}
+        <div className="form-group">
+          <label>Notes / Role Description</label>
+          <textarea
+            placeholder="e.g. Lead welder for section A, TIG specialist..."
+            value={form.notes}
+            onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+            style={{ minHeight: 70 }}
+          />
+        </div>
+
+        <div className="note-box" style={{ marginTop: 4 }}>
+          💡 After saving, this project will automatically appear on the employee's dashboard under "My Assigned Projects".
+        </div>
+      </Modal>
+
+      <ConfirmDeleteModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        itemName={`${getEmployeeById(deleteTarget?.employeeId)?.name} ↔ ${getProjectById(deleteTarget?.projectId)?.name}`}
+      />
+    </div>
+  );
+}

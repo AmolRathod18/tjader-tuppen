@@ -1,0 +1,210 @@
+import React, { useState } from 'react';
+import { useApp } from '../context/AppContext';
+import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
+import { Building2, Plus, Search, Pencil, Trash2, Phone, Mail, MapPin } from 'lucide-react';
+
+const EMPTY_FORM = { name: '', contact: '', email: '', phone: '', address: '' };
+
+export default function Companies() {
+  const { companies, addCompany, updateCompany, deleteCompany, getProjectsByCompany } = useApp();
+  const [search, setSearch] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [errors, setErrors] = useState({});
+
+  const filtered = companies.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.contact?.toLowerCase().includes(search.toLowerCase()) ||
+    c.address?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const openAdd = () => { setEditItem(null); setForm(EMPTY_FORM); setErrors({}); setModalOpen(true); };
+  const openEdit = (item) => { setEditItem(item); setForm({ name: item.name, contact: item.contact, email: item.email, phone: item.phone, address: item.address }); setErrors({}); setModalOpen(true); };
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = 'Company name is required';
+    if (!form.contact.trim()) e.contact = 'Contact person is required';
+    if (form.email && !/\S+@\S+\.\S+/.test(form.email)) e.email = 'Invalid email address';
+    return e;
+  };
+
+  const handleSubmit = () => {
+    const e = validate();
+    if (Object.keys(e).length > 0) { setErrors(e); return; }
+    if (editItem) updateCompany(editItem.id, form);
+    else addCompany(form);
+    setModalOpen(false);
+  };
+
+  const handleDelete = () => {
+    deleteCompany(deleteTarget.id);
+    setDeleteTarget(null);
+  };
+
+  const F = ({ field, label, type = 'text', placeholder }) => (
+    <div className="form-group">
+      <label>{label}{field === 'name' || field === 'contact' ? ' *' : ''}</label>
+      <input
+        type={type}
+        placeholder={placeholder}
+        value={form[field]}
+        onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+        style={errors[field] ? { borderColor: 'var(--color-danger)' } : {}}
+      />
+      {errors[field] && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors[field]}</p>}
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-header-info">
+          <h2>Client Companies</h2>
+          <p>{companies.length} companies registered</p>
+        </div>
+        <button id="add-company-btn" className="btn btn-primary" onClick={openAdd}>
+          <Plus size={16} /> Add Company
+        </button>
+      </div>
+
+      <div className="card">
+        {/* Search */}
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border-light)' }}>
+          <div className="search-input-wrapper">
+            <Search size={16} className="search-icon" />
+            <input
+              id="search-companies"
+              placeholder="Search companies..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Company Name</th>
+                <th>Contact Person</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Projects</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((c, i) => {
+                const projectCount = getProjectsByCompany(c.id).length;
+                return (
+                  <tr key={c.id}>
+                    <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{
+                          width: 34, height: 34, borderRadius: 8,
+                          background: 'var(--color-primary-light)', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
+                          color: 'var(--color-primary)', flexShrink: 0
+                        }}>
+                          <Building2 size={16} />
+                        </div>
+                        <span style={{ fontWeight: 600 }}>{c.name}</span>
+                      </div>
+                    </td>
+                    <td>{c.contact}</td>
+                    <td>
+                      {c.email ? (
+                        <a href={`mailto:${c.email}`} style={{ color: 'var(--color-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Mail size={13} /> {c.email}
+                        </a>
+                      ) : '—'}
+                    </td>
+                    <td>
+                      {c.phone ? (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Phone size={13} color="var(--color-text-muted)" /> {c.phone}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td>
+                      {c.address ? (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <MapPin size={13} color="var(--color-text-muted)" /> {c.address}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td>
+                      <span className="badge badge-primary">{projectCount} project{projectCount !== 1 ? 's' : ''}</span>
+                    </td>
+                    <td>
+                      <div className="table-actions">
+                        <button className="btn btn-ghost btn-icon btn-sm" title="Edit" onClick={() => openEdit(c)}>
+                          <Pencil size={15} />
+                        </button>
+                        <button className="btn btn-ghost btn-icon btn-sm" title="Delete" onClick={() => setDeleteTarget(c)}
+                          style={{ color: 'var(--color-danger)' }}>
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={8}>
+                    <div className="empty-state">
+                      <div className="empty-state-icon"><Building2 size={32} /></div>
+                      <h3>No companies found</h3>
+                      <p>{search ? 'Try a different search term.' : 'Get started by adding your first client company.'}</p>
+                      {!search && <button className="btn btn-primary" onClick={openAdd}><Plus size={16} /> Add Company</button>}
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add/Edit Modal */}
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editItem ? 'Edit Company' : 'Add Client Company'}
+        subtitle={editItem ? 'Update company details' : 'Register a new client company'}
+        footer={
+          <>
+            <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
+            <button id="save-company-btn" className="btn btn-primary" onClick={handleSubmit}>
+              {editItem ? 'Save Changes' : 'Add Company'}
+            </button>
+          </>
+        }
+      >
+        <F field="name" label="Company Name" placeholder="e.g. XYZ Construction AB" />
+        <F field="contact" label="Contact Person" placeholder="e.g. Erik Lindqvist" />
+        <div className="form-row">
+          <F field="email" label="Email Address" type="email" placeholder="contact@company.se" />
+          <F field="phone" label="Phone Number" placeholder="+46 70 123 4567" />
+        </div>
+        <F field="address" label="Address / Location" placeholder="e.g. Stockholm, Sweden" />
+      </Modal>
+
+      {/* Delete Modal */}
+      <ConfirmDeleteModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        itemName={deleteTarget?.name}
+      />
+    </div>
+  );
+}

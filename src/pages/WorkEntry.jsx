@@ -218,7 +218,6 @@ export default function WorkEntry() {
               <Search size={16} className="search-icon" />
               <input id="search-entries" placeholder="Search employee, project, description..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
-            <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} style={{ maxWidth: 160 }} title="Filter by Date" />
             <select value={filterEmployee} onChange={e => {
               setFilterEmployee(e.target.value);
               setFilterClient('');

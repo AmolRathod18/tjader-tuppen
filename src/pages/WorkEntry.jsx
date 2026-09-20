@@ -155,7 +155,7 @@ export default function WorkEntry() {
       <div className="page-header">
         <div className="page-header-info">
           <h2>{t('we_title')}</h2>
-          <p>{workEntries.length} {t('lbl_entries')} Â· {workEntries.reduce((s, w) => s + getWorkEntryHours(w), 0).toFixed(1)}h total</p>
+          <p>{workEntries.length} {t('lbl_entries')}  -  {workEntries.reduce((s, w) => s + getWorkEntryHours(w), 0).toFixed(1)}h total</p>
         </div>
         <button id="add-work-btn" className="btn btn-primary" onClick={openAdd}>
           <Plus size={16} /> {t('we_btn_log')}
@@ -188,7 +188,7 @@ export default function WorkEntry() {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             <div className="search-input-wrapper" style={{ flex: 1, minWidth: 180 }}>
               <Search size={16} className="search-icon" />
-              <input id="search-entries" placeholder="Search employee, project, descriptionâ€¦" value={search} onChange={e => setSearch(e.target.value)} />
+              <input id="search-entries" placeholder="Search employee, project, description..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} style={{ maxWidth: 160 }} title="Filter by Date" />
             <select value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)} style={{ maxWidth: 180 }}>
@@ -242,12 +242,12 @@ export default function WorkEntry() {
                       </div>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{employee?.name || 'â€”'}</div>
+                      <div style={{ fontWeight: 600 }}>{employee?.name || '-'}</div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{employee?.role}</div>
                     </td>
-                    <td style={{ fontWeight: 500 }}>{co?.name || 'â€”'}</td>
+                    <td style={{ fontWeight: 500 }}>{co?.name || '-'}</td>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{project?.name || 'â€”'}</div>
+                      <div style={{ fontWeight: 600 }}>{project?.name || '-'}</div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{project?.number}</div>
                     </td>
                     <td>
@@ -257,16 +257,16 @@ export default function WorkEntry() {
                       </div>
                     </td>
                     <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-                      {w.startTime && w.endTime ? `${w.startTime}â€“${w.endTime}` : 'â€”'}
+                      {w.startTime && w.endTime ? `${w.startTime}-${w.endTime}` : '-'}
                     </td>
                     <td style={{ maxWidth: 180 }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {w.description || 'â€”'}
+                        {w.description || '-'}
                       </div>
                     </td>
                     <td style={{ color: 'var(--color-text-muted)', maxWidth: 130 }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {w.remarks || 'â€”'}
+                        {w.remarks || '-'}
                       </div>
                     </td>
                     <td>
@@ -293,7 +293,7 @@ export default function WorkEntry() {
         </div>
       </div>
 
-      {/* â”€â”€ Add / Edit Modal â”€â”€ */}
+      {/* -- Add / Edit Modal -- */}
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -315,8 +315,8 @@ export default function WorkEntry() {
         <div className="form-group">
           <label>Employee *</label>
           <select value={form.employeeId} onChange={e => setField('employeeId', e.target.value)} style={errors.employeeId ? { borderColor: 'var(--color-danger)' } : {}}>
-            <option value="">Select employeeâ€¦</option>
-            {activeEmployees.map(e => <option key={e.id} value={e.id}>{e.name} â€” {e.role}</option>)}
+            <option value="">Select employee...</option>
+            {activeEmployees.map(e => <option key={e.id} value={e.id}>{e.name} - {e.role}</option>)}
           </select>
           <Err field="employeeId" />
         </div>
@@ -326,14 +326,14 @@ export default function WorkEntry() {
           <div className="form-group">
             <label>Client Company</label>
             <select value={form.companyId} onChange={e => setField('companyId', e.target.value)}>
-              <option value="">All clientsâ€¦</option>
+              <option value="">All clients...</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div className="form-group">
             <label>Project *</label>
             <select value={form.projectId} onChange={e => setField('projectId', e.target.value)} style={errors.projectId ? { borderColor: 'var(--color-danger)' } : {}}>
-              <option value="">Select projectâ€¦</option>
+              <option value="">Select project...</option>
               {formProjects.map(p => {
                 const co = getCompanyById(p.companyId);
                 return <option key={p.id} value={p.id}>{p.name}{co ? ` (${co.name})` : ''}</option>;
@@ -370,7 +370,7 @@ export default function WorkEntry() {
         <div className="form-group">
           <label>Work Description *</label>
           <textarea
-            placeholder="Describe the work performedâ€¦"
+            placeholder="Describe the work performed..."
             value={form.description}
             onChange={e => setField('description', e.target.value)}
             style={errors.description ? { borderColor: 'var(--color-danger)' } : {}}
@@ -382,7 +382,7 @@ export default function WorkEntry() {
         <div className="form-group">
           <label>Remarks</label>
           <textarea
-            placeholder="Any additional notes or remarksâ€¦"
+            placeholder="Any additional notes or remarks..."
             value={form.remarks}
             onChange={e => setField('remarks', e.target.value)}
             style={{ minHeight: 60 }}

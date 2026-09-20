@@ -50,6 +50,19 @@ export default function WorkEntry() {
     ? projects.filter(p => p.companyId === filterClient)
     : projects;
 
+  const employeeEntries = filterEmployee
+    ? workEntries.filter(w => w.employeeId === filterEmployee)
+    : workEntries;
+  const employeeProjectIds = new Set(employeeEntries.map(w => w.projectId));
+  const employeeClientIds = new Set(employeeEntries.map(w => {
+    const project = getProjectById(w.projectId);
+    return w.companyId || project?.companyId;
+  }).filter(Boolean));
+  const availableCompanies = filterEmployee
+    ? companies.filter(c => employeeClientIds.has(c.id))
+    : companies;
+  const availableProjects = filterProjects.filter(p => employeeProjectIds.has(p.id));
+
   const activeEmployees = employees.filter(e => e.status === 'Active');
 
   const filtered = workEntries
@@ -71,6 +84,7 @@ export default function WorkEntry() {
     });
 
   const totalHours = filtered.reduce((s, w) => s + getWorkEntryHours(w), 0);
+  const selectedEmployee = filterEmployee ? getEmployeeById(filterEmployee) : null;
 
   const openAdd = () => {
     setEditItem(null);
@@ -163,7 +177,10 @@ export default function WorkEntry() {
       <div className="page-header">
         <div className="page-header-info">
           <h2>{t('we_title')}</h2>
-          <p>{workEntries.length} {t('lbl_entries')}  -  {workEntries.reduce((s, w) => s + getWorkEntryHours(w), 0).toFixed(1)}h total</p>
+          <p>
+            {selectedEmployee ? `${selectedEmployee.name} · ` : 'All Employees · '}
+            {filtered.length} {t('lbl_entries')} · {totalHours.toFixed(1)}h total
+          </p>
         </div>
         <button id="add-work-btn" className="btn btn-primary" onClick={openAdd}>
           <Plus size={16} /> {t('we_btn_log')}
@@ -186,7 +203,7 @@ export default function WorkEntry() {
         </div>
         <div className="summary-item">
           <p>Active Projects</p>
-          <h4>{projects.filter(p => p.status === 'Active').length}</h4>
+          <h4>{availableProjects.filter(p => p.status === 'Active').length}</h4>
         </div>
       </div>
 
@@ -199,17 +216,21 @@ export default function WorkEntry() {
               <input id="search-entries" placeholder="Search employee, project, description..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} style={{ maxWidth: 160 }} title="Filter by Date" />
-            <select value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)} style={{ maxWidth: 180 }}>
+            <select value={filterEmployee} onChange={e => {
+              setFilterEmployee(e.target.value);
+              setFilterClient('');
+              setFilterProject('');
+            }} style={{ maxWidth: 180 }}>
               <option value="">All Employees</option>
               {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
             <select value={filterClient} onChange={e => { setFilterClient(e.target.value); setFilterProject(''); }} style={{ maxWidth: 200 }}>
               <option value="">All Clients</option>
-              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {availableCompanies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             <select value={filterProject} onChange={e => setFilterProject(e.target.value)} style={{ maxWidth: 200 }}>
               <option value="">All Projects</option>
-              {filterProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {availableProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
             {hasFilters && (
               <button className="btn btn-ghost btn-sm" onClick={clearFilters}>

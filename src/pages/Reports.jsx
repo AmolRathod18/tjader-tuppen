@@ -347,9 +347,20 @@ export default function Reports() {
                  : tab === 'monthly' ? monthTo
                  : toDate;
 
-  const availableProjects = filterClient
-    ? projects.filter(p => p.companyId === filterClient)
-    : projects;
+  const employeeEntries = filterEmployee
+    ? workEntries.filter(w => w.employeeId === filterEmployee)
+    : workEntries;
+  const employeeProjectIds = new Set(employeeEntries.map(w => w.projectId));
+  const employeeClientIds = new Set(employeeEntries.map(w => {
+    const project = getProjectById(w.projectId);
+    return w.companyId || project?.companyId;
+  }).filter(Boolean));
+  const availableCompanies = filterEmployee
+    ? companies.filter(c => employeeClientIds.has(c.id))
+    : companies;
+  const availableProjects = projects.filter(p =>
+    employeeProjectIds.has(p.id) && (!filterClient || p.companyId === filterClient)
+  );
 
   const filtered = workEntries.filter(w => {
     const proj = getProjectById(w.projectId);
@@ -415,7 +426,12 @@ export default function Reports() {
       <div className="page-header">
         <div className="page-header-info">
           <h2>{t('rep_title')}</h2>
-          <p>Generate daily, weekly, monthly, and custom reports with professional PDF export</p>
+          <p>
+            {filterEmployee
+              ? `Showing only ${getEmployeeById(filterEmployee)?.name || 'the selected employee'}`
+              : 'Showing all employees'}
+            {' · '}Generate daily, weekly, monthly, and custom reports with professional PDF export
+          </p>
         </div>
         <div className="page-header-actions" style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-outline" onClick={handlePreviewPDF} disabled={filtered.length === 0}>
@@ -501,7 +517,11 @@ export default function Reports() {
             {/* Common filters */}
             <div>
               <label style={LabelStyle}>Employee</label>
-              <select value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)} style={{ minWidth: 180 }}>
+              <select value={filterEmployee} onChange={e => {
+                setFilterEmployee(e.target.value);
+                setFilterClient('');
+                setFilterProject('');
+              }} style={{ minWidth: 180 }}>
                 <option value="">All Employees</option>
                 {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
               </select>
@@ -510,7 +530,7 @@ export default function Reports() {
               <label style={LabelStyle}>Client</label>
               <select value={filterClient} onChange={e => { setFilterClient(e.target.value); setFilterProject(''); }} style={{ minWidth: 180 }}>
                 <option value="">All Clients</option>
-                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {availableCompanies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>

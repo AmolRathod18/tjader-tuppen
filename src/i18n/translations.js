@@ -11,21 +11,14 @@ const translations = {
 
     // ── Sidebar ────────────────────────────────────────────
     admin_panel: 'Admin Panel',
-    employee_portal: 'Employee Portal',
-    role_administrator: 'Administrator',
-    role_employee: 'Employee',
     menu: 'Menu',
     system: 'System',
     nav_dashboard: 'Dashboard',
     nav_companies: 'Client Companies',
     nav_projects: 'Projects',
     nav_employees: 'Employees',
-    nav_assignments: 'Assignments',
     nav_work_entry: 'Daily Work Entry',
-    nav_attendance: 'Attendance',
     nav_reports: 'Reports',
-    nav_my_dashboard: 'My Dashboard',
-    nav_my_attendance: 'My Attendance',
     nav_logout: 'Logout',
 
     // ── Header ─────────────────────────────────────────────
@@ -67,6 +60,7 @@ const translations = {
     btn_create_assignment: 'Create Assignment',
     btn_create_project: 'Create Project',
     btn_sign_in: 'Sign In',
+    btn_full: 'Sign In',
 
     // ── Common labels ──────────────────────────────────────
     lbl_name: 'Name',
@@ -125,6 +119,14 @@ const translations = {
     delete_warning: 'This action cannot be undone.',
 
     // ── Login ──────────────────────────────────────────────
+    login_workspace: 'Swedish operations workspace',
+    login_intro_title: 'Make every hour',
+    login_intro_emphasis: 'count.',
+    login_intro_description: 'One calm place to coordinate people, projects, and the work that moves them forward.',
+    login_feature_projects: 'Project clarity',
+    login_feature_time: 'Accurate time logs',
+    login_feature_reports: 'Ready-to-share reports',
+    login_intro_note: 'Built for teams that take pride in the details.',
     login_title_admin: 'Admin Sign In',
     login_title_employee: 'Employee Sign In',
     login_subtitle_admin: 'Access the full project management dashboard',
@@ -636,6 +638,14 @@ const translations = {
     delete_warning: 'Denna åtgärd kan inte ångras.',
 
     // ── Login ──────────────────────────────────────────────
+    login_workspace: 'Svensk arbetsyta för drift',
+    login_intro_title: 'Få varje timme',
+    login_intro_emphasis: 'att räknas.',
+    login_intro_description: 'En lugn plats för att samordna människor, projekt och arbetet som tar er framåt.',
+    login_feature_projects: 'Projektöverblick',
+    login_feature_time: 'Exakt tidsregistrering',
+    login_feature_reports: 'Rapporter redo att dela',
+    login_intro_note: 'Skapad för team som bryr sig om detaljerna.',
     login_title_admin: 'Admin-inloggning',
     login_title_employee: 'Medarbetarinloggning',
     login_subtitle_admin: 'Åtkomst till hela projektledningspanelen',

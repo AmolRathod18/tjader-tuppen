@@ -145,14 +145,14 @@ export default function Dashboard() {
             <div className="chart-container">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E3DDD2" />
                   <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#94A3B8' }} />
                   <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} />
                   <Tooltip
                     contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }}
                     formatter={(v) => [`${v}h`, 'Hours']}
                   />
-                  <Bar dataKey="hours" fill="#1D4ED8" radius={[4,4,0,0]} />
+                  <Bar dataKey="hours" fill="#B88A3B" radius={[4,4,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

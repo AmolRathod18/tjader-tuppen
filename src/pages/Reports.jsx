@@ -39,8 +39,8 @@ function displayDate(str) {
 
 // ─── PDF generator ──────────────────────────────────────────
 function buildPDF({ title, subtitle, entries, getProjectById, getCompanyById, getEmployeeById }) {
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const PW = 210, PH = 297, M = 14, CW = PW - M * 2;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const PW = 297, PH = 210, M = 12, CW = PW - M * 2;
   const now = new Date();
   const genStr = now.toLocaleString('en-SE', { dateStyle: 'long', timeStyle: 'short' });
   const totalHours = entries.reduce((s, e) => s + (parseFloat(e.hours) || 0), 0);
@@ -132,13 +132,14 @@ function buildPDF({ title, subtitle, entries, getProjectById, getCompanyById, ge
   y += 12;
 
   const cols = [
-    { h: 'Date',        w: 22 },
-    { h: 'Employee',    w: 35 },
+    { h: 'Date',        w: 24 },
+    { h: 'Employee',    w: 38 },
     { h: 'Client',      w: 38 },
-    { h: 'Project',     w: 38 },
-    { h: 'Description', w: 42 },
-    { h: 'Time',        w: 17 },
-    { h: 'Hours',       w: 14 },
+    { h: 'Project',     w: 42 },
+    { h: 'Description', w: 55 },
+    { h: 'Time',        w: 28 },
+    { h: 'Hours',       w: 18 },
+    { h: 'Remarks',     w: 30 },
   ];
   const ROW_H = 8;
   const HDR_H = 9;
@@ -222,6 +223,12 @@ function buildPDF({ title, subtitle, entries, getProjectById, getCompanyById, ge
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(29, 78, 216);
     pdf.text(`${parseFloat(entry.hours || 0).toFixed(1)}h`, cx + cols[6].w - 2, y + 5.5, { align: 'right' });
+    cx += cols[6].w;
+
+    // Remarks
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(truncate(entry.remarks, 20), cx + 2, y + 5.5);
 
     y += ROW_H;
   });
@@ -567,14 +574,14 @@ export default function Reports() {
             <div className="chart-container">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E3DDD2" />
                   <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94A3B8' }} />
                   <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} />
                   <Tooltip
                     contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }}
                     formatter={(v) => [`${v}h`, 'Hours']}
                   />
-                  <Bar dataKey="hours" fill="#1D4ED8" radius={[4,4,0,0]} />
+                  <Bar dataKey="hours" fill="#B88A3B" radius={[4,4,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

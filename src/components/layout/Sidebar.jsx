@@ -1,9 +1,10 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
+import { useApp } from '../../context/AppContext';
 import {
   LayoutDashboard, Building2, FolderKanban, Users,
-  ClipboardList, BarChart3,
+  ClipboardList, BarChart3, LogOut,
 } from 'lucide-react';
 import logo from '../../assets/TJADERTUPPEN_Logo.jpeg';
 
@@ -18,6 +19,13 @@ const NAV_ITEMS = [
 
 export default function Sidebar({ mobileOpen, onNavigate }) {
   const { t } = useLanguage();
+  const { logout } = useApp();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
@@ -35,9 +43,10 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
       </div>
 
       {/* Admin badge */}
-      <div style={{ margin: '6px 12px 4px', padding: '6px 12px', borderRadius: 8, background: 'rgba(29,78,216,0.15)', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#3B82F6', flexShrink: 0 }} />
-        <span style={{ fontSize: 11, fontWeight: 600, color: '#93C5FD', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <div style={{ margin: '6px 12px 4px', padding: '6px 12px', borderRadius: 8, background: 'rgba(199,157,79,0.14)', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#C79D4F', flexShrink: 0 }} />
+        <span className="sidebar-flag" aria-hidden="true"><span /></span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: '#D9B873', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Administrator
         </span>
       </div>
@@ -54,10 +63,10 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
         ))}
       </nav>
 
-      {/* User info */}
+      {/* User info & Logout */}
       <div className="sidebar-footer">
         <div className="sidebar-user">
-          <div className="sidebar-avatar" style={{ background: 'linear-gradient(135deg,#1D4ED8,#7C3AED)' }}>
+          <div className="sidebar-avatar" style={{ background: 'linear-gradient(135deg,#C79D4F,#8E682C)' }}>
             AD
           </div>
           <div className="sidebar-user-info">
@@ -65,6 +74,9 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
             <span>admin@tjadertuppen.se</span>
           </div>
         </div>
+        <button className="btn btn-ghost btn-full" onClick={handleLogout} style={{ marginTop: 12 }}>
+          <LogOut size={16} style={{ marginRight: 8 }} /> {t('nav_logout')}
+        </button>
       </div>
     </aside>
   );

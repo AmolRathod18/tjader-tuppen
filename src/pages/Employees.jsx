@@ -65,7 +65,7 @@ export default function Employees() {
   const getTotalHrs  = (empId) => workEntries.filter(w => w.employeeId === empId).reduce((s, w) => s + (parseFloat(w.hours) || 0), 0).toFixed(1);
 
   const getInitials  = (name) => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
-  const avatarColors = ['#1D4ED8', '#16A34A', '#7C3AED', '#D97706', '#0891B2', '#DC2626'];
+  const avatarColors = ['#B88A3B', '#527A5A', '#80683D', '#D97706', '#4B7A7A', '#B94A3D'];
 
   const FInput = ({ field, label, type = 'text', placeholder, required }) => (
     <div className="form-group">

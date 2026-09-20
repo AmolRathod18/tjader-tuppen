@@ -1,170 +1,172 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
-import { Eye, EyeOff, LogIn, Shield, User } from 'lucide-react';
+import { useApp } from '../context/AppContext';
+import { LockKeyhole, AlertCircle, ArrowRight, BarChart3, CheckCircle2, Clock3, ShieldCheck, UserRound } from 'lucide-react';
 import logo from '../assets/TJADERTUPPEN_Logo.jpeg';
 
-export default function Login() {
-  const { login } = useApp();
-  const { t } = useLanguage();
-  const navigate = useNavigate();
-  const [role, setRole]         = useState('admin');
-  const [form, setForm]         = useState({ username: '', password: '' });
-  const [showPass, setShowPass] = useState(false);
-  const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
+const ADMIN_CREDENTIALS = {
+  username: 'admin',
+  email: 'admin@tjadertuppen.se',
+  password: 'admin123',
+};
 
-  const handleSubmit = (e) => {
+export default function Login() {
+  const { lang, setLang, t } = useLanguage();
+  const navigate = useNavigate();
+  const { setAuth } = useApp();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      const result = login(form.username, form.password, role);
-      if (result.success) {
-        if (result.role === 'admin') navigate('/dashboard');
-        else navigate('/employee/dashboard');
-      } else {
-        setError(role === 'admin' ? t('login_error_admin') : t('login_error_employee'));
-        setLoading(false);
-      }
-    }, 600);
+
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const isValidAdmin =
+      (email === ADMIN_CREDENTIALS.username || email === ADMIN_CREDENTIALS.email) &&
+      password === ADMIN_CREDENTIALS.password;
+
+    if (isValidAdmin) {
+      setAuth({ isAuthenticated: true, user: { email, role: 'admin' } });
+      navigate('/dashboard');
+    } else {
+      setError(t('login_error_admin'));
+    }
+    setLoading(false);
   };
 
   return (
     <div className="login-page">
-      <div className="login-bg-pattern" />
-      <div className="login-card" style={{ maxWidth: 440 }}>
-
-        {/* Logo */}
-        <div className="login-logo">
-          <img
-            src={logo}
-            alt="TJÄDERTUPPEN"
-            className="login-brand-logo"
-          />
-          <div className="login-logo-text">
-            <h1>TJÄDERTUPPEN</h1>
-            <span>{t('login_system')}</span>
+      <div className="login-language-switcher" aria-label="Language selection">
+        <button
+          type="button"
+          className={lang === 'en' ? 'active' : ''}
+          onClick={() => setLang('en')}
+          aria-pressed={lang === 'en'}
+        >
+          EN
+        </button>
+        <button
+          type="button"
+          className={lang === 'sv' ? 'active' : ''}
+          onClick={() => setLang('sv')}
+          aria-pressed={lang === 'sv'}
+        >
+          SV
+        </button>
+      </div>
+      <div className="login-container">
+        <section className="login-intro" aria-label="TJÄDERTUPPEN overview">
+          <div className="login-intro-topline">
+            <span className="login-mark">TJ</span>
+            <span>{t('login_workspace')}</span>
+            <span className="nordic-flag" aria-label="Swedish flag">
+              <span />
+            </span>
           </div>
-        </div>
+          <div className="login-intro-copy">
+            <p className="login-eyebrow">TJÄDERTUPPEN / 2026</p>
+            <h1>{t('login_intro_title')}<br /><em>{t('login_intro_emphasis')}</em></h1>
+            <p className="login-intro-description">{t('login_intro_description')}</p>
+          </div>
+          <div className="login-intro-bottom">
+            <div className="login-feature-list">
+              <div><CheckCircle2 size={16} /><span>{t('login_feature_projects')}</span></div>
+              <div><Clock3 size={16} /><span>{t('login_feature_time')}</span></div>
+              <div><BarChart3 size={16} /><span>{t('login_feature_reports')}</span></div>
+            </div>
+            <p className="login-intro-note">{t('login_intro_note')}</p>
+          </div>
+        </section>
 
-        {/* Role Selector */}
-        <div style={{
-          display: 'flex', background: 'rgba(255,255,255,0.07)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: 10, overflow: 'hidden', marginBottom: 28
-        }}>
-          <button
-            type="button"
-            onClick={() => { setRole('admin'); setError(''); setForm({ username: '', password: '' }); }}
-            style={{
-              flex: 1, padding: '11px 0', border: 'none', cursor: 'pointer',
-              fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-              background: role === 'admin' ? 'var(--color-primary)' : 'transparent',
-              color: role === 'admin' ? '#fff' : 'rgba(255,255,255,0.45)',
-              transition: 'all 0.2s',
-            }}
-          >
-            <Shield size={15} /> {t('login_tab_admin')}
-          </button>
-          <button
-            type="button"
-            onClick={() => { setRole('employee'); setError(''); setForm({ username: '', password: '' }); }}
-            style={{
-              flex: 1, padding: '11px 0', border: 'none', cursor: 'pointer',
-              fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-              background: role === 'employee' ? '#16A34A' : 'transparent',
-              color: role === 'employee' ? '#fff' : 'rgba(255,255,255,0.45)',
-              transition: 'all 0.2s',
-            }}
-          >
-            <User size={15} /> {t('login_tab_employee')}
-          </button>
-        </div>
-
-        <h2 className="login-title" style={{ fontSize: 20 }}>
-          {role === 'admin' ? t('login_title_admin') : t('login_title_employee')}
-        </h2>
-        <p className="login-subtitle">
-          {role === 'admin' ? t('login_subtitle_admin') : t('login_subtitle_employee')}
-        </p>
-
-        {/* Demo credentials hint */}
-        <div className="login-demo">
-          {role === 'admin' ? (
-            <>
-              <p>{t('login_demo_admin_label')}</p>
-              <strong>{t('login_demo_admin_creds')}</strong>
-            </>
-          ) : (
-            <>
-              <p>{t('login_demo_employee_label')}</p>
-              <strong>{t('login_demo_employee_creds')}</strong>
-            </>
-          )}
-        </div>
-
-        {/* Form */}
-        <form className="login-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>{role === 'admin' ? t('lbl_username') : t('lbl_employee_id')}</label>
-            <input
-              type="text"
-              placeholder={role === 'admin' ? t('login_ph_username') : t('login_ph_employee_id')}
-              value={form.username}
-              onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
-              required
-              autoComplete="username"
-            />
+        <div className="login-card">
+          <div className="login-logo">
+            <img src={logo} alt="TJÄDERTUPPEN" className="login-brand-logo" />
+            <div className="login-logo-text">
+              <h2>TJÄDERTUPPEN</h2>
+              <span>{t('login_system')}</span>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label>{t('lbl_password')}</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPass ? 'text' : 'password'}
-                placeholder={t('login_ph_password')}
-                value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                required
-                autoComplete="current-password"
-                style={{ paddingRight: 42 }}
-              />
-              <button type="button" onClick={() => setShowPass(s => !s)}
-                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center' }}>
-                {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+          <div className="login-title">
+            <h1>{t('login_title_admin')}</h1>
+            <p>{t('login_subtitle_admin')}</p>
+          </div>
+
+          <div className="login-demo-hint">
+            <ShieldCheck size={17} />
+            <div>
+              <p><strong>{t('login_demo_admin_label')}</strong></p>
+              <p>{t('login_demo_admin_creds')}</p>
             </div>
           </div>
 
           {error && (
-            <div style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, color: '#FCA5A5', fontSize: 12.5, lineHeight: 1.5 }}>
-              {error}
+            <div className="login-error" role="alert">
+              <AlertCircle size={16} />
+              <span>{error}</span>
             </div>
           )}
 
-          <button type="submit"
-            style={{
-              width: '100%', justifyContent: 'center', padding: '12px', fontSize: 14,
-              background: role === 'admin' ? 'var(--color-primary)' : '#16A34A',
-              display: 'flex', alignItems: 'center', gap: 8,
-              border: 'none', borderRadius: 10, color: '#fff', fontWeight: 700,
-              fontFamily: 'Inter, sans-serif', cursor: 'pointer',
-              boxShadow: role === 'admin' ? '0 4px 12px rgba(29,78,216,0.4)' : '0 4px 12px rgba(22,163,74,0.4)',
-              transition: 'all 0.2s', opacity: loading ? 0.7 : 1,
-            }}
-            disabled={loading}
-          >
-            {loading ? t('login_signing_in') : <><LogIn size={16} /> {role === 'admin' ? t('login_btn_admin') : t('login_btn_employee')}</>}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="login-form" noValidate>
+            <div className="form-group">
+              <label htmlFor="email">{t('lbl_email')}</label>
+              <div className="input-wrapper">
+                <UserRound size={18} className="input-icon" />
+                <input
+                  id="email"
+                  type="text"
+                  autoComplete="username"
+                  placeholder={t('login_ph_username')}
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+            </div>
 
-        <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, textAlign: 'center', marginTop: 24 }}>
-          {t('login_footer')}
-        </p>
+            <div className="form-group">
+              <label htmlFor="password">{t('lbl_password')}</label>
+              <div className="input-wrapper">
+                <LockKeyhole size={18} className="input-icon" />
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder={t('login_ph_password')}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
+            <button type="submit" className="btn btn-primary btn-full login-submit" disabled={loading}>
+              {loading ? (
+                <>
+                  <span className="spinner" />
+                  {t('login_signing_in')}
+                </>
+              ) : (
+                <>{t('login_btn_admin')} <ArrowRight size={17} /></>
+              )}
+            </button>
+          </form>
+
+          <div className="login-footer">
+            <p>{t('login_footer')}</p>
+            <p>{t('login_system')}</p>
+          </div>
+        </div>
       </div>
     </div>
   );

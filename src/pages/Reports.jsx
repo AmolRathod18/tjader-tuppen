@@ -347,34 +347,35 @@ export default function Reports() {
                  : tab === 'monthly' ? monthTo
                  : toDate;
 
-  const employeeEntries = filterEmployee
-    ? workEntries.filter(w => w.employeeId === filterEmployee)
-    : workEntries;
-  const employeeProjectIds = new Set(employeeEntries.map(w => w.projectId));
-  const employeeClientIds = new Set(employeeEntries.map(w => {
+  const scopedEntries = workEntries.filter(w => (
+    (!filterEmployee || w.employeeId === filterEmployee) &&
+    (!dateFrom || w.date >= dateFrom) &&
+    (!dateTo || w.date <= dateTo)
+  ));
+  const employeeProjectIds = new Set(scopedEntries.map(w => w.projectId));
+  const employeeClientIds = new Set(scopedEntries.map(w => {
     const project = getProjectById(w.projectId);
     return w.companyId || project?.companyId;
   }).filter(Boolean));
-  const availableCompanies = filterEmployee
-    ? companies.filter(c => employeeClientIds.has(c.id))
-    : companies;
+  const availableCompanies = companies.filter(c => employeeClientIds.has(c.id));
   const availableProjects = projects.filter(p =>
     employeeProjectIds.has(p.id) && (!filterClient || p.companyId === filterClient)
   );
 
-  const filtered = workEntries.filter(w => {
+  const filtered = scopedEntries.filter(w => {
     const proj = getProjectById(w.projectId);
     const clientId = w.companyId || proj?.companyId;
     return (
-      (!filterEmployee || w.employeeId === filterEmployee) &&
       (!filterClient   || clientId === filterClient) &&
-      (!filterProject  || w.projectId === filterProject) &&
-      (!dateFrom       || w.date >= dateFrom) &&
-      (!dateTo         || w.date <= dateTo)
+      (!filterProject  || w.projectId === filterProject)
     );
   }).sort((a, b) => a.date.localeCompare(b.date));
 
   const totalHours = filtered.reduce((s, w) => s + getWorkEntryHours(w), 0);
+  const selectedEmployee = filterEmployee ? getEmployeeById(filterEmployee) : null;
+  const reportScope = selectedEmployee
+    ? `${selectedEmployee.name} · ${filtered.length} entries · ${totalHours.toFixed(1)}h`
+    : `All Employees · ${filtered.length} entries · ${totalHours.toFixed(1)}h combined`;
 
   // Chart data
   const dateMap = {};
@@ -427,10 +428,7 @@ export default function Reports() {
         <div className="page-header-info">
           <h2>{t('rep_title')}</h2>
           <p>
-            {filterEmployee
-              ? `Showing only ${getEmployeeById(filterEmployee)?.name || 'the selected employee'}`
-              : 'Showing all employees'}
-            {' · '}Generate daily, weekly, monthly, and custom reports with professional PDF export
+            {reportScope} · Generate daily, weekly, monthly, and custom reports with professional PDF export
           </p>
         </div>
         <div className="page-header-actions" style={{ display: 'flex', gap: 8 }}>
@@ -460,7 +458,7 @@ export default function Reports() {
       {/* ── Filters Card ── */}
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
-          <div><h3>Report Filters</h3><p>Select period and narrow results by employee, client or project</p></div>
+          <div><h3>Report Filters</h3><p>Select period and narrow results by employee, client or project. Every total, chart, detail row and PDF uses the selected scope.</p></div>
         </div>
         <div className="card-body">
           <div className="report-filters" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -592,7 +590,7 @@ export default function Reports() {
       {chartData.length > 0 && (
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-header">
-            <div><h3>Hours per Day</h3><p>Work hours distribution across the selected period</p></div>
+            <div><h3>Hours per Day</h3><p>{selectedEmployee ? `Work hours for ${selectedEmployee.name}` : 'Combined work hours for all employees'} across the selected period</p></div>
             <BarChart3 size={20} color="var(--color-text-muted)" />
           </div>
           <div className="card-body">
@@ -619,7 +617,7 @@ export default function Reports() {
         <div className="card-header">
           <div>
             <h3>Work Entries</h3>
-            <p>{filtered.length} entries · {totalHours.toFixed(1)}h total</p>
+            <p>{reportScope}</p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-outline btn-sm" onClick={handlePreviewPDF} disabled={filtered.length === 0}>

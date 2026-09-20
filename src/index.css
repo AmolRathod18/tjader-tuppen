@@ -758,6 +758,24 @@ select {
   min-width: 0;
 }
 
+.work-entry-date-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+.work-entry-date-filter label {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.work-entry-date-filter input {
+  width: 155px;
+  min-height: 40px;
+}
+
 .report-tabs {
   max-width: 100%;
   overflow-x: auto !important;
@@ -1839,6 +1857,14 @@ select {
 
   .report-tabs::-webkit-scrollbar { display: none; }
   .report-tabs .btn { flex: 0 0 auto; }
+
+  .work-entry-date-filter {
+    flex: 1 1 100%;
+  }
+
+  .work-entry-date-filter input {
+    width: 100%;
+  }
 }
 
 @media (max-width: 480px) {

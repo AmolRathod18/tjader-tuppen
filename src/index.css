@@ -1490,12 +1490,49 @@ select {
   .card [style*="grid-template-columns"] { grid-template-columns: 1fr !important; gap: 0; }
   .form-action-bar { flex-wrap: wrap; }
   .form-action-bar .btn { flex: 1 1 140px; justify-content: center; }
-  .modal-overlay { padding: 12px; align-items: flex-end; }
-  .modal { max-height: 92vh; border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
-  .modal-header { padding: 20px 20px 0; }
-  .modal-body { padding: 20px; }
-  .modal-footer { padding: 0 20px 20px; }
-  .modal-footer .btn { flex: 1; justify-content: center; }
+  .modal-overlay {
+    padding: 12px;
+    align-items: center;
+    overflow-y: auto;
+  }
+  .modal {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100% !important;
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+    overflow: hidden;
+    border-radius: var(--radius-xl);
+  }
+  .modal-header {
+    flex: 0 0 auto;
+    padding: 18px 18px 0;
+  }
+  .modal-header > div:first-child { min-width: 0; padding-right: 8px; }
+  .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 18px;
+    overscroll-behavior: contain;
+  }
+  .modal-footer {
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    padding: 0 18px 18px;
+    background: var(--color-surface);
+  }
+  .modal-footer .btn {
+    flex: 1 1 120px;
+    justify-content: center;
+    min-width: 0;
+  }
+  .modal .form-row { gap: 0; }
+  .modal input,
+  .modal select,
+  .modal textarea { max-width: 100%; }
 
   .table-wrapper { margin: 0; overflow: visible; }
   .table-wrapper table,

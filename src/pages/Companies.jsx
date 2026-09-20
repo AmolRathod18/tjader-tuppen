@@ -87,7 +87,7 @@ export default function Companies() {
         </div>
 
         {/* Table */}
-        <div className="table-wrapper">
+        <div className="table-wrapper table-companies">
           <table>
             <thead>
               <tr>

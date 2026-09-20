@@ -101,7 +101,7 @@ export default function Employees() {
           </select>
         </div>
 
-        <div className="table-wrapper">
+        <div className="table-wrapper table-employees">
           <table>
             <thead>
               <tr>

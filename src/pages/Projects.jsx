@@ -101,7 +101,7 @@ export default function Projects() {
           </select>
         </div>
 
-        <div className="table-wrapper">
+        <div className="table-wrapper table-projects">
           <table>
             <thead>
               <tr>

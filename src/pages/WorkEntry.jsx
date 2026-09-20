@@ -218,7 +218,7 @@ export default function WorkEntry() {
           </div>
         </div>
 
-        <div className="table-wrapper">
+        <div className="table-wrapper table-work-entries">
           <table>
             <thead>
               <tr>

@@ -77,7 +77,7 @@ export default function Dashboard() {
             <Plus size={14} /> Add Entry
           </button>
         </div>
-        <div className="table-wrapper">
+        <div className="table-wrapper table-dashboard-entries">
           <table>
             <thead>
               <tr>
@@ -205,7 +205,7 @@ export default function Dashboard() {
             <Plus size={14} /> {t('btn_add_project')}
           </button>
         </div>
-        <div className="table-wrapper">
+        <div className="table-wrapper table-dashboard-projects">
           <table>
             <thead>
               <tr>

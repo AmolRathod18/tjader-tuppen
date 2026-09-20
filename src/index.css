@@ -1488,12 +1488,122 @@ select {
   .modal-footer { padding: 0 20px 20px; }
   .modal-footer .btn { flex: 1; justify-content: center; }
 
-  .table-wrapper { margin: 0; overflow-x: hidden; }
-  .table-wrapper table { min-width: 0; width: 100%; table-layout: fixed; }
-  th { padding: 10px 8px; font-size: 9px; white-space: normal; overflow-wrap: anywhere; }
-  td { padding: 10px 8px; font-size: 12px; overflow-wrap: anywhere; word-break: break-word; }
-  .table-actions { gap: 4px; }
+  .table-wrapper { margin: 0; overflow: visible; }
+  .table-wrapper table,
+  .table-wrapper thead,
+  .table-wrapper tbody,
+  .table-wrapper tr,
+  .table-wrapper td { display: block; }
+  .table-wrapper table { min-width: 0; width: 100%; }
+  .table-wrapper thead { display: none; }
+  .table-wrapper tbody tr:not(:has(td[colspan])) {
+    margin: 0 0 12px;
+    padding: 12px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+  .table-wrapper tbody tr:not(:has(td[colspan])) td {
+    display: grid;
+    grid-template-columns: minmax(84px, 34%) minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--color-border-light);
+    font-size: 12.5px;
+    line-height: 1.4;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+  .table-wrapper tbody tr:not(:has(td[colspan])) td:last-child { border-bottom: 0; }
+  .table-wrapper tbody tr:not(:has(td[colspan])) td::before {
+    color: var(--color-text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+  .table-wrapper tbody tr:not(:has(td[colspan])) td > * { min-width: 0; max-width: 100%; }
+  .table-wrapper tbody tr:not(:has(td[colspan])) td a,
+  .table-wrapper tbody tr:not(:has(td[colspan])) td span,
+  .table-wrapper tbody tr:not(:has(td[colspan])) td div {
+    overflow-wrap: break-word;
+    word-break: normal;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+  .table-companies tbody tr:not(:has(td[colspan])) td:first-child,
+  .table-projects tbody tr:not(:has(td[colspan])) td:first-child,
+  .table-employees tbody tr:not(:has(td[colspan])) td:first-child,
+  .table-work-entries tbody tr:not(:has(td[colspan])) td:first-child,
+  .table-report-entries tbody tr:not(:has(td[colspan])) td:first-child { display: none; }
+  .table-companies tbody tr:not(:has(td[colspan])) td:last-child,
+  .table-projects tbody tr:not(:has(td[colspan])) td:last-child,
+  .table-employees tbody tr:not(:has(td[colspan])) td:last-child,
+  .table-work-entries tbody tr:not(:has(td[colspan])) td:last-child {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .table-companies tbody tr:not(:has(td[colspan])) td:last-child::before,
+  .table-projects tbody tr:not(:has(td[colspan])) td:last-child::before,
+  .table-employees tbody tr:not(:has(td[colspan])) td:last-child::before,
+  .table-work-entries tbody tr:not(:has(td[colspan])) td:last-child::before { display: none; }
+  .table-actions { gap: 6px; flex-wrap: wrap; }
   .table-actions .btn { padding: 6px 8px; }
+  .table-companies tbody tr:not(:has(td[colspan])) td:nth-child(2)::before { content: 'Company'; }
+  .table-companies tbody tr:not(:has(td[colspan])) td:nth-child(3)::before { content: 'Contact'; }
+  .table-companies tbody tr:not(:has(td[colspan])) td:nth-child(4)::before { content: 'Email'; }
+  .table-companies tbody tr:not(:has(td[colspan])) td:nth-child(5)::before { content: 'Phone'; }
+  .table-companies tbody tr:not(:has(td[colspan])) td:nth-child(6)::before { content: 'Address'; }
+  .table-companies tbody tr:not(:has(td[colspan])) td:nth-child(7)::before { content: 'Projects'; }
+  .table-companies tbody tr:not(:has(td[colspan])) td:nth-child(8)::before { content: 'Actions'; }
+  .table-projects tbody tr:not(:has(td[colspan])) td:nth-child(2)::before { content: 'Project'; }
+  .table-projects tbody tr:not(:has(td[colspan])) td:nth-child(3)::before { content: 'Company'; }
+  .table-projects tbody tr:not(:has(td[colspan])) td:nth-child(4)::before { content: 'Location'; }
+  .table-projects tbody tr:not(:has(td[colspan])) td:nth-child(5)::before { content: 'Start'; }
+  .table-projects tbody tr:not(:has(td[colspan])) td:nth-child(6)::before { content: 'End'; }
+  .table-projects tbody tr:not(:has(td[colspan])) td:nth-child(7)::before { content: 'Work log'; }
+  .table-projects tbody tr:not(:has(td[colspan])) td:nth-child(8)::before { content: 'Status'; }
+  .table-projects tbody tr:not(:has(td[colspan])) td:nth-child(9)::before { content: 'Actions'; }
+  .table-employees tbody tr:not(:has(td[colspan])) td:nth-child(2)::before { content: 'Employee'; }
+  .table-employees tbody tr:not(:has(td[colspan])) td:nth-child(3)::before { content: 'Employee ID'; }
+  .table-employees tbody tr:not(:has(td[colspan])) td:nth-child(4)::before { content: 'Role'; }
+  .table-employees tbody tr:not(:has(td[colspan])) td:nth-child(5)::before { content: 'Contact'; }
+  .table-employees tbody tr:not(:has(td[colspan])) td:nth-child(6)::before { content: 'Work log'; }
+  .table-employees tbody tr:not(:has(td[colspan])) td:nth-child(7)::before { content: 'Status'; }
+  .table-employees tbody tr:not(:has(td[colspan])) td:nth-child(8)::before { content: 'Actions'; }
+  .table-dashboard-entries tbody tr:not(:has(td[colspan])) td:nth-child(1)::before { content: 'Employee'; }
+  .table-dashboard-entries tbody tr:not(:has(td[colspan])) td:nth-child(2)::before { content: 'Client'; }
+  .table-dashboard-entries tbody tr:not(:has(td[colspan])) td:nth-child(3)::before { content: 'Project'; }
+  .table-dashboard-entries tbody tr:not(:has(td[colspan])) td:nth-child(4)::before { content: 'Hours'; }
+  .table-dashboard-entries tbody tr:not(:has(td[colspan])) td:nth-child(5)::before { content: 'Description'; }
+  .table-dashboard-entries tbody tr:not(:has(td[colspan])) td:nth-child(6)::before { content: 'Time'; }
+  .table-dashboard-projects tbody tr:not(:has(td[colspan])) td:nth-child(1)::before { content: 'Project'; }
+  .table-dashboard-projects tbody tr:not(:has(td[colspan])) td:nth-child(2)::before { content: 'Client'; }
+  .table-dashboard-projects tbody tr:not(:has(td[colspan])) td:nth-child(3)::before { content: 'Location'; }
+  .table-dashboard-projects tbody tr:not(:has(td[colspan])) td:nth-child(4)::before { content: 'Start'; }
+  .table-dashboard-projects tbody tr:not(:has(td[colspan])) td:nth-child(5)::before { content: 'End'; }
+  .table-dashboard-projects tbody tr:not(:has(td[colspan])) td:nth-child(6)::before { content: 'Status'; }
+  .table-work-entries tbody tr:not(:has(td[colspan])) td:nth-child(2)::before { content: 'Date'; }
+  .table-work-entries tbody tr:not(:has(td[colspan])) td:nth-child(3)::before { content: 'Employee'; }
+  .table-work-entries tbody tr:not(:has(td[colspan])) td:nth-child(4)::before { content: 'Client'; }
+  .table-work-entries tbody tr:not(:has(td[colspan])) td:nth-child(5)::before { content: 'Project'; }
+  .table-work-entries tbody tr:not(:has(td[colspan])) td:nth-child(6)::before { content: 'Time'; }
+  .table-work-entries tbody tr:not(:has(td[colspan])) td:nth-child(7)::before { content: 'Hours'; }
+  .table-work-entries tbody tr:not(:has(td[colspan])) td:nth-child(8)::before { content: 'Description'; }
+  .table-work-entries tbody tr:not(:has(td[colspan])) td:nth-child(9)::before { content: 'Remarks'; }
+  .table-work-entries tbody tr:not(:has(td[colspan])) td:nth-child(10)::before { content: 'Actions'; }
+  .table-report-entries tbody tr:not(:has(td[colspan])) td:nth-child(2)::before { content: 'Date'; }
+  .table-report-entries tbody tr:not(:has(td[colspan])) td:nth-child(3)::before { content: 'Employee'; }
+  .table-report-entries tbody tr:not(:has(td[colspan])) td:nth-child(4)::before { content: 'Client'; }
+  .table-report-entries tbody tr:not(:has(td[colspan])) td:nth-child(5)::before { content: 'Project'; }
+  .table-report-entries tbody tr:not(:has(td[colspan])) td:nth-child(6)::before { content: 'Description'; }
+  .table-report-entries tbody tr:not(:has(td[colspan])) td:nth-child(7)::before { content: 'Time'; }
+  .table-report-entries tbody tr:not(:has(td[colspan])) td:nth-child(8)::before { content: 'Hours'; }
+  .table-report-entries tbody tr:not(:has(td[colspan])) td:nth-child(9)::before { content: 'Remarks'; }
   .report-filters { display: grid !important; grid-template-columns: 1fr; gap: 12px !important; align-items: stretch !important; }
   .report-filters > div,
   .report-custom-dates > div { width: 100%; }

@@ -605,7 +605,7 @@ export default function Reports() {
             </button>
           </div>
         </div>
-        <div className="table-wrapper">
+        <div className="table-wrapper table-report-entries">
           <table>
             <thead>
               <tr>

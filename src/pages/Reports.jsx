@@ -412,7 +412,7 @@ export default function Reports() {
           <h2>{t('rep_title')}</h2>
           <p>Generate daily, weekly, monthly, and custom reports with professional PDF export</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="page-header-actions" style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-outline" onClick={handlePreviewPDF} disabled={filtered.length === 0}>
             <FileText size={15} /> Preview PDF
           </button>
@@ -423,7 +423,7 @@ export default function Reports() {
       </div>
 
       {/* ── Tab Switcher ── */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 20, background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 10, overflow: 'hidden', width: 'fit-content', boxShadow: 'var(--shadow-sm)' }}>
+      <div className="report-tabs" style={{ display: 'flex', gap: 0, marginBottom: 20, background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 10, overflow: 'hidden', width: 'fit-content', boxShadow: 'var(--shadow-sm)' }}>
         {TABS.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
@@ -442,7 +442,7 @@ export default function Reports() {
           <div><h3>Report Filters</h3><p>Select period and narrow results by employee, client or project</p></div>
         </div>
         <div className="card-body">
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div className="report-filters" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
 
             {/* Period control */}
             {tab === 'daily' && (
@@ -481,7 +481,7 @@ export default function Reports() {
             )}
 
             {tab === 'custom' && (
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div className="report-custom-dates" style={{ display: 'flex', gap: 12 }}>
                 <div>
                   <label style={LabelStyle}>From Date</label>
                   <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />

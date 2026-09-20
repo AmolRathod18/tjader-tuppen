@@ -18,6 +18,15 @@ function fmt(d) { return d.toISOString().split('T')[0]; }
 
 function todayStr() { return new Date().toISOString().split('T')[0]; }
 
+function sanitizeFilenamePart(value) {
+  return String(value || 'Employee')
+    .normalize('NFKD')
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/[\s-]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'Employee';
+}
+
 function getWeekStart(date) {
   const d = new Date(date);
   const day = d.getDay();
@@ -408,6 +417,11 @@ export default function Reports() {
     if (filtered.length === 0) return;
     const { title, subtitle } = getReportTitle();
     const pdf = await buildPDF({ title, subtitle, entries: filtered, getProjectById, getCompanyById, getEmployeeById });
+    if (tab === 'daily' && selectedEmployee) {
+      const employeeName = sanitizeFilenamePart(selectedEmployee.name);
+      pdf.save(`${employeeName}_Today_work_${todayStr()}.pdf`);
+      return;
+    }
     const safeTitle = title.replace(/\s+/g, '_');
     pdf.save(`TJADERTUPPEN_${safeTitle}_${todayStr()}.pdf`);
   };

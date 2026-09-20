@@ -47,8 +47,11 @@ export default function WorkEntry() {
 
   // Projects filtered by selected client (in list filter)
   const filterProjects = filterClient
-    ? projects.filter(p => p.companyId === filterClient)
-    : projects;
+    ? projects.filter(p => p.companyId === filterClient && p.name?.trim())
+    : projects.filter(p => p.name?.trim());
+
+  const filterEmployees = employees.filter(e => e.name?.trim());
+  const filterCompanies = companies.filter(c => c.name?.trim());
 
   const employeeEntries = filterEmployee
     ? workEntries.filter(w => w.employeeId === filterEmployee)
@@ -222,7 +225,7 @@ export default function WorkEntry() {
               setFilterProject('');
             }} style={{ maxWidth: 180 }}>
               <option value="">All Employees</option>
-              {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+              {filterEmployees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
             <select value={filterClient} onChange={e => { setFilterClient(e.target.value); setFilterProject(''); }} style={{ maxWidth: 200 }}>
               <option value="">All Clients</option>
@@ -357,7 +360,7 @@ export default function WorkEntry() {
             <label>Client Company</label>
             <select value={form.companyId} onChange={e => setField('companyId', e.target.value)}>
               <option value="">All clients...</option>
-              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {filterCompanies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div className="form-group">

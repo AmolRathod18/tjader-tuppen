@@ -64,17 +64,16 @@ export function AppProvider({ children }) {
     const loggedOutAuth = { isAuthenticated: false, user: null };
     setAuthState(loggedOutAuth);
 
-    try {
-      localStorage.removeItem(STORAGE_KEYS.auth);
-    } catch {
-      // Storage may be unavailable in privacy-restricted browsers.
-    }
-
-    try {
-      sessionStorage.removeItem(STORAGE_KEYS.auth);
-    } catch {
-      // Storage may be unavailable in privacy-restricted browsers.
-    }
+    [window.localStorage, window.sessionStorage].forEach(storage => {
+      try {
+        storage.removeItem(STORAGE_KEYS.auth);
+        if (storage.getItem(STORAGE_KEYS.auth) !== null) {
+          storage.setItem(STORAGE_KEYS.auth, JSON.stringify(loggedOutAuth));
+        }
+      } catch {
+        // Storage may be unavailable in privacy-restricted browsers.
+      }
+    });
   };
 
   const [companies, setCompanies] = useState(() => {

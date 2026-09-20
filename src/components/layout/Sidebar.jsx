@@ -21,9 +21,11 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
   const { t } = useLanguage();
   const { logout } = useApp();
 
-  const handleLogout = () => {
+  const handleLogout = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     logout();
-    window.location.replace('/login');
+    window.location.assign(`${window.location.origin}/login`);
   };
 
   return (

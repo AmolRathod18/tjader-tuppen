@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
@@ -38,6 +38,7 @@ export default function WorkEntry() {
   const [deleteTarget,   setDeleteTarget]   = useState(null);
   const [form,           setForm]           = useState(EMPTY_FORM);
   const [errors,         setErrors]         = useState({});
+  const [submitError,    setSubmitError]   = useState('');
 
   // Projects filtered by selected client (when selecting in form)
   const formProjects = form.companyId
@@ -75,6 +76,7 @@ export default function WorkEntry() {
     setEditItem(null);
     setForm({ ...EMPTY_FORM, date: today() });
     setErrors({});
+    setSubmitError('');
     setModalOpen(true);
   };
 
@@ -93,6 +95,7 @@ export default function WorkEntry() {
       remarks:     item.remarks     ?? item.notes ?? '',
     });
     setErrors({});
+    setSubmitError('');
     setModalOpen(true);
   };
 
@@ -127,14 +130,19 @@ export default function WorkEntry() {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     const proj = getProjectById(form.projectId);
+    const calculatedHours = calculateShiftHours(form.startTime, form.endTime);
     const data = {
       ...form,
       hours:     calculatedHours,
       companyId: form.companyId || proj?.companyId || '',
     };
-    if (editItem) updateWorkEntry(editItem.id, data);
-    else          addWorkEntry(data);
-    setModalOpen(false);
+    try {
+      if (editItem) updateWorkEntry(editItem.id, data);
+      else          addWorkEntry(data);
+      setModalOpen(false);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : String(error));
+    }
   };
 
   const handleDelete = () => { deleteWorkEntry(deleteTarget.id); setDeleteTarget(null); };
@@ -304,6 +312,7 @@ export default function WorkEntry() {
           <button id="save-work-btn" className="btn btn-primary" onClick={handleSubmit}>{editItem ? 'Save Changes' : t('we_btn_log')}</button>
         </>}
       >
+        {submitError && <div className="form-submit-error" role="alert">{submitError}</div>}
         {/* Date */}
         <div className="form-group">
           <label>Date *</label>

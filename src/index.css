@@ -1159,6 +1159,7 @@ select {
   justify-content: space-between;
   padding-inline: 18px;
   background: #171a18;
+  color: #f6f1e9;
   border-color: #171a18;
   border-radius: 10px;
   font-weight: 700;
@@ -1167,6 +1168,7 @@ select {
 
 .login-submit:hover {
   background: #353a34;
+  color: #ffffff;
   border-color: #353a34;
 }
 

@@ -10,6 +10,7 @@ import {
   ChevronLeft, ChevronRight, Filter, Clock, Users, Building2, FolderKanban
 } from 'lucide-react';
 import jsPDF from 'jspdf';
+import logoUrl from '../assets/TJADERTUPPEN_Logo.jpeg';
 
 // ─── helpers ────────────────────────────────────────────────
 function fmt(d) { return d.toISOString().split('T')[0]; }
@@ -38,86 +39,109 @@ function displayDate(str) {
 }
 
 // ─── PDF generator ──────────────────────────────────────────
-function buildPDF({ title, subtitle, entries, getProjectById, getCompanyById, getEmployeeById }) {
+async function loadLogoData() {
+  const response = await fetch(logoUrl);
+  if (!response.ok) throw new Error('Unable to load the TJÄDERTUPPEN logo for the PDF report.');
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Unable to prepare the TJÄDERTUPPEN logo for the PDF report.'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function buildPDF({ title, subtitle, entries, getProjectById, getCompanyById, getEmployeeById }) {
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const PW = 297, PH = 210, M = 12, CW = PW - M * 2;
   const now = new Date();
   const genStr = now.toLocaleString('en-SE', { dateStyle: 'long', timeStyle: 'short' });
   const totalHours = entries.reduce((s, e) => s + (parseFloat(e.hours) || 0), 0);
+  const logoData = await loadLogoData();
+  const employeeIds = [...new Set(entries.map(entry => entry.employeeId).filter(Boolean))];
+  const employeeNames = employeeIds.map(id => getEmployeeById(id)?.name).filter(Boolean);
+  const employeeLabel = employeeNames.length === 1 ? employeeNames[0] : 'Multiple employees';
+  const employeeIdLabel = employeeIds.length === 1 ? employeeIds[0] : '—';
 
   const drawFooter = (pg, total) => {
-    pdf.setDrawColor(220, 220, 220);
+    pdf.setDrawColor(190, 198, 205);
     pdf.setLineWidth(0.3);
     pdf.line(M, PH - 12, PW - M, PH - 12);
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(7.5);
-    pdf.setTextColor(150, 150, 150);
-    pdf.text('TJÄDERTUPPEN Management System — Confidential', M, PH - 6);
+    pdf.setTextColor(92, 101, 109);
+    pdf.text('TJÄDERTUPPEN | Project Management System', M, PH - 6);
     pdf.text(`Generated: ${genStr}`, PW / 2, PH - 6, { align: 'center' });
     pdf.text(`Page ${pg} of ${total}`, PW - M, PH - 6, { align: 'right' });
   };
 
   // ── Header ──
-  pdf.setFillColor(15, 23, 42);
-  pdf.rect(0, 0, PW, 30, 'F');
-
-  // Logo box
-  pdf.setFillColor(29, 78, 216);
-  pdf.roundedRect(M, 6, 16, 16, 2, 2, 'F');
+  pdf.setFillColor(255, 255, 255);
+  pdf.rect(0, 0, PW, 31, 'F');
+  pdf.addImage(logoData, 'JPEG', M, 5, 28, 20);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(10);
-  pdf.setTextColor(255, 255, 255);
-  pdf.text('TJ', M + 4.5, 15.5);
-
-  // Company name
-  pdf.setFontSize(14);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(255, 255, 255);
-  pdf.text('TJÄDERTUPPEN', M + 20, 13);
-  pdf.setFontSize(8);
+  pdf.setFontSize(15);
+  pdf.setTextColor(24, 29, 33);
+  pdf.text('TJÄDERTUPPEN', M + 34, 13);
   pdf.setFont('helvetica', 'normal');
-  pdf.setTextColor(148, 163, 184);
-  pdf.text('Management System', M + 20, 20);
-
-  // Report title (right)
+  pdf.setFontSize(8);
+  pdf.setTextColor(92, 101, 109);
+  pdf.text('Project Management System', M + 34, 19);
+  pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(13);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(255, 255, 255);
-  pdf.text(title, PW - M, 13, { align: 'right' });
-  pdf.setFontSize(8);
+  pdf.setTextColor(24, 29, 33);
+  pdf.text(title, PW - M, 12, { align: 'right' });
   pdf.setFont('helvetica', 'normal');
-  pdf.setTextColor(148, 163, 184);
-  pdf.text(subtitle, PW - M, 20, { align: 'right' });
+  pdf.setFontSize(8);
+  pdf.setTextColor(92, 101, 109);
+  pdf.text(subtitle, PW - M, 19, { align: 'right' });
+  pdf.setFillColor(61, 75, 87);
+  pdf.rect(0, 31, PW, 1.5, 'F');
 
-  // Blue stripe
-  pdf.setFillColor(29, 78, 216);
-  pdf.rect(0, 30, PW, 2, 'F');
+  let y = 39;
 
-  let y = 38;
+  // ── Employee and report metadata ──
+  pdf.setFillColor(247, 248, 249);
+  pdf.setDrawColor(207, 213, 218);
+  pdf.setLineWidth(0.3);
+  pdf.roundedRect(M, y, CW, 19, 1.5, 1.5, 'FD');
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(7);
+  pdf.setTextColor(92, 101, 109);
+  pdf.text('EMPLOYEE NAME', M + 5, y + 7);
+  pdf.text('EMPLOYEE ID', M + 82, y + 7);
+  pdf.text('REPORT PERIOD', M + 145, y + 7);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(9);
+  pdf.setTextColor(24, 29, 33);
+  pdf.text(employeeLabel, M + 5, y + 14);
+  pdf.text(String(employeeIdLabel), M + 82, y + 14);
+  pdf.text(subtitle, M + 145, y + 14);
+  y += 26;
 
   // ── Summary stats ──
   const stats = [
-    { label: 'TOTAL ENTRIES', value: String(entries.length),          color: [29, 78, 216] },
-    { label: 'TOTAL HOURS',   value: `${totalHours.toFixed(1)} h`,    color: [22, 163, 74] },
-    { label: 'EMPLOYEES',     value: String([...new Set(entries.map(e => e.employeeId))].length), color: [124, 58, 237] },
-    { label: 'PROJECTS',      value: String([...new Set(entries.map(e => e.projectId))].length),  color: [217, 119, 6] },
+    { label: 'TOTAL ENTRIES', value: String(entries.length) },
+    { label: 'TOTAL HOURS',   value: `${totalHours.toFixed(1)} h` },
+    { label: 'EMPLOYEES',     value: String([...new Set(entries.map(e => e.employeeId))].length) },
+    { label: 'PROJECTS',      value: String([...new Set(entries.map(e => e.projectId))].length) },
   ];
   const sw = CW / stats.length;
   stats.forEach((s, i) => {
     const sx = M + i * sw;
     pdf.setFillColor(255, 255, 255);
-    pdf.setDrawColor(226, 232, 240);
+    pdf.setDrawColor(207, 213, 218);
     pdf.setLineWidth(0.3);
     pdf.roundedRect(sx, y, sw - 3, 22, 2, 2, 'FD');
-    pdf.setFillColor(...s.color);
-    pdf.roundedRect(sx, y, sw - 3, 3, 1, 1, 'F');
+    pdf.setFillColor(61, 75, 87);
+    pdf.roundedRect(sx, y, sw - 3, 2, 1, 1, 'F');
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(14);
-    pdf.setTextColor(...s.color);
+    pdf.setTextColor(24, 29, 33);
     pdf.text(s.value, sx + (sw - 3) / 2, y + 13, { align: 'center' });
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(6.5);
-    pdf.setTextColor(100, 116, 139);
+    pdf.setTextColor(92, 101, 109);
     pdf.text(s.label, sx + (sw - 3) / 2, y + 19, { align: 'center' });
   });
   y += 28;
@@ -132,32 +156,35 @@ function buildPDF({ title, subtitle, entries, getProjectById, getCompanyById, ge
   y += 12;
 
   const cols = [
-    { h: 'Date',        w: 24 },
+    { h: 'Date',        w: 26 },
     { h: 'Employee',    w: 38 },
-    { h: 'Client',      w: 38 },
-    { h: 'Project',     w: 42 },
-    { h: 'Description', w: 55 },
-    { h: 'Time',        w: 28 },
+    { h: 'Client',      w: 36 },
+    { h: 'Project',     w: 40 },
+    { h: 'Description', w: 56 },
+    { h: 'Time',        w: 29 },
     { h: 'Hours',       w: 18 },
     { h: 'Remarks',     w: 30 },
   ];
-  const ROW_H = 8;
   const HDR_H = 9;
-  const USABLE_H = PH - 18;
+  const USABLE_H = PH - 19;
   let pageNum = 1;
 
   const drawHeader = (sy) => {
-    pdf.setFillColor(15, 23, 42);
+    pdf.setFillColor(61, 75, 87);
     pdf.rect(M, sy, CW, HDR_H, 'F');
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(7.5);
+    pdf.setFontSize(7);
     pdf.setTextColor(255, 255, 255);
     let cx = M;
     cols.forEach(c => {
       const isH = c.h === 'Hours';
       pdf.text(c.h, isH ? cx + c.w - 2 : cx + 2, sy + 6.2, { align: isH ? 'right' : 'left' });
+      pdf.setDrawColor(128, 139, 148);
+      pdf.setLineWidth(0.2);
+      pdf.line(cx, sy, cx, sy + HDR_H);
       cx += c.w;
     });
+    pdf.line(M + CW, sy, M + CW, sy + HDR_H);
     return sy + HDR_H;
   };
 
@@ -165,84 +192,61 @@ function buildPDF({ title, subtitle, entries, getProjectById, getCompanyById, ge
 
   const sortedEntries = [...entries].sort((a, b) => a.date.localeCompare(b.date));
   sortedEntries.forEach((entry, idx) => {
-    if (y + ROW_H > USABLE_H) {
+    const emp  = getEmployeeById(entry.employeeId);
+    const proj = getProjectById(entry.projectId);
+    const co   = getCompanyById(entry.companyId || proj?.companyId);
+    const cellValues = [
+      entry.date || '—',
+      emp?.name || '—',
+      co?.name || '—',
+      proj?.name || '—',
+      entry.description || '—',
+      (entry.startTime && entry.endTime) ? `${entry.startTime}–${entry.endTime}` : '—',
+      `${parseFloat(entry.hours || 0).toFixed(1)}h`,
+      entry.remarks || '—',
+    ];
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7.2);
+    const lines = cellValues.map((value, cellIndex) =>
+      pdf.splitTextToSize(String(value), cols[cellIndex].w - 4).slice(0, 3)
+    );
+    const rowH = Math.max(9, Math.max(...lines.map(cellLines => cellLines.length)) * 3.5 + 3.5);
+    if (y + rowH > USABLE_H) {
       pdf.addPage();
       pageNum++;
       y = M;
       y = drawHeader(y);
     }
-
-    const emp  = getEmployeeById(entry.employeeId);
-    const proj = getProjectById(entry.projectId);
-    const co   = getCompanyById(entry.companyId || proj?.companyId);
-
-    const isEven = idx % 2 === 0;
-    pdf.setFillColor(isEven ? 255 : 248, isEven ? 255 : 250, isEven ? 255 : 252);
-    pdf.rect(M, y, CW, ROW_H, 'F');
-    pdf.setDrawColor(226, 232, 240);
-    pdf.setLineWidth(0.15);
-    pdf.line(M, y + ROW_H, M + CW, y + ROW_H);
-
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(7.5);
-
+    pdf.setFillColor(idx % 2 === 0 ? 255 : 247, idx % 2 === 0 ? 255 : 248, idx % 2 === 0 ? 255 : 249);
+    pdf.rect(M, y, CW, rowH, 'F');
+    pdf.setDrawColor(207, 213, 218);
+    pdf.setLineWidth(0.2);
+    pdf.rect(M, y, CW, rowH, 'S');
     let cx = M;
-    const truncate = (str, maxLen) => {
-      const s = str || '—';
-      return s.length > maxLen ? s.slice(0, maxLen - 1) + '…' : s;
-    };
-
-    // Date
-    pdf.setTextColor(15, 23, 42);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(entry.date || '—', cx + 2, y + 5.5); cx += cols[0].w;
-
-    // Employee
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(29, 78, 216);
-    pdf.text(truncate(emp?.name, 22), cx + 2, y + 5.5); cx += cols[1].w;
-
-    // Client
-    pdf.setTextColor(71, 85, 105);
-    pdf.text(truncate(co?.name, 24), cx + 2, y + 5.5); cx += cols[2].w;
-
-    // Project
-    pdf.setTextColor(15, 23, 42);
-    pdf.text(truncate(proj?.name, 24), cx + 2, y + 5.5); cx += cols[3].w;
-
-    // Description
-    pdf.setTextColor(100, 116, 139);
-    pdf.text(truncate(entry.description, 28), cx + 2, y + 5.5); cx += cols[4].w;
-
-    // Time
-    const timeStr = (entry.startTime && entry.endTime) ? `${entry.startTime}–${entry.endTime}` : '—';
-    pdf.setTextColor(100, 116, 139);
-    pdf.text(timeStr, cx + 2, y + 5.5); cx += cols[5].w;
-
-    // Hours
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(29, 78, 216);
-    pdf.text(`${parseFloat(entry.hours || 0).toFixed(1)}h`, cx + cols[6].w - 2, y + 5.5, { align: 'right' });
-    cx += cols[6].w;
-
-    // Remarks
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(100, 116, 139);
-    pdf.text(truncate(entry.remarks, 20), cx + 2, y + 5.5);
-
-    y += ROW_H;
+    lines.forEach((cellLines, cellIndex) => {
+      pdf.setFont('helvetica', cellIndex === 0 || cellIndex === 6 ? 'bold' : 'normal');
+      pdf.setTextColor(cellIndex === 6 ? 61 : 24, cellIndex === 6 ? 75 : 29, cellIndex === 6 ? 87 : 33);
+      cellLines.forEach((line, lineIndex) => {
+        const align = cellIndex === 6 ? 'right' : 'left';
+        pdf.text(line, align === 'right' ? cx + cols[cellIndex].w - 2 : cx + 2, y + 4.5 + lineIndex * 3.5, { align });
+      });
+      pdf.setDrawColor(224, 228, 231);
+      pdf.line(cx, y, cx, y + rowH);
+      cx += cols[cellIndex].w;
+    });
+    y += rowH;
   });
 
   // ── Totals row ──
-  if (y + ROW_H > USABLE_H) { pdf.addPage(); pageNum++; y = M; }
-  pdf.setFillColor(235, 244, 255);
+  if (y + 9 > USABLE_H) { pdf.addPage(); pageNum++; y = M; y = drawHeader(y); }
+  pdf.setFillColor(235, 238, 241);
   pdf.rect(M, y, CW, 9, 'F');
-  pdf.setDrawColor(29, 78, 216);
+  pdf.setDrawColor(61, 75, 87);
   pdf.setLineWidth(0.4);
   pdf.line(M, y, M + CW, y);
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(8);
-  pdf.setTextColor(29, 78, 216);
+  pdf.setTextColor(24, 29, 33);
   pdf.text(`TOTAL — ${entries.length} Entries`, M + 2, y + 6);
   pdf.text(`${totalHours.toFixed(1)} h`, M + CW - 2, y + 6, { align: 'right' });
   y += 9;
@@ -387,18 +391,18 @@ export default function Reports() {
     return { title: 'WORK REPORT', subtitle: `${fromDate || '—'} to ${toDate || '—'}` };
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (filtered.length === 0) return;
     const { title, subtitle } = getReportTitle();
-    const pdf = buildPDF({ title, subtitle, entries: filtered, getProjectById, getCompanyById, getEmployeeById });
+    const pdf = await buildPDF({ title, subtitle, entries: filtered, getProjectById, getCompanyById, getEmployeeById });
     const safeTitle = title.replace(/\s+/g, '_');
     pdf.save(`TJADERTUPPEN_${safeTitle}_${todayStr()}.pdf`);
   };
 
-  const handlePreviewPDF = () => {
+  const handlePreviewPDF = async () => {
     if (filtered.length === 0) return;
     const { title, subtitle } = getReportTitle();
-    const pdf = buildPDF({ title, subtitle, entries: filtered, getProjectById, getCompanyById, getEmployeeById });
+    const pdf = await buildPDF({ title, subtitle, entries: filtered, getProjectById, getCompanyById, getEmployeeById });
     window.open(pdf.output('bloburl'), '_blank');
   };
 

@@ -116,6 +116,15 @@ body {
   overflow-y: auto;
 }
 
+.site-footer {
+  flex-shrink: 0;
+  padding: 14px 28px 18px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+}
+
 /* ===== SIDEBAR ===== */
 .sidebar {
   position: fixed;
@@ -1640,6 +1649,7 @@ select {
 
 @media (max-width: 380px) {
   .page-content { padding: 12px; }
+  .site-footer { padding: 12px 12px 16px; font-size: 10px; }
   .header-right > .btn-icon { display: none; }
   .summary-row { grid-template-columns: 1fr 1fr; }
   .card-header, .card-body { padding: 14px; }

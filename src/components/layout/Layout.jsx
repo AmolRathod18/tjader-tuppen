@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import Footer from './Footer';
 
 export default function Layout({ children }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -20,6 +21,7 @@ export default function Layout({ children }) {
         <main className="page-content animate-in">
           {children}
         </main>
+        <Footer />
       </div>
     </div>
   );

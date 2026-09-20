@@ -163,8 +163,7 @@ export default function Login() {
           </form>
 
           <div className="login-footer">
-            <p>{t('login_footer')}</p>
-            <p>{t('login_system')}</p>
+            <p>© 2026 TJÄDERTUPPEN | Project Management System</p>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { calculateShiftHours, getWorkEntryHours } from '../utils/workHours';
 
 const AppContext = createContext(null);
 
@@ -100,11 +101,12 @@ export function AppProvider({ children }) {
     if (!s) { saveToStorage(STORAGE_KEYS.workEntries, DEMO_DATA.workEntries); return DEMO_DATA.workEntries; }
     // Migrate: ensure companyId and remarks fields exist
     return s.map(w => ({
+      ...w,
       companyId: w.companyId || null,
       startTime: w.startTime || '',
       endTime: w.endTime || '',
       remarks: w.remarks ?? w.notes ?? '',
-      ...w,
+      hours: calculateShiftHours(w.startTime, w.endTime) ?? w.hours ?? '',
     }));
   });
 
@@ -144,8 +146,14 @@ export function AppProvider({ children }) {
   };
 
   // ── Work Entries ──
-  const addWorkEntry    = (d) => { const n = { ...d, id: generateId(), createdAt: todayStr() }; setWorkEntries(p => [...p, n]); return n; };
-  const updateWorkEntry = (id, d) => setWorkEntries(p => p.map(w => w.id === id ? { ...w, ...d } : w));
+  const addWorkEntry = (d) => {
+    const n = { ...d, hours: calculateShiftHours(d.startTime, d.endTime) ?? '', id: generateId(), createdAt: todayStr() };
+    setWorkEntries(p => [...p, n]);
+    return n;
+  };
+  const updateWorkEntry = (id, d) => setWorkEntries(p => p.map(w => w.id === id
+    ? { ...w, ...d, hours: calculateShiftHours(d.startTime, d.endTime) ?? '' }
+    : w));
   const deleteWorkEntry = (id) => setWorkEntries(p => p.filter(w => w.id !== id));
 
   // ── Helpers ──
@@ -154,7 +162,7 @@ export function AppProvider({ children }) {
   const getEmployeeById      = (id) => employees.find(e => e.id === id);
   const getProjectsByCompany = (cid) => projects.filter(p => p.companyId === cid);
   const getWorkEntriesByProject = (pid) => workEntries.filter(w => w.projectId === pid);
-  const getTotalHours        = (entries) => entries.reduce((s, w) => s + (parseFloat(w.hours) || 0), 0);
+  const getTotalHours        = (entries) => entries.reduce((s, w) => s + getWorkEntryHours(w), 0);
 
   return (
     <AppContext.Provider value={{
@@ -171,6 +179,7 @@ export function AppProvider({ children }) {
       // helpers
       getCompanyById, getProjectById, getEmployeeById,
       getProjectsByCompany, getWorkEntriesByProject, getTotalHours,
+      getWorkEntryHours,
     }}>
       {children}
     </AppContext.Provider>

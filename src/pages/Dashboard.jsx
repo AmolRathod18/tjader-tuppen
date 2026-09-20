@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { getWorkEntryHours } from '../utils/workHours';
 import { useLanguage } from '../context/LanguageContext';
 import { StatCard } from '../components/ui/Components';
 import { Badge } from '../components/ui/Components';
@@ -25,7 +26,7 @@ function getLast7Days(workEntries) {
     const key = d.toISOString().split('T')[0];
     const label = d.toLocaleDateString('en-SE', { weekday: 'short', day: 'numeric' });
     const entries = workEntries.filter(w => w.date === key);
-    const hours = entries.reduce((s, w) => s + (parseFloat(w.hours) || 0), 0);
+    const hours = entries.reduce((s, w) => s + getWorkEntryHours(w), 0);
     days.push({ day: label, hours: parseFloat(hours.toFixed(1)), entries: entries.length });
   }
   return days;
@@ -42,7 +43,7 @@ export default function Dashboard() {
   const today = todayStr();
   const activeProjects  = projects.filter(p => p.status === 'Active').length;
   const activeEmployees = employees.filter(e => e.status === 'Active').length;
-  const totalHours      = workEntries.reduce((s, w) => s + (parseFloat(w.hours) || 0), 0);
+  const totalHours      = workEntries.reduce((s, w) => s + getWorkEntryHours(w), 0);
   const todayEntries    = workEntries.filter(w => w.date === today);
   const chartData       = getLast7Days(workEntries);
 
@@ -113,7 +114,7 @@ export default function Dashboard() {
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{proj?.number}</div>
                     </td>
                     <td>
-                      <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{w.hours}h</span>
+                      <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{getWorkEntryHours(w)}h</span>
                     </td>
                     <td style={{ maxWidth: 200 }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -183,7 +184,7 @@ export default function Dashboard() {
                       <div className={`activity-dot ${recentDots[i % recentDots.length]}`} />
                       <div className="activity-info">
                         <p><strong>{employee?.name || 'Unknown'}</strong> — {project?.name || 'Unknown'}</p>
-                        <span>{entry.hours}h on {entry.date} · {co?.name || ''} · {entry.description?.slice(0, 40) || 'No description'}</span>
+                        <span>{getWorkEntryHours(entry)}h on {entry.date} · {co?.name || ''} · {entry.description?.slice(0, 40) || 'No description'}</span>
                       </div>
                     </div>
                   );

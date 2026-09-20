@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Components';
 import { Users, Plus, Search, Pencil, Trash2, Phone, Mail } from 'lucide-react';
+import { getWorkEntryHours } from '../utils/workHours';
 
 const EMPTY_FORM = { name: '', empId: '', role: '', phone: '', email: '', status: 'Active' };
 const ROLES = ['Senior Welder', 'Pipe Welder', 'MIG/MAG Welder', 'TIG Welder', 'Welding Inspector', 'Foreman', 'Helper', 'Other'];
@@ -74,7 +75,7 @@ export default function Employees() {
   const handleDelete = () => { deleteEmployee(deleteTarget.id); setDeleteTarget(null); };
 
   const getWorkCount = (empId) => workEntries.filter(w => w.employeeId === empId).length;
-  const getTotalHrs  = (empId) => workEntries.filter(w => w.employeeId === empId).reduce((s, w) => s + (parseFloat(w.hours) || 0), 0).toFixed(1);
+  const getTotalHrs  = (empId) => workEntries.filter(w => w.employeeId === empId).reduce((s, w) => s + getWorkEntryHours(w), 0).toFixed(1);
 
   const getInitials  = (name) => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   const avatarColors = ['#B88A3B', '#527A5A', '#80683D', '#D97706', '#4B7A7A', '#B94A3D'];

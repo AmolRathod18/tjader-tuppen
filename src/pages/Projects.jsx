@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Components';
 import { FolderKanban, Plus, Search, Pencil, Trash2, MapPin, Calendar } from 'lucide-react';
+import { getWorkEntryHours } from '../utils/workHours';
 
 const EMPTY_FORM = { companyId: '', number: '', name: '', location: '', startDate: '', endDate: '', status: 'Active' };
 const STATUS_OPTIONS = ['Active', 'Completed', 'On Hold'];
@@ -71,7 +72,7 @@ export default function Projects() {
 
   const getEntryCount = (projectId) => workEntries.filter(w => w.projectId === projectId).length;
   const getTotalHrs   = (projectId) => {
-    const hrs = workEntries.filter(w => w.projectId === projectId).reduce((s, w) => s + (parseFloat(w.hours) || 0), 0);
+    const hrs = workEntries.filter(w => w.projectId === projectId).reduce((s, w) => s + getWorkEntryHours(w), 0);
     return hrs.toFixed(1);
   };
 

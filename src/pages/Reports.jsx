@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import logoUrl from '../assets/TJADERTUPPEN_Logo.jpeg';
+import { getWorkEntryHours } from '../utils/workHours';
 
 // ─── helpers ────────────────────────────────────────────────
 function fmt(d) { return d.toISOString().split('T')[0]; }
@@ -56,7 +57,7 @@ async function buildPDF({ title, subtitle, entries, getProjectById, getCompanyBy
   const PW = 297, PH = 210, M = 12, CW = PW - M * 2;
   const now = new Date();
   const genStr = now.toLocaleString('en-SE', { dateStyle: 'long', timeStyle: 'short' });
-  const totalHours = entries.reduce((s, e) => s + (parseFloat(e.hours) || 0), 0);
+  const totalHours = entries.reduce((s, e) => s + getWorkEntryHours(e), 0);
   const logoData = await loadLogoData();
   const employeeIds = [...new Set(entries.map(entry => entry.employeeId).filter(Boolean))];
   const employeeNames = employeeIds.map(id => getEmployeeById(id)?.name).filter(Boolean);
@@ -202,7 +203,7 @@ async function buildPDF({ title, subtitle, entries, getProjectById, getCompanyBy
       proj?.name || '—',
       entry.description || '—',
       (entry.startTime && entry.endTime) ? `${entry.startTime}–${entry.endTime}` : '—',
-      `${parseFloat(entry.hours || 0).toFixed(1)}h`,
+      `${getWorkEntryHours(entry).toFixed(1)}h`,
       entry.remarks || '—',
     ];
     pdf.setFont('helvetica', 'normal');
@@ -362,11 +363,11 @@ export default function Reports() {
     );
   }).sort((a, b) => a.date.localeCompare(b.date));
 
-  const totalHours = filtered.reduce((s, w) => s + (parseFloat(w.hours) || 0), 0);
+  const totalHours = filtered.reduce((s, w) => s + getWorkEntryHours(w), 0);
 
   // Chart data
   const dateMap = {};
-  filtered.forEach(w => { dateMap[w.date] = (dateMap[w.date] || 0) + parseFloat(w.hours || 0); });
+  filtered.forEach(w => { dateMap[w.date] = (dateMap[w.date] || 0) + getWorkEntryHours(w); });
   const chartData = Object.entries(dateMap)
     .sort(([a], [b]) => a.localeCompare(b)).slice(-20)
     .map(([date, hours]) => ({ date: date.slice(5), hours: parseFloat(hours.toFixed(1)) }));
@@ -656,7 +657,7 @@ export default function Reports() {
                       {w.startTime && w.endTime ? `${w.startTime}–${w.endTime}` : '—'}
                     </td>
                     <td>
-                      <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{w.hours}h</span>
+                      <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{getWorkEntryHours(w)}h</span>
                     </td>
                     <td style={{ color: 'var(--color-text-muted)', maxWidth: 140 }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

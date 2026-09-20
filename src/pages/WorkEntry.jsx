@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
 import { ClipboardList, Plus, Search, Pencil, Trash2, Clock, Filter } from 'lucide-react';
+import { calculateShiftHours, getWorkEntryHours } from '../utils/workHours';
 
 const today = () => new Date().toISOString().split('T')[0];
 
@@ -18,14 +19,6 @@ const EMPTY_FORM = {
   remarks: '',
 };
 
-function calcHours(start, end) {
-  if (!start || !end) return '';
-  const [sh, sm] = start.split(':').map(Number);
-  const [eh, em] = end.split(':').map(Number);
-  const mins = (eh * 60 + em) - (sh * 60 + sm);
-  if (mins <= 0) return '';
-  return parseFloat((mins / 60).toFixed(2));
-}
 
 export default function WorkEntry() {
   const {
@@ -76,7 +69,7 @@ export default function WorkEntry() {
       return dd !== 0 ? dd : b.createdAt?.localeCompare(a.createdAt || '') || 0;
     });
 
-  const totalHours = filtered.reduce((s, w) => s + (parseFloat(w.hours) || 0), 0);
+  const totalHours = filtered.reduce((s, w) => s + getWorkEntryHours(w), 0);
 
   const openAdd = () => {
     setEditItem(null);
@@ -96,7 +89,7 @@ export default function WorkEntry() {
       description: item.description || '',
       startTime:   item.startTime   || '',
       endTime:     item.endTime     || '',
-      hours:       item.hours       || '',
+      hours:       getWorkEntryHours(item) || '',
       remarks:     item.remarks     ?? item.notes ?? '',
     });
     setErrors({});
@@ -110,8 +103,8 @@ export default function WorkEntry() {
       if (field === 'startTime' || field === 'endTime') {
         const st = field === 'startTime' ? value : f.startTime;
         const et = field === 'endTime'   ? value : f.endTime;
-        const h  = calcHours(st, et);
-        if (h !== '') next.hours = h;
+        const h = calculateShiftHours(st, et);
+          next.hours = h === null ? '' : h;
       }
       // Reset project when client changes
       if (field === 'companyId') next.projectId = '';
@@ -125,8 +118,8 @@ export default function WorkEntry() {
     if (!form.employeeId)  e.employeeId  = 'Employee is required';
     if (!form.projectId)   e.projectId   = 'Project is required';
     if (!form.description?.trim()) e.description = 'Work description is required';
-    if (!form.hours || isNaN(form.hours) || parseFloat(form.hours) <= 0) e.hours = 'Valid hours are required';
-    if (parseFloat(form.hours) > 24) e.hours = 'Hours cannot exceed 24';
+    const calculatedHours = calculateShiftHours(form.startTime, form.endTime);
+    if (calculatedHours === null || calculatedHours <= 0) e.hours = 'Start and end time are required';
     return e;
   };
 
@@ -136,7 +129,7 @@ export default function WorkEntry() {
     const proj = getProjectById(form.projectId);
     const data = {
       ...form,
-      hours:     parseFloat(form.hours),
+      hours:     calculatedHours,
       companyId: form.companyId || proj?.companyId || '',
     };
     if (editItem) updateWorkEntry(editItem.id, data);
@@ -162,7 +155,7 @@ export default function WorkEntry() {
       <div className="page-header">
         <div className="page-header-info">
           <h2>{t('we_title')}</h2>
-          <p>{workEntries.length} {t('lbl_entries')} · {workEntries.reduce((s, w) => s + (parseFloat(w.hours) || 0), 0).toFixed(1)}h total</p>
+          <p>{workEntries.length} {t('lbl_entries')} Â· {workEntries.reduce((s, w) => s + getWorkEntryHours(w), 0).toFixed(1)}h total</p>
         </div>
         <button id="add-work-btn" className="btn btn-primary" onClick={openAdd}>
           <Plus size={16} /> {t('we_btn_log')}
@@ -195,7 +188,7 @@ export default function WorkEntry() {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             <div className="search-input-wrapper" style={{ flex: 1, minWidth: 180 }}>
               <Search size={16} className="search-icon" />
-              <input id="search-entries" placeholder="Search employee, project, description…" value={search} onChange={e => setSearch(e.target.value)} />
+              <input id="search-entries" placeholder="Search employee, project, descriptionâ€¦" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} style={{ maxWidth: 160 }} title="Filter by Date" />
             <select value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)} style={{ maxWidth: 180 }}>
@@ -249,31 +242,31 @@ export default function WorkEntry() {
                       </div>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{employee?.name || '—'}</div>
+                      <div style={{ fontWeight: 600 }}>{employee?.name || 'â€”'}</div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{employee?.role}</div>
                     </td>
-                    <td style={{ fontWeight: 500 }}>{co?.name || '—'}</td>
+                    <td style={{ fontWeight: 500 }}>{co?.name || 'â€”'}</td>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{project?.name || '—'}</div>
+                      <div style={{ fontWeight: 600 }}>{project?.name || 'â€”'}</div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{project?.number}</div>
                     </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <Clock size={14} color="var(--color-primary)" />
-                        <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{w.hours}h</span>
+                        <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{getWorkEntryHours(w)}h</span>
                       </div>
                     </td>
                     <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-                      {w.startTime && w.endTime ? `${w.startTime}–${w.endTime}` : '—'}
+                      {w.startTime && w.endTime ? `${w.startTime}â€“${w.endTime}` : 'â€”'}
                     </td>
                     <td style={{ maxWidth: 180 }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {w.description || '—'}
+                        {w.description || 'â€”'}
                       </div>
                     </td>
                     <td style={{ color: 'var(--color-text-muted)', maxWidth: 130 }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {w.remarks || '—'}
+                        {w.remarks || 'â€”'}
                       </div>
                     </td>
                     <td>
@@ -300,7 +293,7 @@ export default function WorkEntry() {
         </div>
       </div>
 
-      {/* ── Add / Edit Modal ── */}
+      {/* â”€â”€ Add / Edit Modal â”€â”€ */}
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -322,25 +315,25 @@ export default function WorkEntry() {
         <div className="form-group">
           <label>Employee *</label>
           <select value={form.employeeId} onChange={e => setField('employeeId', e.target.value)} style={errors.employeeId ? { borderColor: 'var(--color-danger)' } : {}}>
-            <option value="">Select employee…</option>
-            {activeEmployees.map(e => <option key={e.id} value={e.id}>{e.name} — {e.role}</option>)}
+            <option value="">Select employeeâ€¦</option>
+            {activeEmployees.map(e => <option key={e.id} value={e.id}>{e.name} â€” {e.role}</option>)}
           </select>
           <Err field="employeeId" />
         </div>
 
-        {/* Client → then Project */}
+        {/* Client â†’ then Project */}
         <div className="form-row">
           <div className="form-group">
             <label>Client Company</label>
             <select value={form.companyId} onChange={e => setField('companyId', e.target.value)}>
-              <option value="">All clients…</option>
+              <option value="">All clientsâ€¦</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div className="form-group">
             <label>Project *</label>
             <select value={form.projectId} onChange={e => setField('projectId', e.target.value)} style={errors.projectId ? { borderColor: 'var(--color-danger)' } : {}}>
-              <option value="">Select project…</option>
+              <option value="">Select projectâ€¦</option>
               {formProjects.map(p => {
                 const co = getCompanyById(p.companyId);
                 return <option key={p.id} value={p.id}>{p.name}{co ? ` (${co.name})` : ''}</option>;
@@ -363,12 +356,12 @@ export default function WorkEntry() {
           <div className="form-group">
             <label>Total Hours *</label>
             <input
-              type="number" step="0.5" min="0.5" max="24"
-              placeholder="e.g. 8"
-              value={form.hours}
-              onChange={e => setField('hours', e.target.value)}
-              style={errors.hours ? { borderColor: 'var(--color-danger)' } : {}}
-            />
+                type="text"
+                value={calculateShiftHours(form.startTime, form.endTime) === null ? 'Select start and end time' : `${calculateShiftHours(form.startTime, form.endTime)} hours`}
+                readOnly
+                aria-readonly="true"
+                style={{ background: 'var(--color-bg)', cursor: 'default', ...(errors.hours ? { borderColor: 'var(--color-danger)' } : {}) }}
+              />
             <Err field="hours" />
           </div>
         </div>
@@ -377,7 +370,7 @@ export default function WorkEntry() {
         <div className="form-group">
           <label>Work Description *</label>
           <textarea
-            placeholder="Describe the work performed…"
+            placeholder="Describe the work performedâ€¦"
             value={form.description}
             onChange={e => setField('description', e.target.value)}
             style={errors.description ? { borderColor: 'var(--color-danger)' } : {}}
@@ -389,7 +382,7 @@ export default function WorkEntry() {
         <div className="form-group">
           <label>Remarks</label>
           <textarea
-            placeholder="Any additional notes or remarks…"
+            placeholder="Any additional notes or remarksâ€¦"
             value={form.remarks}
             onChange={e => setField('remarks', e.target.value)}
             style={{ minHeight: 60 }}

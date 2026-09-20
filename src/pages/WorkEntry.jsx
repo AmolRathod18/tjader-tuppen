@@ -219,7 +219,7 @@ export default function WorkEntry() {
               <input id="search-entries" placeholder="Search employee, project, description..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <div className="work-entry-date-filter">
-              <label htmlFor="work-entry-date-filter">Date</label>
+              <span className="work-entry-date-label" aria-hidden="true">Date</span>
               <input
                 id="work-entry-date-filter"
                 type="date"

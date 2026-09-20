@@ -63,8 +63,14 @@ export function AppProvider({ children }) {
   const logout = () => {
     const loggedOutAuth = { isAuthenticated: false, user: null };
     setAuthState(loggedOutAuth);
+
     try {
       localStorage.removeItem(STORAGE_KEYS.auth);
+    } catch {
+      // Storage may be unavailable in privacy-restricted browsers.
+    }
+
+    try {
       sessionStorage.removeItem(STORAGE_KEYS.auth);
     } catch {
       // Storage may be unavailable in privacy-restricted browsers.

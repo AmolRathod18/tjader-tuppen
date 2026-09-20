@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
 import {
@@ -20,11 +20,10 @@ const NAV_ITEMS = [
 export default function Sidebar({ mobileOpen, onNavigate }) {
   const { t } = useLanguage();
   const { logout } = useApp();
-  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    navigate('/login', { replace: true });
+    window.location.replace('/login');
   };
 
   return (

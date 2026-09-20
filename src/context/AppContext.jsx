@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   projects:    'wms_projects',
   employees:   'wms_employees',
   workEntries: 'wms_work_entries',
+  auth:        'wms_auth',
 };
 
 const DEMO_DATA = {
@@ -49,6 +50,27 @@ function saveToStorage(key, value) {
 }
 
 export function AppProvider({ children }) {
+  const [auth, setAuthState] = useState(() => {
+    const s = loadFromStorage(STORAGE_KEYS.auth, null);
+    return s || { isAuthenticated: false, user: null };
+  });
+
+  const setAuth = (authData) => {
+    setAuthState(authData);
+    saveToStorage(STORAGE_KEYS.auth, authData);
+  };
+
+  const logout = () => {
+    const loggedOutAuth = { isAuthenticated: false, user: null };
+    setAuthState(loggedOutAuth);
+    try {
+      localStorage.removeItem(STORAGE_KEYS.auth);
+      sessionStorage.removeItem(STORAGE_KEYS.auth);
+    } catch {
+      // Storage may be unavailable in privacy-restricted browsers.
+    }
+  };
+
   const [companies, setCompanies] = useState(() => {
     const s = loadFromStorage(STORAGE_KEYS.companies, null);
     if (!s) { saveToStorage(STORAGE_KEYS.companies, DEMO_DATA.companies); return DEMO_DATA.companies; }
@@ -131,6 +153,8 @@ export function AppProvider({ children }) {
 
   return (
     <AppContext.Provider value={{
+      // auth
+      auth, setAuth, logout,
       // companies
       companies, addCompany, updateCompany, deleteCompany,
       // projects

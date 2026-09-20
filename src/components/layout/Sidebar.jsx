@@ -24,7 +24,7 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -74,7 +74,7 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
             <span>admin@tjadertuppen.se</span>
           </div>
         </div>
-        <button className="btn btn-ghost btn-full" onClick={handleLogout} style={{ marginTop: 12 }}>
+        <button type="button" className="btn btn-ghost btn-full" onClick={handleLogout} style={{ marginTop: 12 }}>
           <LogOut size={16} style={{ marginRight: 8 }} /> {t('nav_logout')}
         </button>
       </div>

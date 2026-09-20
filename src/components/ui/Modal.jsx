@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -7,7 +8,7 @@ export function Modal({ isOpen, onClose, title, subtitle, children, footer, size
 
   const maxWidths = { sm: '400px', md: '520px', lg: '700px', xl: '900px' };
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ maxWidth: maxWidths[size] }}>
         <div className="modal-header">
@@ -23,13 +24,13 @@ export function Modal({ isOpen, onClose, title, subtitle, children, footer, size
         {footer && <div className="modal-footer">{footer}</div>}
       </div>
     </div>
-  );
+  , document.body);
 }
 
 export function ConfirmDeleteModal({ isOpen, onClose, onConfirm, itemName }) {
   const { t } = useLanguage();
   if (!isOpen) return null;
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ maxWidth: '400px' }}>
         <div className="modal-body">
@@ -47,5 +48,5 @@ export function ConfirmDeleteModal({ isOpen, onClose, onConfirm, itemName }) {
         </div>
       </div>
     </div>
-  );
+  , document.body);
 }

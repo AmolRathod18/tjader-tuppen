@@ -32,6 +32,7 @@ export default function Projects() {
   const [deleteTarget,   setDeleteTarget]   = useState(null);
   const [form,           setForm]           = useState(EMPTY_FORM);
   const [errors,         setErrors]         = useState({});
+  const [submitError,    setSubmitError]    = useState('');
 
   const filtered = projects.filter(p => {
     const q = search.toLowerCase();
@@ -41,11 +42,12 @@ export default function Projects() {
     return matchSearch && matchCompany && matchStatus;
   });
 
-  const openAdd = () => { setEditItem(null); setForm(EMPTY_FORM); setErrors({}); setModalOpen(true); };
+  const openAdd = () => { setEditItem(null); setForm(EMPTY_FORM); setErrors({}); setSubmitError(''); setModalOpen(true); };
   const openEdit = (item) => {
     setEditItem(item);
     setForm({ companyId: item.companyId, number: item.number, name: item.name, location: item.location, startDate: item.startDate, endDate: item.endDate, status: item.status });
     setErrors({});
+    setSubmitError('');
     setModalOpen(true);
   };
 
@@ -63,9 +65,13 @@ export default function Projects() {
   const handleSubmit = () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
-    if (editItem) updateProject(editItem.id, form);
-    else          addProject(form);
-    setModalOpen(false);
+    try {
+      if (editItem) updateProject(editItem.id, form);
+      else addProject(form);
+      setModalOpen(false);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : String(error));
+    }
   };
 
   const handleDelete = () => { deleteProject(deleteTarget.id); setDeleteTarget(null); };
@@ -180,6 +186,7 @@ export default function Projects() {
           <button id="save-project-btn" className="btn btn-primary" onClick={handleSubmit}>{editItem ? t('btn_save') : t('btn_create_project')}</button>
         </>}
       >
+        {submitError && <div className="form-submit-error" role="alert">{submitError}</div>}
         <div className="form-group">
           <label>{t('proj_form_company')} *</label>
           <select value={form.companyId} onChange={e => setForm(f => ({ ...f, companyId: e.target.value }))}

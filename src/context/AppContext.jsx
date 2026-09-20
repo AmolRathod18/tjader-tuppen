@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { calculateShiftHours, getWorkEntryHours } from '../utils/workHours';
 
 const AppContext = createContext(null);
@@ -47,7 +47,11 @@ function loadFromStorage(key, defaultValue) {
 }
 
 function saveToStorage(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    throw new Error(`Unable to save changes (${key}): ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 export function AppProvider({ children }) {
@@ -110,51 +114,88 @@ export function AppProvider({ children }) {
     }));
   });
 
-  useEffect(() => { saveToStorage(STORAGE_KEYS.companies,   companies);   }, [companies]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.projects,    projects);    }, [projects]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.employees,   employees);   }, [employees]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.workEntries, workEntries); }, [workEntries]);
+  const commitCollection = (key, nextValue, setValue) => {
+    saveToStorage(key, nextValue);
+    setValue(nextValue);
+  };
 
   const generateId = () => Date.now().toString() + Math.random().toString(36).slice(2, 6);
   const todayStr   = () => new Date().toISOString().split('T')[0];
 
   // ── Companies ──
-  const addCompany    = (d) => { const n = { ...d, id: generateId(), createdAt: todayStr() }; setCompanies(p => [...p, n]); return n; };
-  const updateCompany = (id, d) => setCompanies(p => p.map(c => c.id === id ? { ...c, ...d } : c));
+  const addCompany = (d) => {
+    const n = { ...d, id: generateId(), createdAt: todayStr() };
+    commitCollection(STORAGE_KEYS.companies, [...companies, n], setCompanies);
+    return n;
+  };
+  const updateCompany = (id, d) => {
+    commitCollection(STORAGE_KEYS.companies, companies.map(c => c.id === id ? { ...c, ...d } : c), setCompanies);
+  };
   const deleteCompany = (id) => {
-    setCompanies(p => p.filter(c => c.id !== id));
-    // Also delete linked projects and their work entries
     const projectIds = projects.filter(x => x.companyId === id).map(x => x.id);
-    setProjects(p => p.filter(x => x.companyId !== id));
-    setWorkEntries(p => p.filter(w => !projectIds.includes(w.projectId)));
+    const nextCompanies = companies.filter(c => c.id !== id);
+    const nextProjects = projects.filter(x => x.companyId !== id);
+    const nextWorkEntries = workEntries.filter(w => !projectIds.includes(w.projectId));
+    saveToStorage(STORAGE_KEYS.companies, nextCompanies);
+    saveToStorage(STORAGE_KEYS.projects, nextProjects);
+    saveToStorage(STORAGE_KEYS.workEntries, nextWorkEntries);
+    setCompanies(nextCompanies);
+    setProjects(nextProjects);
+    setWorkEntries(nextWorkEntries);
   };
 
   // ── Projects ──
-  const addProject    = (d) => { const n = { ...d, id: generateId(), createdAt: todayStr() }; setProjects(p => [...p, n]); return n; };
-  const updateProject = (id, d) => setProjects(p => p.map(x => x.id === id ? { ...x, ...d } : x));
+  const addProject = (d) => {
+    const n = { ...d, id: generateId(), createdAt: todayStr() };
+    commitCollection(STORAGE_KEYS.projects, [...projects, n], setProjects);
+    return n;
+  };
+  const updateProject = (id, d) => {
+    commitCollection(STORAGE_KEYS.projects, projects.map(x => x.id === id ? { ...x, ...d } : x), setProjects);
+  };
   const deleteProject = (id) => {
-    setProjects(p => p.filter(x => x.id !== id));
-    setWorkEntries(p => p.filter(w => w.projectId !== id));
+    const nextProjects = projects.filter(x => x.id !== id);
+    const nextWorkEntries = workEntries.filter(w => w.projectId !== id);
+    saveToStorage(STORAGE_KEYS.projects, nextProjects);
+    saveToStorage(STORAGE_KEYS.workEntries, nextWorkEntries);
+    setProjects(nextProjects);
+    setWorkEntries(nextWorkEntries);
   };
 
   // ── Employees ──
-  const addEmployee    = (d) => { const n = { ...d, id: generateId(), createdAt: todayStr() }; setEmployees(p => [...p, n]); return n; };
-  const updateEmployee = (id, d) => setEmployees(p => p.map(e => e.id === id ? { ...e, ...d } : e));
+  const addEmployee = (d) => {
+    const n = { ...d, id: generateId(), createdAt: todayStr() };
+    commitCollection(STORAGE_KEYS.employees, [...employees, n], setEmployees);
+    return n;
+  };
+  const updateEmployee = (id, d) => {
+    commitCollection(STORAGE_KEYS.employees, employees.map(e => e.id === id ? { ...e, ...d } : e), setEmployees);
+  };
   const deleteEmployee = (id) => {
-    setEmployees(p => p.filter(e => e.id !== id));
-    setWorkEntries(p => p.filter(w => w.employeeId !== id));
+    const nextEmployees = employees.filter(e => e.id !== id);
+    const nextWorkEntries = workEntries.filter(w => w.employeeId !== id);
+    saveToStorage(STORAGE_KEYS.employees, nextEmployees);
+    saveToStorage(STORAGE_KEYS.workEntries, nextWorkEntries);
+    setEmployees(nextEmployees);
+    setWorkEntries(nextWorkEntries);
   };
 
   // ── Work Entries ──
   const addWorkEntry = (d) => {
     const n = { ...d, hours: calculateShiftHours(d.startTime, d.endTime) ?? '', id: generateId(), createdAt: todayStr() };
-    setWorkEntries(p => [...p, n]);
+    commitCollection(STORAGE_KEYS.workEntries, [...workEntries, n], setWorkEntries);
     return n;
   };
-  const updateWorkEntry = (id, d) => setWorkEntries(p => p.map(w => w.id === id
-    ? { ...w, ...d, hours: calculateShiftHours(d.startTime, d.endTime) ?? '' }
-    : w));
-  const deleteWorkEntry = (id) => setWorkEntries(p => p.filter(w => w.id !== id));
+  const updateWorkEntry = (id, d) => {
+    const next = workEntries.map(w => w.id === id
+      ? { ...w, ...d, hours: calculateShiftHours(d.startTime, d.endTime) ?? '' }
+      : w);
+    commitCollection(STORAGE_KEYS.workEntries, next, setWorkEntries);
+  };
+  const deleteWorkEntry = (id) => {
+    const next = workEntries.filter(w => w.id !== id);
+    commitCollection(STORAGE_KEYS.workEntries, next, setWorkEntries);
+  };
 
   // ── Helpers ──
   const getCompanyById       = (id) => companies.find(c => c.id === id);

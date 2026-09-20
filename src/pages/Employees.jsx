@@ -36,6 +36,7 @@ export default function Employees() {
   const [deleteTarget,  setDeleteTarget]  = useState(null);
   const [form,          setForm]          = useState(EMPTY_FORM);
   const [errors,        setErrors]        = useState({});
+  const [submitError,   setSubmitError]   = useState('');
 
   const filtered = employees.filter(e => {
     const q = search.toLowerCase();
@@ -44,7 +45,7 @@ export default function Employees() {
     return matchSearch && matchStatus;
   });
 
-  const openAdd  = () => { setEditItem(null); setForm(EMPTY_FORM); setErrors({}); setModalOpen(true); };
+  const openAdd  = () => { setEditItem(null); setForm(EMPTY_FORM); setErrors({}); setSubmitError(''); setModalOpen(true); };
   const openEdit = (item) => {
     setEditItem(item);
     setForm({
@@ -53,6 +54,7 @@ export default function Employees() {
       status: item.status,
     });
     setErrors({});
+    setSubmitError('');
     setModalOpen(true);
   };
 
@@ -67,9 +69,13 @@ export default function Employees() {
   const handleSubmit = () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
-    if (editItem) updateEmployee(editItem.id, form);
-    else addEmployee(form);
-    setModalOpen(false);
+    try {
+      if (editItem) updateEmployee(editItem.id, form);
+      else addEmployee(form);
+      setModalOpen(false);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : String(error));
+    }
   };
 
   const handleDelete = () => { deleteEmployee(deleteTarget.id); setDeleteTarget(null); };
@@ -179,6 +185,7 @@ export default function Employees() {
           <button id="save-employee-btn" className="btn btn-primary" onClick={handleSubmit}>{editItem ? t('btn_save') : t('btn_add_employee')}</button>
         </>}
       >
+        {submitError && <div className="form-submit-error" role="alert">{submitError}</div>}
         <div className="form-row">
           <EmployeeField form={form} setForm={setForm} errors={errors} field="name"  label={t('emp_form_name')}  placeholder={t('emp_form_name_ph')}  required />
           <EmployeeField form={form} setForm={setForm} errors={errors} field="empId" label={t('emp_form_id')}    placeholder={t('emp_form_id_ph')}    required />

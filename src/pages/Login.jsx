@@ -33,11 +33,15 @@ export default function Login() {
       (email === ADMIN_CREDENTIALS.username || email === ADMIN_CREDENTIALS.email) &&
       password === ADMIN_CREDENTIALS.password;
 
-    if (isValidAdmin) {
-      setAuth({ isAuthenticated: true, user: { email, role: 'admin' } });
-      navigate('/dashboard');
-    } else {
-      setError(t('login_error_admin'));
+    try {
+      if (isValidAdmin) {
+        setAuth({ isAuthenticated: true, user: { email, role: 'admin' } });
+        navigate('/dashboard');
+      } else {
+        setError(t('login_error_admin'));
+      }
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : String(submitError));
     }
     setLoading(false);
   };

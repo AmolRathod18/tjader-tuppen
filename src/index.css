@@ -649,6 +649,18 @@ tbody tr:last-child td {
   justify-content: flex-end;
 }
 
+.form-submit-error {
+  margin: 0 28px 18px;
+  padding: 10px 12px;
+  border: 1px solid #efb9b0;
+  border-radius: var(--radius-md);
+  background: #fff0ed;
+  color: #b33d32;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 /* ===== FORMS ===== */
 .form-group {
   margin-bottom: 20px;
@@ -1518,6 +1530,7 @@ select {
     padding: 18px;
     overscroll-behavior: contain;
   }
+  .form-submit-error { margin: 0 18px 14px; }
   .modal-footer {
     flex: 0 0 auto;
     flex-wrap: wrap;

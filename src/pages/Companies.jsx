@@ -27,6 +27,7 @@ export default function Companies() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');
 
   const filtered = companies.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -34,8 +35,8 @@ export default function Companies() {
     c.address?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const openAdd = () => { setEditItem(null); setForm(EMPTY_FORM); setErrors({}); setModalOpen(true); };
-  const openEdit = (item) => { setEditItem(item); setForm({ name: item.name, contact: item.contact, email: item.email, phone: item.phone, address: item.address }); setErrors({}); setModalOpen(true); };
+  const openAdd = () => { setEditItem(null); setForm(EMPTY_FORM); setErrors({}); setSubmitError(''); setModalOpen(true); };
+  const openEdit = (item) => { setEditItem(item); setForm({ name: item.name, contact: item.contact, email: item.email, phone: item.phone, address: item.address }); setErrors({}); setSubmitError(''); setModalOpen(true); };
 
   const validate = () => {
     const e = {};
@@ -48,9 +49,13 @@ export default function Companies() {
   const handleSubmit = () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
-    if (editItem) updateCompany(editItem.id, form);
-    else addCompany(form);
-    setModalOpen(false);
+    try {
+      if (editItem) updateCompany(editItem.id, form);
+      else addCompany(form);
+      setModalOpen(false);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : String(error));
+    }
   };
 
   const handleDelete = () => {
@@ -189,6 +194,7 @@ export default function Companies() {
           </>
         }
       >
+        {submitError && <div className="form-submit-error" role="alert">{submitError}</div>}
         <CompanyField form={form} setForm={setForm} errors={errors} field="name" label={t('co_form_name')} placeholder={t('co_form_name_ph')} />
         <CompanyField form={form} setForm={setForm} errors={errors} field="contact" label={t('co_form_contact')} placeholder={t('co_form_contact_ph')} />
         <div className="form-row">

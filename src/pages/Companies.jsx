@@ -6,6 +6,18 @@ import { Building2, Plus, Search, Pencil, Trash2, Phone, Mail, MapPin } from 'lu
 
 const EMPTY_FORM = { name: '', contact: '', email: '', phone: '', address: '' };
 
+function CompanyField({ field, label, type = 'text', placeholder, form, setForm, errors }) {
+  return (
+    <div className="form-group">
+      <label>{label}{field === 'name' || field === 'contact' ? ' *' : ''}</label>
+      <input type={type} placeholder={placeholder} value={form[field]}
+        onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+        style={errors[field] ? { borderColor: 'var(--color-danger)' } : {}} />
+      {errors[field] && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors[field]}</p>}
+    </div>
+  );
+}
+
 export default function Companies() {
   const { companies, addCompany, updateCompany, deleteCompany, getProjectsByCompany } = useApp();
   const { t } = useLanguage();
@@ -45,20 +57,6 @@ export default function Companies() {
     deleteCompany(deleteTarget.id);
     setDeleteTarget(null);
   };
-
-  const F = ({ field, label, type = 'text', placeholder }) => (
-    <div className="form-group">
-      <label>{label}{field === 'name' || field === 'contact' ? ' *' : ''}</label>
-      <input
-        type={type}
-        placeholder={placeholder}
-        value={form[field]}
-        onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
-        style={errors[field] ? { borderColor: 'var(--color-danger)' } : {}}
-      />
-      {errors[field] && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors[field]}</p>}
-    </div>
-  );
 
   return (
     <div>
@@ -191,13 +189,13 @@ export default function Companies() {
           </>
         }
       >
-        <F field="name" label={t('co_form_name')} placeholder={t('co_form_name_ph')} />
-        <F field="contact" label={t('co_form_contact')} placeholder={t('co_form_contact_ph')} />
+        <CompanyField form={form} setForm={setForm} errors={errors} field="name" label={t('co_form_name')} placeholder={t('co_form_name_ph')} />
+        <CompanyField form={form} setForm={setForm} errors={errors} field="contact" label={t('co_form_contact')} placeholder={t('co_form_contact_ph')} />
         <div className="form-row">
-          <F field="email" label={t('co_form_email')} type="email" placeholder={t('co_form_email_ph')} />
-          <F field="phone" label={t('co_form_phone')} placeholder={t('co_form_phone_ph')} />
+          <CompanyField form={form} setForm={setForm} errors={errors} field="email" label={t('co_form_email')} type="email" placeholder={t('co_form_email_ph')} />
+          <CompanyField form={form} setForm={setForm} errors={errors} field="phone" label={t('co_form_phone')} placeholder={t('co_form_phone_ph')} />
         </div>
-        <F field="address" label={t('co_form_address')} placeholder={t('co_form_address_ph')} />
+        <CompanyField form={form} setForm={setForm} errors={errors} field="address" label={t('co_form_address')} placeholder={t('co_form_address_ph')} />
       </Modal>
 
       {/* Delete Modal */}

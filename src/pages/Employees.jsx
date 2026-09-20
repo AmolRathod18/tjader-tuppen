@@ -9,6 +9,18 @@ const EMPTY_FORM = { name: '', empId: '', role: '', phone: '', email: '', status
 const ROLES = ['Senior Welder', 'Pipe Welder', 'MIG/MAG Welder', 'TIG Welder', 'Welding Inspector', 'Foreman', 'Helper', 'Other'];
 const STATUS_OPTIONS = ['Active', 'Inactive'];
 
+function EmployeeField({ field, label, type = 'text', placeholder, required, form, setForm, errors }) {
+  return (
+    <div className="form-group">
+      <label>{label}{required ? ' *' : ''}</label>
+      <input type={type} placeholder={placeholder} value={form[field]}
+        onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+        style={errors[field] ? { borderColor: 'var(--color-danger)' } : {}} />
+      {errors[field] && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors[field]}</p>}
+    </div>
+  );
+}
+
 export default function Employees() {
   const {
     employees, addEmployee, updateEmployee, deleteEmployee,
@@ -66,16 +78,6 @@ export default function Employees() {
 
   const getInitials  = (name) => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   const avatarColors = ['#B88A3B', '#527A5A', '#80683D', '#D97706', '#4B7A7A', '#B94A3D'];
-
-  const FInput = ({ field, label, type = 'text', placeholder, required }) => (
-    <div className="form-group">
-      <label>{label}{required ? ' *' : ''}</label>
-      <input type={type} placeholder={placeholder} value={form[field]}
-        onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
-        style={errors[field] ? { borderColor: 'var(--color-danger)' } : {}} />
-      {errors[field] && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors[field]}</p>}
-    </div>
-  );
 
   return (
     <div>
@@ -177,8 +179,8 @@ export default function Employees() {
         </>}
       >
         <div className="form-row">
-          <FInput field="name"  label={t('emp_form_name')}  placeholder={t('emp_form_name_ph')}  required />
-          <FInput field="empId" label={t('emp_form_id')}    placeholder={t('emp_form_id_ph')}    required />
+          <EmployeeField form={form} setForm={setForm} errors={errors} field="name"  label={t('emp_form_name')}  placeholder={t('emp_form_name_ph')}  required />
+          <EmployeeField form={form} setForm={setForm} errors={errors} field="empId" label={t('emp_form_id')}    placeholder={t('emp_form_id_ph')}    required />
         </div>
         <div className="form-group">
           <label>{t('emp_form_role')}</label>
@@ -188,8 +190,8 @@ export default function Employees() {
           </select>
         </div>
         <div className="form-row">
-          <FInput field="phone" label={t('emp_form_phone')} placeholder={t('emp_form_phone_ph')} />
-          <FInput field="email" label={t('emp_form_email')} type="email" placeholder={t('emp_form_email_ph')} />
+          <EmployeeField form={form} setForm={setForm} errors={errors} field="phone" label={t('emp_form_phone')} placeholder={t('emp_form_phone_ph')} />
+          <EmployeeField form={form} setForm={setForm} errors={errors} field="email" type="email" label={t('emp_form_email')} placeholder={t('emp_form_email_ph')} />
         </div>
         <div className="form-group">
           <label>{t('emp_form_status')}</label>

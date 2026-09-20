@@ -8,6 +8,18 @@ import { FolderKanban, Plus, Search, Pencil, Trash2, MapPin, Calendar } from 'lu
 const EMPTY_FORM = { companyId: '', number: '', name: '', location: '', startDate: '', endDate: '', status: 'Active' };
 const STATUS_OPTIONS = ['Active', 'Completed', 'On Hold'];
 
+function ProjectField({ field, label, type = 'text', placeholder, required, form, setForm, errors }) {
+  return (
+    <div className="form-group">
+      <label>{label}{required ? ' *' : ''}</label>
+      <input type={type} placeholder={placeholder} value={form[field]}
+        onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+        style={errors[field] ? { borderColor: 'var(--color-danger)' } : {}} />
+      {errors[field] && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors[field]}</p>}
+    </div>
+  );
+}
+
 export default function Projects() {
   const { projects, companies, addProject, updateProject, deleteProject, getCompanyById, workEntries } = useApp();
   const { t } = useLanguage();
@@ -62,16 +74,6 @@ export default function Projects() {
     const hrs = workEntries.filter(w => w.projectId === projectId).reduce((s, w) => s + (parseFloat(w.hours) || 0), 0);
     return hrs.toFixed(1);
   };
-
-  const FInput = ({ field, label, type = 'text', placeholder, required }) => (
-    <div className="form-group">
-      <label>{label}{required ? ' *' : ''}</label>
-      <input type={type} placeholder={placeholder} value={form[field]}
-        onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
-        style={errors[field] ? { borderColor: 'var(--color-danger)' } : {}} />
-      {errors[field] && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors[field]}</p>}
-    </div>
-  );
 
   return (
     <div>
@@ -187,13 +189,13 @@ export default function Projects() {
           {errors.companyId && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors.companyId}</p>}
         </div>
         <div className="form-row">
-          <FInput field="number" label={t('proj_form_number')} placeholder={t('proj_form_number_ph')} required />
-          <FInput field="name" label={t('proj_form_name')} placeholder={t('proj_form_name_ph')} required />
+          <ProjectField form={form} setForm={setForm} errors={errors} field="number" label={t('proj_form_number')} placeholder={t('proj_form_number_ph')} required />
+          <ProjectField form={form} setForm={setForm} errors={errors} field="name" label={t('proj_form_name')} placeholder={t('proj_form_name_ph')} required />
         </div>
-        <FInput field="location" label={t('proj_form_location')} placeholder={t('proj_form_location_ph')} />
+        <ProjectField form={form} setForm={setForm} errors={errors} field="location" label={t('proj_form_location')} placeholder={t('proj_form_location_ph')} />
         <div className="form-row">
-          <FInput field="startDate" label={t('proj_form_start')} type="date" required />
-          <FInput field="endDate"   label={t('proj_form_end')}   type="date" required />
+          <ProjectField form={form} setForm={setForm} errors={errors} field="startDate" label={t('proj_form_start')} type="date" required />
+          <ProjectField form={form} setForm={setForm} errors={errors} field="endDate" label={t('proj_form_end')} type="date" required />
         </div>
         <div className="form-group">
           <label>{t('proj_form_status')}</label>

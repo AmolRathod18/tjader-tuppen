@@ -1,12 +1,18 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Components';
-import { Users, Plus, Search, Pencil, Trash2, Phone, Mail } from 'lucide-react';
+import {
+  Users, Plus, Search, Pencil, Trash2, Phone, Mail, Eye,
+  Clock3, Award, BriefcaseBusiness, MapPin, FileText,
+} from 'lucide-react';
 import { getWorkEntryHours } from '../utils/workHours';
 
-const EMPTY_FORM = { name: '', empId: '', role: '', phone: '', email: '', status: 'Active' };
+const EMPTY_FORM = {
+  name: '', empId: '', role: '', phone: '', email: '', status: 'Active', photo: '',
+  experience: '', skills: '', workType: '', certifications: '', joiningDate: '', notes: '',
+};
 const ROLES = ['Senior Welder', 'Pipe Welder', 'MIG/MAG Welder', 'TIG Welder', 'Welding Inspector', 'Foreman', 'Helper', 'Other'];
 const STATUS_OPTIONS = ['Active', 'Inactive'];
 
@@ -25,7 +31,7 @@ function EmployeeField({ field, label, type = 'text', placeholder, required, for
 export default function Employees() {
   const {
     employees, addEmployee, updateEmployee, deleteEmployee,
-    workEntries,
+    workEntries, projects, companies,
   } = useApp();
   const { t } = useLanguage();
 
@@ -34,6 +40,7 @@ export default function Employees() {
   const [modalOpen,     setModalOpen]     = useState(false);
   const [editItem,      setEditItem]      = useState(null);
   const [deleteTarget,  setDeleteTarget]  = useState(null);
+  const [profileEmployee, setProfileEmployee] = useState(null);
   const [form,          setForm]          = useState(EMPTY_FORM);
   const [errors,        setErrors]        = useState({});
   const [submitError,   setSubmitError]   = useState('');
@@ -51,7 +58,10 @@ export default function Employees() {
     setForm({
       name: item.name, empId: item.empId, role: item.role || '',
       phone: item.phone || '', email: item.email || '',
-      status: item.status,
+      status: item.status, photo: item.photo || item.photoUrl || '',
+      experience: item.experience || '', skills: Array.isArray(item.skills) ? item.skills.join(', ') : (item.skills || ''),
+      workType: item.workType || '', certifications: item.certifications || '',
+      joiningDate: item.joiningDate || item.createdAt || '', notes: item.notes || '',
     });
     setErrors({});
     setSubmitError('');
@@ -80,11 +90,21 @@ export default function Employees() {
 
   const handleDelete = () => { deleteEmployee(deleteTarget.id); setDeleteTarget(null); };
 
+  const profileEntries = useMemo(() => {
+    if (!profileEmployee) return [];
+    return workEntries
+      .filter(entry => entry.employeeId === profileEmployee.id)
+      .sort((a, b) => `${b.date} ${b.startTime}`.localeCompare(`${a.date} ${a.startTime}`));
+  }, [profileEmployee, workEntries]);
+
   const getWorkCount = (empId) => workEntries.filter(w => w.employeeId === empId).length;
   const getTotalHrs  = (empId) => workEntries.filter(w => w.employeeId === empId).reduce((s, w) => s + getWorkEntryHours(w), 0).toFixed(1);
 
   const getInitials  = (name) => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   const avatarColors = ['#B88A3B', '#527A5A', '#80683D', '#D97706', '#4B7A7A', '#B94A3D'];
+  const formatDate = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not provided';
+  const profileValue = (value) => value || 'Not provided';
+  const getSkills = (employee) => Array.isArray(employee?.skills) ? employee.skills : (employee?.skills ? employee.skills.split(',').map(skill => skill.trim()).filter(Boolean) : []);
 
   return (
     <div>
@@ -126,7 +146,19 @@ export default function Employees() {
             </thead>
             <tbody>
               {filtered.map((e, i) => (
-                <tr key={e.id}>
+                <tr
+                  key={e.id}
+                  tabIndex={0}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setProfileEmployee(e)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setProfileEmployee(e);
+                    }
+                  }}
+                  aria-label={`Open profile for ${e.name}`}
+                >
                   <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -144,7 +176,7 @@ export default function Employees() {
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       {e.phone && <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}><Phone size={11} color="var(--color-text-muted)" /> {e.phone}</span>}
-                      {e.email && <a href={`mailto:${e.email}`} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--color-primary)', textDecoration: 'none' }}><Mail size={11} /> {e.email}</a>}
+                      {e.email && <a href={`mailto:${e.email}`} onClick={event => event.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--color-primary)', textDecoration: 'none' }}><Mail size={11} /> {e.email}</a>}
                       {!e.phone && !e.email && <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>—</span>}
                     </div>
                   </td>
@@ -155,8 +187,9 @@ export default function Employees() {
                   <td><Badge status={e.status} /></td>
                   <td>
                     <div className="table-actions">
-                      <button className="btn btn-ghost btn-icon btn-sm" title="Edit" onClick={() => openEdit(e)}><Pencil size={15} /></button>
-                      <button className="btn btn-ghost btn-icon btn-sm" title="Delete" onClick={() => setDeleteTarget(e)} style={{ color: 'var(--color-danger)' }}><Trash2 size={15} /></button>
+                      <button className="btn btn-ghost btn-icon btn-sm" title="Edit" onClick={event => { event.stopPropagation(); openEdit(e); }}><Pencil size={15} /></button>
+                      <button className="btn btn-ghost btn-icon btn-sm" title="View employee profile" onClick={event => { event.stopPropagation(); setProfileEmployee(e); }}><Eye size={15} /></button>
+                      <button className="btn btn-ghost btn-icon btn-sm" title="Delete" onClick={event => { event.stopPropagation(); setDeleteTarget(e); }} style={{ color: 'var(--color-danger)' }}><Trash2 size={15} /></button>
                     </div>
                   </td>
                 </tr>
@@ -175,6 +208,96 @@ export default function Employees() {
           </table>
         </div>
       </div>
+
+      {/* ── Employee Profile ── */}
+      <Modal
+        isOpen={!!profileEmployee}
+        onClose={() => setProfileEmployee(null)}
+        title="Employee Profile"
+        subtitle={profileEmployee ? `${profileEmployee.name} · ${profileEmployee.empId}` : ''}
+        size="xl"
+        footer={<>
+          <button className="btn btn-ghost" onClick={() => setProfileEmployee(null)}>Close Profile</button>
+          <button className="btn btn-primary" onClick={() => { const employee = profileEmployee; setProfileEmployee(null); openEdit(employee); }}><Pencil size={14} /> Edit Profile</button>
+        </>}
+      >
+        {profileEmployee && (
+          <div className="employee-profile">
+            <div className="employee-profile-hero">
+              <div className="employee-profile-avatar">
+                {profileEmployee.photo || profileEmployee.photoUrl
+                  ? <img src={profileEmployee.photo || profileEmployee.photoUrl} alt={profileEmployee.name} />
+                  : getInitials(profileEmployee.name)}
+              </div>
+              <div className="employee-profile-heading">
+                <div className="employee-profile-kicker">{profileEmployee.empId}</div>
+                <h3>{profileEmployee.name}</h3>
+                <p>{profileValue(profileEmployee.role)} <span>·</span> <Badge status={profileEmployee.status} /></p>
+              </div>
+              <div className="employee-profile-total">
+                <strong>{profileEntries.reduce((sum, entry) => sum + getWorkEntryHours(entry), 0).toFixed(1)}h</strong>
+                <span>Total hours logged</span>
+              </div>
+            </div>
+
+            <div className="employee-profile-grid">
+              <section className="employee-profile-section">
+                <div className="employee-profile-section-title"><Users size={16} /><h4>Contact & employment</h4></div>
+                <div className="employee-profile-details">
+                  <div><span>Employee ID</span><strong>{profileValue(profileEmployee.empId)}</strong></div>
+                  <div><span>Phone</span><strong>{profileValue(profileEmployee.phone)}</strong></div>
+                  <div><span>Email</span><strong>{profileValue(profileEmployee.email)}</strong></div>
+                  <div><span>Joining date</span><strong>{formatDate(profileEmployee.joiningDate || profileEmployee.createdAt)}</strong></div>
+                  <div><span>Work type</span><strong>{profileValue(profileEmployee.workType)}</strong></div>
+                  <div><span>Experience</span><strong>{profileValue(profileEmployee.experience)}</strong></div>
+                </div>
+              </section>
+
+              <section className="employee-profile-section">
+                <div className="employee-profile-section-title"><Award size={16} /><h4>Skills & certifications</h4></div>
+                <div className="employee-profile-tags">
+                  {getSkills(profileEmployee).length > 0 ? getSkills(profileEmployee).map(skill => <span key={skill}>{skill}</span>) : <em>Skills not provided</em>}
+                </div>
+                <div className="employee-profile-certification"><Award size={14} /><span>{profileValue(profileEmployee.certifications)}</span></div>
+              </section>
+            </div>
+
+            <section className="employee-profile-section employee-profile-notes">
+              <div className="employee-profile-section-title"><FileText size={16} /><h4>Notes</h4></div>
+              <p>{profileValue(profileEmployee.notes)}</p>
+            </section>
+
+            <section className="employee-history">
+              <div className="employee-history-heading">
+                <div><h4>Work & project history</h4><p>Every recorded work entry connected to this employee.</p></div>
+                <span>{profileEntries.length} entries</span>
+              </div>
+              {profileEntries.length === 0 ? (
+                <div className="employee-history-empty">No work history recorded for this employee.</div>
+              ) : (
+                <div className="employee-history-list">
+                  {profileEntries.map((entry, index) => {
+                    const project = projects.find(item => item.id === entry.projectId);
+                    const company = companies.find(item => item.id === (entry.companyId || project?.companyId));
+                    return (
+                      <article className="employee-history-item" key={entry.id}>
+                        <div className="employee-history-marker"><span>{index + 1}</span></div>
+                        <div className="employee-history-date"><strong>{formatDate(entry.date)}</strong><span>{entry.startTime || '—'} – {entry.endTime || '—'}</span></div>
+                        <div className="employee-history-content">
+                          <strong>{project?.name || 'Project not found'}</strong>
+                          <span className="employee-history-client"><BriefcaseBusiness size={12} /> {company?.name || 'Client not provided'} {project?.location && <><MapPin size={12} /> {project.location}</>}</span>
+                          <p>{entry.description || 'No work details recorded.'}{entry.remarks && ` · ${entry.remarks}`}</p>
+                        </div>
+                        <div className="employee-history-hours"><strong>{getWorkEntryHours(entry)}h</strong><span><Clock3 size={12} /> Hours</span></div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+      </Modal>
 
       {/* ── Add / Edit Modal ── */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}
@@ -206,6 +329,27 @@ export default function Employees() {
           <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
             {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
+        </div>
+        <div className="profile-form-divider">Profile details</div>
+        <div className="form-row">
+          <EmployeeField form={form} setForm={setForm} errors={errors} field="photo" label="Photo URL" placeholder="https://..." />
+          <EmployeeField form={form} setForm={setForm} errors={errors} field="joiningDate" type="date" label="Joining date" />
+        </div>
+        <div className="form-row">
+          <EmployeeField form={form} setForm={setForm} errors={errors} field="experience" label="Experience" placeholder="e.g. 8 years" />
+          <EmployeeField form={form} setForm={setForm} errors={errors} field="workType" label="Work type" placeholder="e.g. Field / Project-based" />
+        </div>
+        <div className="form-group">
+          <label>Skills</label>
+          <input placeholder="Separate skills with commas" value={form.skills} onChange={e => setForm(f => ({ ...f, skills: e.target.value }))} />
+        </div>
+        <div className="form-group">
+          <label>Certifications</label>
+          <input placeholder="e.g. ISO 9606, Hot Work" value={form.certifications} onChange={e => setForm(f => ({ ...f, certifications: e.target.value }))} />
+        </div>
+        <div className="form-group">
+          <label>Notes</label>
+          <textarea rows={3} placeholder="Add professional notes" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
         </div>
       </Modal>
 

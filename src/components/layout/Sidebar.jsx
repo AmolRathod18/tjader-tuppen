@@ -4,7 +4,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
 import {
   LayoutDashboard, Building2, FolderKanban, Users,
-  ClipboardList, BarChart3, LogOut,
+  ClipboardList, BarChart3, Network, LogOut,
 } from 'lucide-react';
 import logo from '../../assets/TJADERTUPPEN_Logo.jpeg';
 
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { to: '/employees',   icon: Users,            labelKey: 'nav_employees'   },
   { to: '/work-entry',  icon: ClipboardList,    labelKey: 'nav_work_entry'  },
   { to: '/reports',     icon: BarChart3,        labelKey: 'nav_reports'     },
+  { to: '/system-overview', icon: Network,      labelKey: 'nav_system_overview' },
 ];
 
 export default function Sidebar({ mobileOpen, onNavigate }) {

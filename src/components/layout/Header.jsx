@@ -10,6 +10,7 @@ const PAGE_KEYS = {
   '/employees':  { title: 'page_employees',   subtitle: 'page_employees_sub'   },
   '/work-entry': { title: 'page_work_entry',  subtitle: 'page_work_entry_sub'  },
   '/reports':    { title: 'page_reports',     subtitle: 'page_reports_sub'     },
+  '/system-overview': { title: 'page_system_overview', subtitle: 'page_system_overview_sub' },
 };
 
 export default function Header({ onMenuToggle }) {

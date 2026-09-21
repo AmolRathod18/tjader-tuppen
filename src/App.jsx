@@ -10,6 +10,7 @@ import Projects   from './pages/Projects';
 import Employees  from './pages/Employees';
 import WorkEntry  from './pages/WorkEntry';
 import Reports    from './pages/Reports';
+import SystemOverview from './pages/SystemOverview';
 import Login      from './pages/Login';
 
 // Protected route wrapper
@@ -40,6 +41,7 @@ export default function App() {
                     <Route path="/employees"  element={<Employees />} />
                     <Route path="/work-entry" element={<WorkEntry />} />
                     <Route path="/reports"    element={<Reports />} />
+                    <Route path="/system-overview" element={<SystemOverview />} />
                     <Route path="*"           element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </Layout>

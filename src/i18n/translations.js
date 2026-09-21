@@ -19,6 +19,7 @@ const translations = {
     nav_employees: 'Employees',
     nav_work_entry: 'Daily Work Entry',
     nav_reports: 'Reports',
+    nav_system_overview: '3D System Overview',
     nav_logout: 'Logout',
 
     // ── Header ─────────────────────────────────────────────
@@ -42,6 +43,8 @@ const translations = {
     page_my_dashboard_sub: 'Your attendance and daily work portal',
     page_my_attendance: 'My Attendance',
     page_my_attendance_sub: 'Your personal attendance history',
+    page_system_overview: '3D System Overview',
+    page_system_overview_sub: 'How data flows through TJÄDERTUPPEN',
 
     // ── Common buttons ─────────────────────────────────────
     btn_add: 'Add',
@@ -537,6 +540,7 @@ const translations = {
     nav_work_entry: 'Daglig arbetsrapport',
     nav_attendance: 'Närvaro',
     nav_reports: 'Rapporter',
+    nav_system_overview: '3D-systemöversikt',
     nav_my_dashboard: 'Min panel',
     nav_my_attendance: 'Min närvaro',
     nav_logout: 'Logga ut',
@@ -562,6 +566,8 @@ const translations = {
     page_my_dashboard_sub: 'Din närvaro- och arbetsportal',
     page_my_attendance: 'Min närvaro',
     page_my_attendance_sub: 'Din personliga närvarohistorik',
+    page_system_overview: '3D-systemöversikt',
+    page_system_overview_sub: 'Så flödar data genom TJÄDERTUPPEN',
 
     // ── Common buttons ─────────────────────────────────────
     btn_add: 'Lägg till',

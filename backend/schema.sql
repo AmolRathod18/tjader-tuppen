@@ -2,6 +2,15 @@ create extension if not exists pgcrypto;
 create sequence if not exists project_number_seq;
 create sequence if not exists employee_id_seq;
 
+create table if not exists admins (
+  id uuid primary key default gen_random_uuid(),
+  username text not null unique,
+  email text not null unique,
+  password_hash text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists companies (
   id uuid primary key default gen_random_uuid(),
   name text not null,

@@ -4,7 +4,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
 import {
   LayoutDashboard, Building2, FolderKanban, Users,
-  ClipboardList, BarChart3, Network, Car, LogOut,
+  ClipboardList, BarChart3, Network, Car, LogOut, Settings,
 } from 'lucide-react';
 import logo from '../../assets/TJADERTUPPEN_Logo.jpeg';
 
@@ -17,11 +17,15 @@ const NAV_ITEMS = [
   { to: '/reports',     icon: BarChart3,        labelKey: 'nav_reports'     },
   { to: '/system-overview', icon: Network,      labelKey: 'nav_system_overview' },
   { to: '/expenditure', icon: Car,              labelKey: 'nav_expenditure' },
+  { to: '/settings', icon: Settings, labelKey: 'nav_settings' },
 ];
 
 export default function Sidebar({ mobileOpen, onNavigate }) {
   const { t } = useLanguage();
-  const { logout } = useApp();
+  const { auth, logout } = useApp();
+  const adminName = auth.user?.username || 'Administrator';
+  const adminEmail = auth.user?.email || 'admin@tjadertuppen.se';
+  const adminInitials = adminName.slice(0, 2).toUpperCase();
 
   const handleLogout = (event) => {
     event.preventDefault();
@@ -70,11 +74,11 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
       <div className="sidebar-footer">
         <div className="sidebar-user">
           <div className="sidebar-avatar" style={{ background: 'linear-gradient(135deg,#C79D4F,#8E682C)' }}>
-            AD
+            {adminInitials}
           </div>
           <div className="sidebar-user-info">
-            <p>Administrator</p>
-            <span>admin@tjadertuppen.se</span>
+            <p>{adminName}</p>
+            <span>{adminEmail}</span>
           </div>
         </div>
         <button type="button" className="btn btn-ghost btn-full" onClick={handleLogout} style={{ marginTop: 12 }}>

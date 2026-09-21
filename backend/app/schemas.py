@@ -7,14 +7,35 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(min_length=1, max_length=254)
+    password: str = Field(min_length=1, max_length=128)
+
+    @field_validator("password")
+    @classmethod
+    def password_fits_bcrypt(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("password must be 72 UTF-8 bytes or fewer")
+        return value
 
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: dict[str, str]
+
+
+class AdminUpdate(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    username: str | None = Field(default=None, min_length=3, max_length=80)
+    email: EmailStr | None = None
+    password: str | None = Field(default=None, min_length=8, max_length=128)
+
+    @field_validator("current_password", "password")
+    @classmethod
+    def passwords_fit_bcrypt(cls, value: str | None) -> str | None:
+        if value is not None and len(value.encode("utf-8")) > 72:
+            raise ValueError("password must be 72 UTF-8 bytes or fewer")
+        return value
 
 
 class CompanyBase(BaseModel):
@@ -120,7 +141,7 @@ class ExpenditureCreate(BaseModel):
     journey_date: Date
     start_place: str = Field(min_length=1, max_length=300)
     end_place: str = Field(min_length=1, max_length=300)
-    kilometers: float = Field(gt=0, le=100000)
+    kilometers: int = Field(gt=0, le=100000)
     remarks: str | None = None
 
 
@@ -130,7 +151,7 @@ class ExpenditureUpdate(BaseModel):
     journey_date: Date | None = None
     start_place: str | None = Field(default=None, min_length=1, max_length=300)
     end_place: str | None = Field(default=None, min_length=1, max_length=300)
-    kilometers: float | None = Field(default=None, gt=0, le=100000)
+    kilometers: int | None = Field(default=None, gt=0, le=100000)
     remarks: str | None = None
 
 

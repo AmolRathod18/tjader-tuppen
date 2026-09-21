@@ -21,6 +21,7 @@ const translations = {
     nav_reports: 'Reports',
     nav_system_overview: '3D System Overview',
     nav_expenditure: 'Expenditure',
+    nav_settings: 'Settings',
     nav_logout: 'Logout',
 
     // ── Header ─────────────────────────────────────────────
@@ -48,6 +49,22 @@ const translations = {
     page_system_overview_sub: 'How data flows through TJÄDERTUPPEN',
     page_expenditure: 'Expenditure',
     page_expenditure_sub: 'Track project travel and kilometers',
+    page_settings: 'Settings',
+    page_settings_sub: 'Manage your administrator credentials',
+    settings_eyebrow: 'Administrator',
+    settings_title: 'Account settings',
+    settings_subtitle: 'Update the credentials used to access this dashboard.',
+    settings_account: 'Administrator account',
+    settings_account_sub: 'Your username and email address can both be used to sign in.',
+    settings_password: 'Change password',
+    settings_password_sub: 'Leave the new password blank to keep the current one.',
+    settings_new_password: 'New password',
+    settings_confirm_password: 'Confirm new password',
+    settings_current_password: 'Current password',
+    settings_password_optional: 'At least 8 characters',
+    settings_password_mismatch: 'The new passwords do not match.',
+    settings_saved: 'Administrator credentials updated.',
+    settings_saving: 'Saving...',
 
     // ── Common buttons ─────────────────────────────────────
     btn_add: 'Add',

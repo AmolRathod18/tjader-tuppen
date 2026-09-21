@@ -13,6 +13,7 @@ import Reports    from './pages/Reports';
 import SystemOverview from './pages/SystemOverview';
 import Expenditure from './pages/Expenditure';
 import Login      from './pages/Login';
+import Settings   from './pages/Settings';
 
 // Protected route wrapper
 function ProtectedRoute({ children }) {
@@ -44,6 +45,7 @@ export default function App() {
                     <Route path="/reports"    element={<Reports />} />
                     <Route path="/system-overview" element={<SystemOverview />} />
                     <Route path="/expenditure" element={<Expenditure />} />
+                    <Route path="/settings" element={<Settings />} />
                     <Route path="*"           element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </Layout>

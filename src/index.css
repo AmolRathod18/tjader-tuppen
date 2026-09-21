@@ -431,6 +431,18 @@ body {
   padding: 24px;
 }
 
+.settings-page { max-width: 860px; margin: 0 auto; }
+.settings-card { margin-top: 24px; }
+.settings-card .card-header h3 { display: flex; align-items: center; gap: 8px; }
+.settings-form { display: flex; flex-direction: column; gap: 20px; }
+.settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.settings-divider { display: flex; align-items: flex-start; gap: 10px; padding: 18px 0 2px; border-top: 1px solid var(--color-border-light); }
+.settings-divider h4 { font-size: 14px; }
+.settings-divider p { color: var(--color-text-muted); font-size: 12px; margin-top: 2px; }
+.form-message { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+.form-message.error { color: var(--color-danger); }
+.form-message.success { color: var(--color-success); }
+
 /* ===== BUTTONS ===== */
 .btn {
   display: inline-flex;

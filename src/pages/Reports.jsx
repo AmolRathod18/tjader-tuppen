@@ -61,7 +61,7 @@ async function loadLogoData() {
   });
 }
 
-async function buildPDF({ title, subtitle, entries, getProjectById, getCompanyById, getEmployeeById }) {
+async function buildPDF({ title, subtitle, entries, expenditures, getProjectById, getCompanyById, getEmployeeById }) {
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const PW = 297, PH = 210, M = 12, CW = PW - M * 2;
   const now = new Date();
@@ -70,15 +70,22 @@ async function buildPDF({ title, subtitle, entries, getProjectById, getCompanyBy
   const logoData = await loadLogoData();
   const employeeIds = [...new Set(entries.map(entry => entry.employeeId).filter(Boolean))];
   const employeeNames = employeeIds.map(id => getEmployeeById(id)?.name).filter(Boolean);
+  const employeeCode = id => {
+    const value = String(getEmployeeById(id)?.empId || id);
+    return /^\d+$/.test(value) ? `EMP-${value.padStart(3, '0')}` : value;
+  };
+  const hoursByEmployee = entries.reduce((totals, entry) => {
+    totals[entry.employeeId] = (totals[entry.employeeId] || 0) + getWorkEntryHours(entry);
+    return totals;
+  }, {});
   const employeeLabel = employeeNames.length === 1 ? employeeNames[0] : 'Multiple employees';
-  const employeeIdLabel = employeeIds.length === 1 ? employeeIds[0] : '—';
 
   const drawFooter = (pg, total) => {
     pdf.setDrawColor(190, 198, 205);
     pdf.setLineWidth(0.3);
     pdf.line(M, PH - 12, PW - M, PH - 12);
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(7.5);
+    pdf.setFontSize(10);
     pdf.setTextColor(92, 101, 109);
     pdf.text('TJÄDERTUPPEN | Project Management System', M, PH - 6);
     pdf.text(`Generated: ${genStr}`, PW / 2, PH - 6, { align: 'center' });
@@ -90,22 +97,22 @@ async function buildPDF({ title, subtitle, entries, getProjectById, getCompanyBy
   pdf.rect(0, 0, PW, 31, 'F');
   pdf.addImage(logoData, 'JPEG', M, 5, 28, 20);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(15);
+  pdf.setFontSize(19);
   pdf.setTextColor(24, 29, 33);
   pdf.text('TJÄDERTUPPEN', M + 34, 13);
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(8);
+  pdf.setFontSize(10);
   pdf.setTextColor(92, 101, 109);
   pdf.text('Project Management System', M + 34, 19);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(13);
+  pdf.setFontSize(17);
   pdf.setTextColor(24, 29, 33);
   pdf.text(title, PW - M, 12, { align: 'right' });
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(8);
+  pdf.setFontSize(10);
   pdf.setTextColor(92, 101, 109);
   pdf.text(subtitle, PW - M, 19, { align: 'right' });
-  pdf.setFillColor(61, 75, 87);
+  pdf.setFillColor(31, 48, 65);
   pdf.rect(0, 31, PW, 1.5, 'F');
 
   let y = 39;
@@ -114,20 +121,18 @@ async function buildPDF({ title, subtitle, entries, getProjectById, getCompanyBy
   pdf.setFillColor(247, 248, 249);
   pdf.setDrawColor(207, 213, 218);
   pdf.setLineWidth(0.3);
-  pdf.roundedRect(M, y, CW, 19, 1.5, 1.5, 'FD');
+  pdf.roundedRect(M, y, CW, 16, 1.5, 1.5, 'FD');
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(7);
+  pdf.setFontSize(9);
   pdf.setTextColor(92, 101, 109);
   pdf.text('EMPLOYEE NAME', M + 5, y + 7);
-  pdf.text('EMPLOYEE ID', M + 82, y + 7);
   pdf.text('REPORT PERIOD', M + 145, y + 7);
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(9);
+  pdf.setFontSize(11);
   pdf.setTextColor(24, 29, 33);
   pdf.text(employeeLabel, M + 5, y + 14);
-  pdf.text(String(employeeIdLabel), M + 82, y + 14);
   pdf.text(subtitle, M + 145, y + 14);
-  y += 26;
+  y += 22;
 
   // ── Summary stats ──
   const stats = [
@@ -142,53 +147,51 @@ async function buildPDF({ title, subtitle, entries, getProjectById, getCompanyBy
     pdf.setFillColor(255, 255, 255);
     pdf.setDrawColor(207, 213, 218);
     pdf.setLineWidth(0.3);
-    pdf.roundedRect(sx, y, sw - 3, 22, 2, 2, 'FD');
-    pdf.setFillColor(61, 75, 87);
+    pdf.roundedRect(sx, y, sw - 3, 18, 2, 2, 'FD');
+    pdf.setFillColor(193, 151, 72);
     pdf.roundedRect(sx, y, sw - 3, 2, 1, 1, 'F');
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(14);
+    pdf.setFontSize(16);
     pdf.setTextColor(24, 29, 33);
-    pdf.text(s.value, sx + (sw - 3) / 2, y + 13, { align: 'center' });
+    pdf.text(s.value, sx + (sw - 3) / 2, y + 11, { align: 'center' });
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(6.5);
+    pdf.setFontSize(8.5);
     pdf.setTextColor(92, 101, 109);
-    pdf.text(s.label, sx + (sw - 3) / 2, y + 19, { align: 'center' });
+    pdf.text(s.label, sx + (sw - 3) / 2, y + 16, { align: 'center' });
   });
-  y += 28;
+  y += 22;
 
   // ── Table ──
-  pdf.setFillColor(29, 78, 216);
-  pdf.rect(M, y, 3, 8, 'F');
+  pdf.setFillColor(193, 151, 72);
+  pdf.rect(M, y, 3, 7, 'F');
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(10);
+  pdf.setFontSize(12);
   pdf.setTextColor(15, 23, 42);
-  pdf.text('WORK ENTRIES DETAIL', M + 6, y + 6);
-  y += 12;
+  pdf.text('WORK ENTRIES DETAIL', M + 6, y + 5.5);
+  y += 9;
 
   const cols = [
-    { h: 'Date',        w: 26 },
-    { h: 'Employee',    w: 38 },
-    { h: 'Client',      w: 36 },
-    { h: 'Project',     w: 40 },
-    { h: 'Description', w: 56 },
-    { h: 'Time',        w: 29 },
-    { h: 'Hours',       w: 18 },
-    { h: 'Remarks',     w: 30 },
+    { h: 'Date',          w: 23 },
+    { h: 'Employee ID',   w: 37 },
+    { h: 'Client',        w: 31 },
+    { h: 'Project',       w: 36 },
+    { h: 'Description',   w: 46 },
+    { h: 'Time',          w: 25 },
+    { h: 'Hours',         w: 16 },
+    { h: 'Weekly hrs',     w: 25 },
+    { h: 'Remarks',       w: 34 },
   ];
   const HDR_H = 9;
-  const USABLE_H = PH - 19;
-  let pageNum = 1;
-
   const drawHeader = (sy) => {
-    pdf.setFillColor(61, 75, 87);
+    pdf.setFillColor(31, 48, 65);
     pdf.rect(M, sy, CW, HDR_H, 'F');
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(7);
+    pdf.setFontSize(9);
     pdf.setTextColor(255, 255, 255);
     let cx = M;
     cols.forEach(c => {
-      const isH = c.h === 'Hours';
-      pdf.text(c.h, isH ? cx + c.w - 2 : cx + 2, sy + 6.2, { align: isH ? 'right' : 'left' });
+      const rightAligned = c.h === 'Hours' || c.h === 'Weekly hrs';
+      pdf.text(c.h, rightAligned ? cx + c.w - 2 : cx + 2, sy + 6.2, { align: rightAligned ? 'right' : 'left' });
       pdf.setDrawColor(128, 139, 148);
       pdf.setLineWidth(0.2);
       pdf.line(cx, sy, cx, sy + HDR_H);
@@ -207,26 +210,21 @@ async function buildPDF({ title, subtitle, entries, getProjectById, getCompanyBy
     const co   = getCompanyById(entry.companyId || proj?.companyId);
     const cellValues = [
       entry.date || '—',
-      emp?.name || '—',
+      emp ? `${emp.name || '—'}\nID: ${employeeCode(entry.employeeId)}` : '—',
       co?.name || '—',
       proj?.name || '—',
       entry.description || '—',
       (entry.startTime && entry.endTime) ? `${entry.startTime}–${entry.endTime}` : '—',
       `${getWorkEntryHours(entry).toFixed(1)}h`,
+      `${(hoursByEmployee[entry.employeeId] || 0).toFixed(1)}h`,
       entry.remarks || '—',
     ];
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(7.2);
+    pdf.setFontSize(10);
     const lines = cellValues.map((value, cellIndex) =>
       pdf.splitTextToSize(String(value), cols[cellIndex].w - 4).slice(0, 3)
     );
-    const rowH = Math.max(9, Math.max(...lines.map(cellLines => cellLines.length)) * 3.5 + 3.5);
-    if (y + rowH > USABLE_H) {
-      pdf.addPage();
-      pageNum++;
-      y = M;
-      y = drawHeader(y);
-    }
+    const rowH = Math.max(10, Math.max(...lines.map(cellLines => cellLines.length)) * 3.8 + 3.8);
     pdf.setFillColor(idx % 2 === 0 ? 255 : 247, idx % 2 === 0 ? 255 : 248, idx % 2 === 0 ? 255 : 249);
     pdf.rect(M, y, CW, rowH, 'F');
     pdf.setDrawColor(207, 213, 218);
@@ -237,8 +235,8 @@ async function buildPDF({ title, subtitle, entries, getProjectById, getCompanyBy
       pdf.setFont('helvetica', cellIndex === 0 || cellIndex === 6 ? 'bold' : 'normal');
       pdf.setTextColor(cellIndex === 6 ? 61 : 24, cellIndex === 6 ? 75 : 29, cellIndex === 6 ? 87 : 33);
       cellLines.forEach((line, lineIndex) => {
-        const align = cellIndex === 6 ? 'right' : 'left';
-        pdf.text(line, align === 'right' ? cx + cols[cellIndex].w - 2 : cx + 2, y + 4.5 + lineIndex * 3.5, { align });
+        const align = cellIndex === 6 || cellIndex === 7 ? 'right' : 'left';
+        pdf.text(line, align === 'right' ? cx + cols[cellIndex].w - 2 : cx + 2, y + 4.8 + lineIndex * 3.8, { align });
       });
       pdf.setDrawColor(224, 228, 231);
       pdf.line(cx, y, cx, y + rowH);
@@ -248,48 +246,107 @@ async function buildPDF({ title, subtitle, entries, getProjectById, getCompanyBy
   });
 
   // ── Totals row ──
-  if (y + 9 > USABLE_H) { pdf.addPage(); pageNum++; y = M; y = drawHeader(y); }
   pdf.setFillColor(235, 238, 241);
-  pdf.rect(M, y, CW, 9, 'F');
+  pdf.rect(M, y, CW, 7, 'F');
   pdf.setDrawColor(61, 75, 87);
   pdf.setLineWidth(0.4);
   pdf.line(M, y, M + CW, y);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(8);
+  pdf.setFontSize(10);
   pdf.setTextColor(24, 29, 33);
-  pdf.text(`TOTAL — ${entries.length} Entries`, M + 2, y + 6);
-  pdf.text(`${totalHours.toFixed(1)} h`, M + CW - 2, y + 6, { align: 'right' });
-  y += 9;
+  pdf.text(`TOTAL — ${entries.length} Entries`, M + 2, y + 5);
+  pdf.text(`${totalHours.toFixed(1)} h`, M + CW - 2, y + 5, { align: 'right' });
+  y += 7;
 
-  // ── Signature section ──
-  y += 10;
-  if (y + 38 > USABLE_H) { pdf.addPage(); pageNum++; y = M; }
-  pdf.setFillColor(248, 250, 252);
-  pdf.setDrawColor(226, 232, 240);
-  pdf.setLineWidth(0.3);
-  pdf.roundedRect(M, y, CW, 34, 2, 2, 'FD');
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(8);
-  pdf.setTextColor(71, 85, 105);
-  pdf.text('AUTHORISATION', M + 4, y + 8);
-  const sigW = (CW - 12) / 2;
-  [
-    { label: 'Prepared By (Administrator)', name: 'TJÄDERTUPPEN Admin' },
-    { label: 'Approved By / Manager', name: 'Name: _______________________' },
-  ].forEach((sig, si) => {
-    const sx = M + 4 + si * (sigW + 4);
-    pdf.setFillColor(255, 255, 255);
-    pdf.setDrawColor(200, 210, 230);
-    pdf.roundedRect(sx, y + 12, sigW, 18, 2, 2, 'FD');
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(7);
-    pdf.setTextColor(100, 116, 139);
-    pdf.text(sig.label, sx + 2, y + 16);
-    pdf.setDrawColor(180, 190, 210);
-    pdf.setLineWidth(0.3);
-    pdf.line(sx + 4, y + 25, sx + sigW - 4, y + 25);
-    pdf.text(sig.name, sx + 2, y + 28);
-  });
+  // ── Travel details (only shown when journeys were recorded) ──
+  if (expenditures.length > 0) {
+    y += 10;
+    const travelCols = [
+      { h: 'Date', w: 23 },
+      { h: 'Employee ID', w: 40 },
+      { h: 'Project', w: 36 },
+      { h: 'Journey', w: 70 },
+      { h: 'Kilometers', w: 27 },
+      { h: 'Remarks', w: 77 },
+    ];
+    const travelHeaderHeight = 7;
+    const drawTravelHeader = (sy) => {
+      pdf.setFillColor(31, 48, 65);
+      pdf.rect(M, sy, CW, travelHeaderHeight, 'F');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(255, 255, 255);
+      let cx = M;
+      travelCols.forEach(column => {
+        const rightAligned = column.h === 'Kilometers';
+        pdf.text(column.h, rightAligned ? cx + column.w - 2 : cx + 2, sy + 5, { align: rightAligned ? 'right' : 'left' });
+        pdf.setDrawColor(128, 139, 148);
+        pdf.setLineWidth(0.2);
+        pdf.line(cx, sy, cx, sy + travelHeaderHeight);
+        cx += column.w;
+      });
+      pdf.line(M + CW, sy, M + CW, sy + travelHeaderHeight);
+      return sy + travelHeaderHeight;
+    };
+
+    pdf.setFillColor(193, 151, 72);
+    pdf.rect(M, y, 3, 7, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text('TRAVEL / EXPENDITURE DETAILS', M + 6, y + 5.5);
+    y += 9;
+    y = drawTravelHeader(y);
+
+    const totalKilometers = expenditures.reduce((sum, item) => sum + Number(item.kilometers || 0), 0);
+    [...expenditures].sort((a, b) => a.journeyDate.localeCompare(b.journeyDate)).forEach((item, idx) => {
+      const employee = getEmployeeById(item.employeeId);
+      const project = getProjectById(item.projectId);
+      const values = [
+        item.journeyDate || '—',
+        employee ? `${employee.name || '—'}\nID: ${employeeCode(item.employeeId)}` : '—',
+        project?.name || '—',
+        `${item.startPlace || '—'} → ${item.endPlace || '—'}`,
+        `${Number(item.kilometers || 0).toLocaleString()} km`,
+        item.remarks || '—',
+      ];
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      const lines = values.map((value, cellIndex) =>
+        pdf.splitTextToSize(String(value), travelCols[cellIndex].w - 4).slice(0, 3)
+      );
+      const rowH = Math.max(10, Math.max(...lines.map(cellLines => cellLines.length)) * 3.8 + 3.8);
+      pdf.setFillColor(idx % 2 === 0 ? 255 : 247, idx % 2 === 0 ? 255 : 248, idx % 2 === 0 ? 255 : 249);
+      pdf.rect(M, y, CW, rowH, 'F');
+      pdf.setDrawColor(207, 213, 218);
+      pdf.setLineWidth(0.2);
+      pdf.rect(M, y, CW, rowH, 'S');
+      let cx = M;
+      lines.forEach((cellLines, cellIndex) => {
+        const rightAligned = cellIndex === 4;
+        pdf.setFont('helvetica', cellIndex === 4 ? 'bold' : 'normal');
+        pdf.setTextColor(cellIndex === 4 ? 61 : 24, cellIndex === 4 ? 75 : 29, cellIndex === 4 ? 87 : 33);
+        cellLines.forEach((line, lineIndex) => {
+          pdf.text(line, rightAligned ? cx + travelCols[cellIndex].w - 2 : cx + 2, y + 4.8 + lineIndex * 3.8, { align: rightAligned ? 'right' : 'left' });
+        });
+        pdf.setDrawColor(224, 228, 231);
+        pdf.line(cx, y, cx, y + rowH);
+        cx += travelCols[cellIndex].w;
+      });
+      y += rowH;
+    });
+    pdf.setFillColor(235, 238, 241);
+    pdf.rect(M, y, CW, 7, 'F');
+    pdf.setDrawColor(61, 75, 87);
+    pdf.setLineWidth(0.4);
+    pdf.line(M, y, M + CW, y);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    pdf.setTextColor(24, 29, 33);
+    pdf.text(`TOTAL — ${expenditures.length} Journeys`, M + 2, y + 5);
+    pdf.text(`${totalKilometers.toLocaleString()} km`, M + CW - 2, y + 5, { align: 'right' });
+    y += 7;
+  }
 
   // Footers
   const totalPages = pdf.internal.getNumberOfPages();
@@ -311,9 +368,9 @@ const TABS = [
 
 export default function Reports() {
   const {
-    companies, projects, employees, workEntries,
+    companies, projects, employees, workEntries, expenditures,
     getProjectById, getEmployeeById, getCompanyById,
-    loadCompanies, loadProjects, loadEmployees, loadWorkEntries,
+    loadCompanies, loadProjects, loadEmployees, loadWorkEntries, loadExpenditures,
   } = useApp();
   const { t } = useLanguage();
   const hasLoaded = useRef(false);
@@ -321,7 +378,7 @@ export default function Reports() {
   useEffect(() => {
     if (hasLoaded.current) return;
     hasLoaded.current = true;
-    Promise.all([loadCompanies(), loadProjects(), loadEmployees(), loadWorkEntries()])
+    Promise.all([loadCompanies(), loadProjects(), loadEmployees(), loadWorkEntries(), loadExpenditures()])
       .catch(error => console.error('Unable to load report data:', error));
   }, []);
 
@@ -389,6 +446,14 @@ export default function Reports() {
     );
   }).sort((a, b) => a.date.localeCompare(b.date));
 
+  const reportExpenditures = expenditures.filter(item => (
+    (!filterEmployee || item.employeeId === filterEmployee) &&
+    (!dateFrom || item.journeyDate >= dateFrom) &&
+    (!dateTo || item.journeyDate <= dateTo) &&
+    (!filterProject || item.projectId === filterProject) &&
+    (!filterClient || getProjectById(item.projectId)?.companyId === filterClient)
+  ));
+
   const totalHours = filtered.reduce((s, w) => s + getWorkEntryHours(w), 0);
   const selectedEmployee = filterEmployee ? getEmployeeById(filterEmployee) : null;
   const reportScope = selectedEmployee
@@ -425,7 +490,7 @@ export default function Reports() {
   const handleDownloadPDF = async () => {
     if (filtered.length === 0) return;
     const { title, subtitle } = getReportTitle();
-    const pdf = await buildPDF({ title, subtitle, entries: filtered, getProjectById, getCompanyById, getEmployeeById });
+    const pdf = await buildPDF({ title, subtitle, entries: filtered, expenditures: reportExpenditures, getProjectById, getCompanyById, getEmployeeById });
     if (tab === 'daily' && selectedEmployee) {
       const employeeName = sanitizeFilenamePart(selectedEmployee.name);
       pdf.save(`${employeeName}_Today_work_${todayStr()}.pdf`);
@@ -438,7 +503,7 @@ export default function Reports() {
   const handlePreviewPDF = async () => {
     if (filtered.length === 0) return;
     const { title, subtitle } = getReportTitle();
-    const pdf = await buildPDF({ title, subtitle, entries: filtered, getProjectById, getCompanyById, getEmployeeById });
+    const pdf = await buildPDF({ title, subtitle, entries: filtered, expenditures: reportExpenditures, getProjectById, getCompanyById, getEmployeeById });
     window.open(pdf.output('bloburl'), '_blank');
   };
 

@@ -63,7 +63,7 @@ export default function Expenditure() {
     if (!form.journeyDate) nextErrors.journeyDate = 'Date is required';
     if (!form.startPlace.trim()) nextErrors.startPlace = 'Start place is required';
     if (!form.endPlace.trim()) nextErrors.endPlace = 'End place is required';
-    if (!form.kilometers || Number(form.kilometers) <= 0) nextErrors.kilometers = 'Enter kilometers greater than 0';
+    if (!form.kilometers || !Number.isInteger(Number(form.kilometers)) || Number(form.kilometers) <= 0) nextErrors.kilometers = 'Enter whole kilometers greater than 0';
     if (Object.keys(nextErrors).length) { setErrors(nextErrors); return; }
     try {
       if (editItem) await updateExpenditure(editItem.id, form);
@@ -97,7 +97,7 @@ export default function Expenditure() {
               <td><strong>{project?.name || '—'}</strong><div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{project?.number}</div></td>
               <td>{employee?.name || '—'}</td>
               <td><span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><MapPin size={13} />{item.startPlace} → {item.endPlace}</span></td>
-              <td><strong>{Number(item.kilometers).toFixed(2)} km</strong></td>
+              <td><strong>{Number(item.kilometers).toLocaleString()} km</strong></td>
               <td><div className="table-actions">
                 <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openEdit(item)}><Pencil size={15} /></button>
                 <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setDeleteTarget(item)} style={{ color: 'var(--color-danger)' }}><Trash2 size={15} /></button>
@@ -120,7 +120,7 @@ export default function Expenditure() {
         <Field label="Start Place *" error={errors.startPlace}><input placeholder="e.g. Stockholm office" value={form.startPlace} onChange={e => setForm(f => ({ ...f, startPlace: e.target.value }))} /></Field>
         <Field label="End Place *" error={errors.endPlace}><input placeholder="e.g. Project site" value={form.endPlace} onChange={e => setForm(f => ({ ...f, endPlace: e.target.value }))} /></Field>
       </div>
-      <Field label="Kilometers Travelled *" error={errors.kilometers}><input type="number" min="0.01" step="0.01" placeholder="e.g. 42.5" value={form.kilometers} onChange={e => setForm(f => ({ ...f, kilometers: e.target.value }))} /></Field>
+      <Field label="Kilometers Travelled *" error={errors.kilometers}><input type="number" min="1" step="1" inputMode="numeric" placeholder="e.g. 42" value={form.kilometers} onChange={e => setForm(f => ({ ...f, kilometers: e.target.value }))} /></Field>
       <Field label="Remarks"><textarea placeholder="Optional notes…" value={form.remarks} onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))} /></Field>
     </Modal>
     <ConfirmDeleteModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={remove} itemName="this journey record" />

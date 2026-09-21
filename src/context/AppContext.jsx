@@ -51,6 +51,13 @@ export function AppProvider({ children }) {
     setAuthState({ isAuthenticated: false, user: null });
     localStorage.removeItem(AUTH_KEY);
   };
+  const updateAdmin = async (data) => {
+    const response = await request('/auth/me', { method: 'PATCH', body: JSON.stringify(data) }, token);
+    const next = { ...auth, user: response };
+    setAuthState(next);
+    localStorage.setItem(AUTH_KEY, JSON.stringify(next));
+    return response;
+  };
 
   const loadCompanies = async () => {
     if (!token) return;
@@ -114,7 +121,7 @@ export function AppProvider({ children }) {
   const deleteExpenditure = (id) => mutate(`/api/expenditures/${id}`, 'DELETE', null, setExpenditures, id);
 
   const value = useMemo(() => ({
-    auth, setAuth, logout, loadCompanies, loadProjects, loadEmployees, loadWorkEntries, loadExpenditures, loadAll,
+    auth, setAuth, logout, updateAdmin, loadCompanies, loadProjects, loadEmployees, loadWorkEntries, loadExpenditures, loadAll,
     companies, addCompany, updateCompany, deleteCompany,
     projects, addProject, updateProject, deleteProject,
     employees, addEmployee, updateEmployee, deleteEmployee,

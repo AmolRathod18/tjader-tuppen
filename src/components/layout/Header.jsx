@@ -12,6 +12,7 @@ const PAGE_KEYS = {
   '/reports':    { title: 'page_reports',     subtitle: 'page_reports_sub'     },
   '/system-overview': { title: 'page_system_overview', subtitle: 'page_system_overview_sub' },
   '/expenditure': { title: 'page_expenditure', subtitle: 'page_expenditure_sub' },
+  '/settings': { title: 'page_settings', subtitle: 'page_settings_sub' },
 };
 
 export default function Header({ onMenuToggle }) {

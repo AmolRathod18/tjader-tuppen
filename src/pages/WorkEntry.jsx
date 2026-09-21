@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { ConfirmDeleteModal } from '../components/ui/Modal';
@@ -425,6 +425,7 @@ export default function WorkEntry() {
   const {
     workEntries, projects, employees, companies,
     addWorkEntry, updateWorkEntry, deleteWorkEntry,
+    loadCompanies, loadProjects, loadEmployees, loadWorkEntries,
     getProjectById, getEmployeeById, getCompanyById,
   } = useApp();
   const { t } = useLanguage();
@@ -435,6 +436,14 @@ export default function WorkEntry() {
   const [form,           setForm]          = useState(EMPTY);
   const [errors,         setErrors]        = useState({});
   const [submitError,    setSubmitError]   = useState('');
+  const hasLoaded = useRef(false);
+
+  useEffect(() => {
+    if (hasLoaded.current) return;
+    hasLoaded.current = true;
+    Promise.all([loadCompanies(), loadProjects(), loadEmployees(), loadWorkEntries()])
+      .catch(error => setSubmitError(error.message));
+  }, []);
 
   // List filters
   const [search,         setSearch]        = useState('');
@@ -519,7 +528,7 @@ export default function WorkEntry() {
     setView('form');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const e = {};
     if (!form.date)                                                         e.date        = 'Date is required';
     if (!form.employeeId)                                                   e.employeeId  = 'Employee is required';
@@ -536,8 +545,8 @@ export default function WorkEntry() {
       companyId: form.companyId || proj?.companyId || '',
     };
     try {
-      if (editItem) updateWorkEntry(editItem.id, data);
-      else addWorkEntry(data);
+      if (editItem) await updateWorkEntry(editItem.id, data);
+      else await addWorkEntry(data);
       setView('list');
       setEditItem(null);
     } catch (error) {
@@ -546,7 +555,14 @@ export default function WorkEntry() {
   };
 
   const handleCancel = () => { setView('list'); setEditItem(null); setErrors({}); };
-  const handleDelete = () => { deleteWorkEntry(deleteTarget.id); setDeleteTarget(null); };
+  const handleDelete = async () => {
+    try {
+      await deleteWorkEntry(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   const clearFilters = () => {
     setSearch(''); setFilterEmployee(''); setFilterClient('');

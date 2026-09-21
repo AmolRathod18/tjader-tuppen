@@ -1,234 +1,141 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useMemo, useState } from 'react';
 import { calculateShiftHours, getWorkEntryHours } from '../utils/workHours';
 
 const AppContext = createContext(null);
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const AUTH_KEY = 'wms_auth';
 
-const STORAGE_KEYS = {
-  companies:   'wms_companies',
-  projects:    'wms_projects',
-  employees:   'wms_employees',
-  workEntries: 'wms_work_entries',
-  auth:        'wms_auth',
-};
+const camelToSnake = (key) => key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+const snakeToCamel = (key) => key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+const mapRow = (row) => Object.fromEntries(Object.entries(row).map(([key, value]) => {
+  const frontendKey = snakeToCamel(key);
+  const frontendValue = (frontendKey === 'startTime' || frontendKey === 'endTime') && typeof value === 'string'
+    ? value.slice(0, 5)
+    : value;
+  return [frontendKey, frontendValue];
+}));
+const mapPayload = (data) => Object.fromEntries(
+  Object.entries(data).filter(([, value]) => value !== undefined).map(([key, value]) => [camelToSnake(key), value]),
+);
 
-const DEMO_DATA = {
-  companies: [
-    { id: '1', name: 'XYZ Construction AB', contact: 'Erik Lindqvist', email: 'erik@xyzab.se', phone: '+46 70 123 4567', address: 'Stockholm, Sweden', createdAt: '2026-01-10' },
-    { id: '2', name: 'Nordic Steel Works', contact: 'Anna Bergström', email: 'anna@nordicsteel.se', phone: '+46 72 987 6543', address: 'Gothenburg, Sweden', createdAt: '2026-02-15' },
-    { id: '3', name: 'Malmö Fabrication Ltd', contact: 'Lars Johansson', email: 'lars@malmofab.se', phone: '+46 73 456 7890', address: 'Malmö, Sweden', createdAt: '2026-03-01' },
-  ],
-  projects: [
-    { id: '1', companyId: '1', number: 'P-1015', name: 'Factory Welding Project', location: 'Stockholm, Sweden', startDate: '2026-08-25', endDate: '2026-08-30', status: 'Active', createdAt: '2026-08-01' },
-    { id: '2', companyId: '1', number: 'P-1016', name: 'Bridge Repair Works', location: 'Uppsala, Sweden', startDate: '2026-07-01', endDate: '2026-09-30', status: 'Active', createdAt: '2026-06-20' },
-    { id: '3', companyId: '2', number: 'P-2001', name: 'Steel Frame Installation', location: 'Gothenburg, Sweden', startDate: '2026-05-01', endDate: '2026-07-31', status: 'Completed', createdAt: '2026-04-15' },
-    { id: '4', companyId: '3', number: 'P-3008', name: 'Pipeline Maintenance', location: 'Malmö, Sweden', startDate: '2026-09-01', endDate: '2026-12-31', status: 'On Hold', createdAt: '2026-08-10' },
-  ],
-  employees: [
-    { id: '1', name: 'Johan Eriksson', empId: 'EMP-001', role: 'Senior Welder', phone: '+46 70 111 2222', email: 'johan@email.com', status: 'Active', createdAt: '2026-01-05' },
-    { id: '2', name: 'Maria Svensson', empId: 'EMP-002', role: 'Welding Inspector', phone: '+46 72 333 4444', email: 'maria@email.com', status: 'Active', createdAt: '2026-01-20' },
-    { id: '3', name: 'Björn Andersson', empId: 'EMP-003', role: 'Pipe Welder', phone: '+46 73 555 6666', email: 'bjorn@email.com', status: 'Active', createdAt: '2026-02-01' },
-    { id: '4', name: 'Klara Nilsson', empId: 'EMP-004', role: 'MIG/MAG Welder', phone: '+46 70 777 8888', email: 'klara@email.com', status: 'Inactive', createdAt: '2026-03-10' },
-    { id: '5', name: 'Erik Lundström', empId: 'EMP-005', role: 'Foreman', phone: '+46 70 999 0000', email: 'erik@email.com', status: 'Active', createdAt: '2026-04-01' },
-  ],
-  workEntries: [
-    { id: '1', projectId: '1', companyId: '1', employeeId: '1', date: '2026-08-25', startTime: '08:00', endTime: '16:00', hours: 8, description: 'Welding steel beams section A', remarks: 'Completed 12 joints', createdAt: '2026-08-25' },
-    { id: '2', projectId: '1', companyId: '1', employeeId: '2', date: '2026-08-25', startTime: '08:30', endTime: '16:00', hours: 7.5, description: 'Inspection and quality check', remarks: 'All joints passed', createdAt: '2026-08-25' },
-    { id: '3', projectId: '2', companyId: '1', employeeId: '3', date: '2026-08-24', startTime: '07:00', endTime: '16:00', hours: 9, description: 'Bridge support weld repair', remarks: 'Used TIG process', createdAt: '2026-08-24' },
-    { id: '4', projectId: '1', companyId: '1', employeeId: '1', date: '2026-08-24', startTime: '08:00', endTime: '16:00', hours: 8, description: 'Welding steel beams section B', remarks: '', createdAt: '2026-08-24' },
-    { id: '5', projectId: '2', companyId: '1', employeeId: '2', date: '2026-08-23', startTime: '09:00', endTime: '15:00', hours: 6, description: 'NDT inspection of welds', remarks: 'Minor rework on joint 7', createdAt: '2026-08-23' },
-  ],
-};
-
-function loadFromStorage(key, defaultValue) {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : defaultValue;
-  } catch { return defaultValue; }
-}
-
-function saveToStorage(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    throw new Error(`Unable to save changes (${key}): ${error instanceof Error ? error.message : String(error)}`);
+async function request(path, options = {}, token) {
+  const response = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers || {}) },
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || `Request failed (${response.status})`);
   }
+  return response.status === 204 ? null : response.json();
 }
 
 export function AppProvider({ children }) {
   const [auth, setAuthState] = useState(() => {
-    const s = loadFromStorage(STORAGE_KEYS.auth, null);
-    return s || { isAuthenticated: false, user: null };
+    try { return JSON.parse(localStorage.getItem(AUTH_KEY)) || { isAuthenticated: false, user: null }; }
+    catch { return { isAuthenticated: false, user: null }; }
   });
+  const token = auth.token;
+  const [companies, setCompanies] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [workEntries, setWorkEntries] = useState([]);
+  const [expenditures, setExpenditures] = useState([]);
 
   const setAuth = (authData) => {
-    setAuthState(authData);
-    saveToStorage(STORAGE_KEYS.auth, authData);
+    const next = { ...authData };
+    setAuthState(next);
+    localStorage.setItem(AUTH_KEY, JSON.stringify(next));
   };
-
   const logout = () => {
-    const loggedOutAuth = { isAuthenticated: false, user: null };
-    setAuthState(loggedOutAuth);
-
-    [window.localStorage, window.sessionStorage].forEach(storage => {
-      try {
-        storage.removeItem(STORAGE_KEYS.auth);
-        if (storage.getItem(STORAGE_KEYS.auth) !== null) {
-          storage.setItem(STORAGE_KEYS.auth, JSON.stringify(loggedOutAuth));
-        }
-      } catch {
-        // Storage may be unavailable in privacy-restricted browsers.
-      }
-    });
+    setAuthState({ isAuthenticated: false, user: null });
+    localStorage.removeItem(AUTH_KEY);
   };
 
-  const [companies, setCompanies] = useState(() => {
-    const s = loadFromStorage(STORAGE_KEYS.companies, null);
-    if (!s) { saveToStorage(STORAGE_KEYS.companies, DEMO_DATA.companies); return DEMO_DATA.companies; }
-    return s;
-  });
-  const [projects, setProjects] = useState(() => {
-    const s = loadFromStorage(STORAGE_KEYS.projects, null);
-    if (!s) { saveToStorage(STORAGE_KEYS.projects, DEMO_DATA.projects); return DEMO_DATA.projects; }
-    // Migrate: remove GPS fields that are no longer needed
-    return s.map(p => {
-      const { lat: _lat, lng: _lng, allowedRadius: _r, ...rest } = p;
-      return rest;
-    });
-  });
-  const [employees, setEmployees] = useState(() => {
-    const s = loadFromStorage(STORAGE_KEYS.employees, null);
-    if (!s) { saveToStorage(STORAGE_KEYS.employees, DEMO_DATA.employees); return DEMO_DATA.employees; }
-    return s;
-  });
-  const [workEntries, setWorkEntries] = useState(() => {
-    const s = loadFromStorage(STORAGE_KEYS.workEntries, null);
-    if (!s) { saveToStorage(STORAGE_KEYS.workEntries, DEMO_DATA.workEntries); return DEMO_DATA.workEntries; }
-    // Migrate: ensure companyId and remarks fields exist
-    return s.map(w => ({
-      ...w,
-      companyId: w.companyId || null,
-      startTime: w.startTime || '',
-      endTime: w.endTime || '',
-      remarks: w.remarks ?? w.notes ?? '',
-      hours: calculateShiftHours(w.startTime, w.endTime) ?? w.hours ?? '',
-    }));
-  });
-
-  const commitCollection = (key, nextValue, setValue) => {
-    saveToStorage(key, nextValue);
-    setValue(nextValue);
+  const loadCompanies = async () => {
+    if (!token) return;
+    const response = await request('/api/companies', {}, token);
+    setCompanies(response.map(mapRow));
+  };
+  const loadProjects = async () => {
+    if (!token) return;
+    const response = await request('/api/projects', {}, token);
+    setProjects(response.map(mapRow));
+  };
+  const loadEmployees = async () => {
+    if (!token) return;
+    const response = await request('/api/employees', {}, token);
+    setEmployees(response.map(mapRow));
+  };
+  const loadWorkEntries = async () => {
+    if (!token) return;
+    const response = await request('/api/work-entries', {}, token);
+    setWorkEntries(response.map(mapRow));
+  };
+  const loadExpenditures = async () => {
+    if (!token) return;
+    const response = await request('/api/expenditures', {}, token);
+    setExpenditures(response.map(mapRow));
+  };
+  const loadAll = async () => {
+    await Promise.all([loadCompanies(), loadProjects(), loadEmployees(), loadWorkEntries()]);
   };
 
-  const generateId = () => Date.now().toString() + Math.random().toString(36).slice(2, 6);
-  const todayStr   = () => new Date().toISOString().split('T')[0];
-
-  // ── Companies ──
-  const addCompany = (d) => {
-    const n = { ...d, id: generateId(), createdAt: todayStr() };
-    commitCollection(STORAGE_KEYS.companies, [...companies, n], setCompanies);
-    return n;
-  };
-  const updateCompany = (id, d) => {
-    commitCollection(STORAGE_KEYS.companies, companies.map(c => c.id === id ? { ...c, ...d } : c), setCompanies);
-  };
-  const deleteCompany = (id) => {
-    const projectIds = projects.filter(x => x.companyId === id).map(x => x.id);
-    const nextCompanies = companies.filter(c => c.id !== id);
-    const nextProjects = projects.filter(x => x.companyId !== id);
-    const nextWorkEntries = workEntries.filter(w => !projectIds.includes(w.projectId));
-    saveToStorage(STORAGE_KEYS.companies, nextCompanies);
-    saveToStorage(STORAGE_KEYS.projects, nextProjects);
-    saveToStorage(STORAGE_KEYS.workEntries, nextWorkEntries);
-    setCompanies(nextCompanies);
-    setProjects(nextProjects);
-    setWorkEntries(nextWorkEntries);
+  const mutate = async (path, method, data, setter, id) => {
+    const result = await request(path, { method, body: data ? JSON.stringify(mapPayload(data)) : undefined }, token);
+    if (method === 'DELETE') {
+      setter(items => items.filter(item => item.id !== id));
+    } else if (method === 'POST') {
+      setter(items => [...items, mapRow(result)]);
+    } else {
+      setter(items => items.map(item => item.id === id ? mapRow(result) : item));
+    }
+    return result ? mapRow(result) : null;
   };
 
-  // ── Projects ──
-  const addProject = (d) => {
-    const n = { ...d, id: generateId(), createdAt: todayStr() };
-    commitCollection(STORAGE_KEYS.projects, [...projects, n], setProjects);
-    return n;
-  };
-  const updateProject = (id, d) => {
-    commitCollection(STORAGE_KEYS.projects, projects.map(x => x.id === id ? { ...x, ...d } : x), setProjects);
-  };
-  const deleteProject = (id) => {
-    const nextProjects = projects.filter(x => x.id !== id);
-    const nextWorkEntries = workEntries.filter(w => w.projectId !== id);
-    saveToStorage(STORAGE_KEYS.projects, nextProjects);
-    saveToStorage(STORAGE_KEYS.workEntries, nextWorkEntries);
-    setProjects(nextProjects);
-    setWorkEntries(nextWorkEntries);
-  };
+  const addCompany = (data) => mutate('/api/companies', 'POST', data, setCompanies);
+  const updateCompany = (id, data) => mutate(`/api/companies/${id}`, 'PATCH', data, setCompanies, id);
+  const deleteCompany = (id) => mutate(`/api/companies/${id}`, 'DELETE', null, setCompanies, id);
+  const addProject = (data) => mutate('/api/projects', 'POST', data, setProjects);
+  const updateProject = (id, data) => mutate(`/api/projects/${id}`, 'PATCH', data, setProjects, id);
+  const deleteProject = (id) => mutate(`/api/projects/${id}`, 'DELETE', null, setProjects, id);
+  const addEmployee = (data) => mutate('/api/employees', 'POST', data, setEmployees);
+  const updateEmployee = (id, data) => mutate(`/api/employees/${id}`, 'PATCH', data, setEmployees, id);
+  const deleteEmployee = (id) => mutate(`/api/employees/${id}`, 'DELETE', null, setEmployees, id);
+  const addWorkEntry = (data) => mutate('/api/work-entries', 'POST', {
+    ...data, hours: calculateShiftHours(data.startTime, data.endTime),
+  }, setWorkEntries);
+  const updateWorkEntry = (id, data) => mutate(`/api/work-entries/${id}`, 'PATCH', {
+    ...data, hours: calculateShiftHours(data.startTime, data.endTime),
+  }, setWorkEntries, id);
+  const deleteWorkEntry = (id) => mutate(`/api/work-entries/${id}`, 'DELETE', null, setWorkEntries, id);
+  const addExpenditure = (data) => mutate('/api/expenditures', 'POST', data, setExpenditures);
+  const updateExpenditure = (id, data) => mutate(`/api/expenditures/${id}`, 'PATCH', data, setExpenditures, id);
+  const deleteExpenditure = (id) => mutate(`/api/expenditures/${id}`, 'DELETE', null, setExpenditures, id);
 
-  // ── Employees ──
-  const addEmployee = (d) => {
-    const n = { ...d, id: generateId(), createdAt: todayStr() };
-    commitCollection(STORAGE_KEYS.employees, [...employees, n], setEmployees);
-    return n;
-  };
-  const updateEmployee = (id, d) => {
-    commitCollection(STORAGE_KEYS.employees, employees.map(e => e.id === id ? { ...e, ...d } : e), setEmployees);
-  };
-  const deleteEmployee = (id) => {
-    const nextEmployees = employees.filter(e => e.id !== id);
-    const nextWorkEntries = workEntries.filter(w => w.employeeId !== id);
-    saveToStorage(STORAGE_KEYS.employees, nextEmployees);
-    saveToStorage(STORAGE_KEYS.workEntries, nextWorkEntries);
-    setEmployees(nextEmployees);
-    setWorkEntries(nextWorkEntries);
-  };
+  const value = useMemo(() => ({
+    auth, setAuth, logout, loadCompanies, loadProjects, loadEmployees, loadWorkEntries, loadExpenditures, loadAll,
+    companies, addCompany, updateCompany, deleteCompany,
+    projects, addProject, updateProject, deleteProject,
+    employees, addEmployee, updateEmployee, deleteEmployee,
+    workEntries, addWorkEntry, updateWorkEntry, deleteWorkEntry,
+    expenditures, addExpenditure, updateExpenditure, deleteExpenditure,
+    getCompanyById: id => companies.find(item => item.id === id),
+    getProjectById: id => projects.find(item => item.id === id),
+    getEmployeeById: id => employees.find(item => item.id === id),
+    getProjectsByCompany: id => projects.filter(item => item.companyId === id),
+    getWorkEntriesByProject: id => workEntries.filter(item => item.projectId === id),
+    getTotalHours: entries => entries.reduce((sum, entry) => sum + getWorkEntryHours(entry), 0),
+    getWorkEntryHours,
+  }), [auth, companies, projects, employees, workEntries]);
 
-  // ── Work Entries ──
-  const addWorkEntry = (d) => {
-    const n = { ...d, hours: calculateShiftHours(d.startTime, d.endTime) ?? '', id: generateId(), createdAt: todayStr() };
-    commitCollection(STORAGE_KEYS.workEntries, [...workEntries, n], setWorkEntries);
-    return n;
-  };
-  const updateWorkEntry = (id, d) => {
-    const next = workEntries.map(w => w.id === id
-      ? { ...w, ...d, hours: calculateShiftHours(d.startTime, d.endTime) ?? '' }
-      : w);
-    commitCollection(STORAGE_KEYS.workEntries, next, setWorkEntries);
-  };
-  const deleteWorkEntry = (id) => {
-    const next = workEntries.filter(w => w.id !== id);
-    commitCollection(STORAGE_KEYS.workEntries, next, setWorkEntries);
-  };
-
-  // ── Helpers ──
-  const getCompanyById       = (id) => companies.find(c => c.id === id);
-  const getProjectById       = (id) => projects.find(p => p.id === id);
-  const getEmployeeById      = (id) => employees.find(e => e.id === id);
-  const getProjectsByCompany = (cid) => projects.filter(p => p.companyId === cid);
-  const getWorkEntriesByProject = (pid) => workEntries.filter(w => w.projectId === pid);
-  const getTotalHours        = (entries) => entries.reduce((s, w) => s + getWorkEntryHours(w), 0);
-
-  return (
-    <AppContext.Provider value={{
-      // auth
-      auth, setAuth, logout,
-      // companies
-      companies, addCompany, updateCompany, deleteCompany,
-      // projects
-      projects, addProject, updateProject, deleteProject,
-      // employees
-      employees, addEmployee, updateEmployee, deleteEmployee,
-      // work entries
-      workEntries, addWorkEntry, updateWorkEntry, deleteWorkEntry,
-      // helpers
-      getCompanyById, getProjectById, getEmployeeById,
-      getProjectsByCompany, getWorkEntriesByProject, getTotalHours,
-      getWorkEntryHours,
-    }}>
-      {children}
-    </AppContext.Provider>
-  );
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
 export function useApp() {
-  const ctx = useContext(AppContext);
-  if (!ctx) throw new Error('useApp must be used within AppProvider');
-  return ctx;
+  const context = useContext(AppContext);
+  if (!context) throw new Error('useApp must be used within AppProvider');
+  return context;
 }
+
+export { request };

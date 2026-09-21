@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { getWorkEntryHours } from '../utils/workHours';
@@ -37,9 +37,18 @@ export default function Dashboard() {
   const {
     companies, projects, employees, workEntries,
     getProjectById, getEmployeeById, getCompanyById,
+    loadCompanies, loadProjects, loadEmployees, loadWorkEntries,
   } = useApp();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const hasLoaded = useRef(false);
+
+  useEffect(() => {
+    if (hasLoaded.current) return;
+    hasLoaded.current = true;
+    Promise.all([loadCompanies(), loadProjects(), loadEmployees(), loadWorkEntries()])
+      .catch(error => console.error('Unable to load dashboard data:', error));
+  }, []);
 
   const today = todayStr();
   const activeProjects  = projects.filter(p => p.status === 'Active').length;

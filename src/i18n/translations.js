@@ -20,6 +20,7 @@ const translations = {
     nav_work_entry: 'Daily Work Entry',
     nav_reports: 'Reports',
     nav_system_overview: '3D System Overview',
+    nav_expenditure: 'Expenditure',
     nav_logout: 'Logout',
 
     // ── Header ─────────────────────────────────────────────
@@ -45,6 +46,8 @@ const translations = {
     page_my_attendance_sub: 'Your personal attendance history',
     page_system_overview: '3D System Overview',
     page_system_overview_sub: 'How data flows through TJÄDERTUPPEN',
+    page_expenditure: 'Expenditure',
+    page_expenditure_sub: 'Track project travel and kilometers',
 
     // ── Common buttons ─────────────────────────────────────
     btn_add: 'Add',
@@ -541,6 +544,7 @@ const translations = {
     nav_attendance: 'Närvaro',
     nav_reports: 'Rapporter',
     nav_system_overview: '3D-systemöversikt',
+    nav_expenditure: 'Reseutgifter',
     nav_my_dashboard: 'Min panel',
     nav_my_attendance: 'Min närvaro',
     nav_logout: 'Logga ut',
@@ -568,6 +572,8 @@ const translations = {
     page_my_attendance_sub: 'Din personliga närvarohistorik',
     page_system_overview: '3D-systemöversikt',
     page_system_overview_sub: 'Så flödar data genom TJÄDERTUPPEN',
+    page_expenditure: 'Reseutgifter',
+    page_expenditure_sub: 'Följ projektresor och körsträcka',
 
     // ── Common buttons ─────────────────────────────────────
     btn_add: 'Lägg till',

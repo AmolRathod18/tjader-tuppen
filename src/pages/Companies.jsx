@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
@@ -19,7 +19,7 @@ function CompanyField({ field, label, type = 'text', placeholder, form, setForm,
 }
 
 export default function Companies() {
-  const { companies, addCompany, updateCompany, deleteCompany, getProjectsByCompany } = useApp();
+  const { companies, addCompany, updateCompany, deleteCompany, getProjectsByCompany, loadCompanies, loadProjects } = useApp();
   const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -28,6 +28,13 @@ export default function Companies() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
+  const hasLoaded = useRef(false);
+
+  useEffect(() => {
+    if (hasLoaded.current) return;
+    hasLoaded.current = true;
+    Promise.all([loadCompanies(), loadProjects()]).catch(error => setSubmitError(error.message));
+  }, []);
 
   const filtered = companies.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -46,21 +53,25 @@ export default function Companies() {
     return e;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     try {
-      if (editItem) updateCompany(editItem.id, form);
-      else addCompany(form);
+      if (editItem) await updateCompany(editItem.id, form);
+      else await addCompany(form);
       setModalOpen(false);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : String(error));
     }
   };
 
-  const handleDelete = () => {
-    deleteCompany(deleteTarget.id);
-    setDeleteTarget(null);
+  const handleDelete = async () => {
+    try {
+      await deleteCompany(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : String(error));
+    }
   };
 
   return (

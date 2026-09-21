@@ -5,12 +5,6 @@ import { useApp } from '../context/AppContext';
 import { LockKeyhole, AlertCircle, ArrowRight, BarChart3, CheckCircle2, Clock3, ShieldCheck, UserRound } from 'lucide-react';
 import logo from '../assets/TJADERTUPPEN_Logo.jpeg';
 
-const ADMIN_CREDENTIALS = {
-  username: 'admin',
-  email: 'admin@tjadertuppen.se',
-  password: 'admin123',
-};
-
 export default function Login() {
   const { lang, setLang, t } = useLanguage();
   const navigate = useNavigate();
@@ -26,20 +20,16 @@ export default function Login() {
     setError('');
     setLoading(true);
 
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const isValidAdmin =
-      (email === ADMIN_CREDENTIALS.username || email === ADMIN_CREDENTIALS.email) &&
-      password === ADMIN_CREDENTIALS.password;
-
     try {
-      if (isValidAdmin) {
-        setAuth({ isAuthenticated: true, user: { email, role: 'admin' } });
-        navigate('/dashboard');
-      } else {
-        setError(t('login_error_admin'));
-      }
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: email, password }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.detail || t('login_error_admin'));
+      setAuth({ isAuthenticated: true, token: body.access_token, user: body.user });
+      navigate('/dashboard');
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : String(submitError));
     }

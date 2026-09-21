@@ -1,4 +1,27 @@
-# React + Vite
+# TJÄDERTUPPEN Management System
+
+## Backend setup
+
+The FastAPI backend is in [`backend/`](./backend). It uses the Supabase service key
+only on the server; never put that key in a `VITE_*` variable or browser code.
+
+1. Copy `backend/.env.example` to `backend/.env` and fill in the Supabase URL,
+   service-role key, JWT secret, and administrator password.
+2. Run [`backend/schema.sql`](./backend/schema.sql) in the Supabase SQL editor.
+3. Install and start the API:
+
+```powershell
+cd backend
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+The API documentation is available at `http://localhost:8000/docs`. Set
+`VITE_API_URL` in the frontend environment when the API is not on port 8000.
+
+## Frontend
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 

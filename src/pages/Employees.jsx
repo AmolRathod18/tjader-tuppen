@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
@@ -31,7 +31,7 @@ function EmployeeField({ field, label, type = 'text', placeholder, required, for
 export default function Employees() {
   const {
     employees, addEmployee, updateEmployee, deleteEmployee,
-    workEntries, projects, companies,
+    workEntries, projects, companies, loadEmployees, loadWorkEntries,
   } = useApp();
   const { t } = useLanguage();
 
@@ -44,6 +44,13 @@ export default function Employees() {
   const [form,          setForm]          = useState(EMPTY_FORM);
   const [errors,        setErrors]        = useState({});
   const [submitError,   setSubmitError]   = useState('');
+  const hasLoaded = useRef(false);
+
+  useEffect(() => {
+    if (hasLoaded.current) return;
+    hasLoaded.current = true;
+    Promise.all([loadEmployees(), loadWorkEntries()]).catch(error => setSubmitError(error.message));
+  }, []);
 
   const filtered = employees.filter(e => {
     const q = search.toLowerCase();
@@ -71,17 +78,16 @@ export default function Employees() {
   const validate = () => {
     const e = {};
     if (!form.name.trim())  e.name  = t('emp_err_name');
-    if (!form.empId.trim()) e.empId = t('emp_err_id');
     if (form.email && !/\S+@\S+\.\S+/.test(form.email)) e.email = t('emp_err_email');
     return e;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     try {
-      if (editItem) updateEmployee(editItem.id, form);
-      else addEmployee(form);
+      if (editItem) await updateEmployee(editItem.id, form);
+      else await addEmployee(form);
       setModalOpen(false);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : String(error));
@@ -309,10 +315,7 @@ export default function Employees() {
         </>}
       >
         {submitError && <div className="form-submit-error" role="alert">{submitError}</div>}
-        <div className="form-row">
-          <EmployeeField form={form} setForm={setForm} errors={errors} field="name"  label={t('emp_form_name')}  placeholder={t('emp_form_name_ph')}  required />
-          <EmployeeField form={form} setForm={setForm} errors={errors} field="empId" label={t('emp_form_id')}    placeholder={t('emp_form_id_ph')}    required />
-        </div>
+        <EmployeeField form={form} setForm={setForm} errors={errors} field="name" label={t('emp_form_name')} placeholder={t('emp_form_name_ph')} required />
         <div className="form-group">
           <label>{t('emp_form_role')}</label>
           <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>

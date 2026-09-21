@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
@@ -6,7 +6,7 @@ import { Badge } from '../components/ui/Components';
 import { FolderKanban, Plus, Search, Pencil, Trash2, MapPin, Calendar } from 'lucide-react';
 import { getWorkEntryHours } from '../utils/workHours';
 
-const EMPTY_FORM = { companyId: '', number: '', name: '', location: '', startDate: '', endDate: '', status: 'Active' };
+const EMPTY_FORM = { companyId: '', name: '', location: '', startDate: '', endDate: '', status: 'Active' };
 const STATUS_OPTIONS = ['Active', 'Completed', 'On Hold'];
 
 function ProjectField({ field, label, type = 'text', placeholder, required, form, setForm, errors }) {
@@ -22,7 +22,7 @@ function ProjectField({ field, label, type = 'text', placeholder, required, form
 }
 
 export default function Projects() {
-  const { projects, companies, addProject, updateProject, deleteProject, getCompanyById, workEntries } = useApp();
+  const { projects, companies, addProject, updateProject, deleteProject, getCompanyById, workEntries, loadProjects, loadCompanies, loadWorkEntries } = useApp();
   const { t } = useLanguage();
   const [search,         setSearch]         = useState('');
   const [filterCompany,  setFilterCompany]  = useState('');
@@ -33,6 +33,13 @@ export default function Projects() {
   const [form,           setForm]           = useState(EMPTY_FORM);
   const [errors,         setErrors]         = useState({});
   const [submitError,    setSubmitError]    = useState('');
+  const hasLoaded = useRef(false);
+
+  useEffect(() => {
+    if (hasLoaded.current) return;
+    hasLoaded.current = true;
+    Promise.all([loadProjects(), loadCompanies(), loadWorkEntries()]).catch(error => setSubmitError(error.message));
+  }, []);
 
   const filtered = projects.filter(p => {
     const q = search.toLowerCase();
@@ -45,7 +52,7 @@ export default function Projects() {
   const openAdd = () => { setEditItem(null); setForm(EMPTY_FORM); setErrors({}); setSubmitError(''); setModalOpen(true); };
   const openEdit = (item) => {
     setEditItem(item);
-    setForm({ companyId: item.companyId, number: item.number, name: item.name, location: item.location, startDate: item.startDate, endDate: item.endDate, status: item.status });
+    setForm({ companyId: item.companyId, name: item.name, location: item.location, startDate: item.startDate, endDate: item.endDate, status: item.status });
     setErrors({});
     setSubmitError('');
     setModalOpen(true);
@@ -54,7 +61,6 @@ export default function Projects() {
   const validate = () => {
     const e = {};
     if (!form.companyId)      e.companyId = t('proj_err_company');
-    if (!form.number.trim())  e.number    = t('proj_err_number');
     if (!form.name.trim())    e.name      = t('proj_err_name');
     if (!form.startDate)      e.startDate = t('proj_err_start');
     if (!form.endDate)        e.endDate   = t('proj_err_end');
@@ -62,19 +68,26 @@ export default function Projects() {
     return e;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     try {
-      if (editItem) updateProject(editItem.id, form);
-      else addProject(form);
+      if (editItem) await updateProject(editItem.id, form);
+      else await addProject(form);
       setModalOpen(false);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : String(error));
     }
   };
 
-  const handleDelete = () => { deleteProject(deleteTarget.id); setDeleteTarget(null); };
+  const handleDelete = async () => {
+    try {
+      await deleteProject(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   const getEntryCount = (projectId) => workEntries.filter(w => w.projectId === projectId).length;
   const getTotalHrs   = (projectId) => {
@@ -196,10 +209,7 @@ export default function Projects() {
           </select>
           {errors.companyId && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors.companyId}</p>}
         </div>
-        <div className="form-row">
-          <ProjectField form={form} setForm={setForm} errors={errors} field="number" label={t('proj_form_number')} placeholder={t('proj_form_number_ph')} required />
-          <ProjectField form={form} setForm={setForm} errors={errors} field="name" label={t('proj_form_name')} placeholder={t('proj_form_name_ph')} required />
-        </div>
+        <ProjectField form={form} setForm={setForm} errors={errors} field="name" label={t('proj_form_name')} placeholder={t('proj_form_name_ph')} required />
         <ProjectField form={form} setForm={setForm} errors={errors} field="location" label={t('proj_form_location')} placeholder={t('proj_form_location_ph')} />
         <div className="form-row">
           <ProjectField form={form} setForm={setForm} errors={errors} field="startDate" label={t('proj_form_start')} type="date" required />

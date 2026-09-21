@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import {
@@ -313,8 +313,17 @@ export default function Reports() {
   const {
     companies, projects, employees, workEntries,
     getProjectById, getEmployeeById, getCompanyById,
+    loadCompanies, loadProjects, loadEmployees, loadWorkEntries,
   } = useApp();
   const { t } = useLanguage();
+  const hasLoaded = useRef(false);
+
+  useEffect(() => {
+    if (hasLoaded.current) return;
+    hasLoaded.current = true;
+    Promise.all([loadCompanies(), loadProjects(), loadEmployees(), loadWorkEntries()])
+      .catch(error => console.error('Unable to load report data:', error));
+  }, []);
 
   const [tab,            setTab]           = useState('daily');
   const [filterEmployee, setFilterEmployee] = useState('');

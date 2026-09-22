@@ -15,6 +15,46 @@ export function calculateShiftHours(startTime, endTime) {
 }
 
 export function getWorkEntryHours(entry) {
-  const calculated = calculateShiftHours(entry?.startTime, entry?.endTime);
-  return calculated === null ? (parseFloat(entry?.hours) || 0) : calculated;
+  const { normalHours, normalOvertime, weekendOvertime } = getWorkEntryBreakdown(entry);
+  return normalHours + normalOvertime + weekendOvertime;
+}
+
+function numeric(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
+export function getWorkEntryBreakdown(entry) {
+  const legacyHours = numeric(entry?.hours);
+  const shiftHours = calculateShiftHours(entry?.startTime, entry?.endTime);
+  const fallbackHours = shiftHours === null ? legacyHours : shiftHours;
+  const date = entry?.date ? new Date(`${entry.date}T00:00:00`) : null;
+  const isWeekend = date && (date.getDay() === 0 || date.getDay() === 6);
+
+  if (isWeekend) {
+    return {
+      normalHours: 0,
+      normalOvertime: 0,
+      weekendOvertime: numeric(entry?.weekendOvertime) || fallbackHours,
+    };
+  }
+
+  return {
+    normalHours: entry?.normalHours == null ? fallbackHours : numeric(entry.normalHours),
+    normalOvertime: numeric(entry?.normalOvertime),
+    weekendOvertime: 0,
+  };
+}
+
+export function getWeeklyHours(entries, employeeId, date) {
+  const selected = new Date(`${date}T00:00:00`);
+  const mondayOffset = selected.getDay() === 0 ? -6 : 1 - selected.getDay();
+  selected.setDate(selected.getDate() + mondayOffset);
+  const start = selected.toISOString().slice(0, 10);
+  const endDate = new Date(selected);
+  endDate.setDate(endDate.getDate() + 6);
+  const end = endDate.toISOString().slice(0, 10);
+  return entries
+    .filter(entry => (!employeeId || entry.employeeId === employeeId) && entry.date >= start && entry.date <= end)
+    .reduce((sum, entry) => sum + getWorkEntryHours(entry), 0);
 }

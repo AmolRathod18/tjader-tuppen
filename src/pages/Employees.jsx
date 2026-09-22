@@ -5,9 +5,9 @@ import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Components';
 import {
   Users, Plus, Search, Pencil, Trash2, Phone, Mail, Eye,
-  Clock3, Award, BriefcaseBusiness, MapPin, FileText,
+  Award, BriefcaseBusiness, MapPin, FileText,
 } from 'lucide-react';
-import { getWorkEntryHours } from '../utils/workHours';
+import { getWorkEntryBreakdown, getWorkEntryHours } from '../utils/workHours';
 
 const EMPTY_FORM = {
   name: '', empId: '', role: '', phone: '', email: '', status: 'Active', photo: '',
@@ -294,7 +294,10 @@ export default function Employees() {
                           <span className="employee-history-client"><BriefcaseBusiness size={12} /> {company?.name || 'Client not provided'} {project?.location && <><MapPin size={12} /> {project.location}</>}</span>
                           <p>{entry.description || 'No work details recorded.'}{entry.remarks && ` · ${entry.remarks}`}</p>
                         </div>
-                        <div className="employee-history-hours"><strong>{getWorkEntryHours(entry)}h</strong><span><Clock3 size={12} /> Hours</span></div>
+                        <div className="employee-history-hours">
+                          <strong>{getWorkEntryHours(entry).toFixed(1)}h</strong>
+                          <span>Normal {getWorkEntryBreakdown(entry).normalHours.toFixed(1)}h · OT {getWorkEntryBreakdown(entry).normalOvertime.toFixed(1)}h · Weekend {getWorkEntryBreakdown(entry).weekendOvertime.toFixed(1)}h</span>
+                        </div>
                       </article>
                     );
                   })}

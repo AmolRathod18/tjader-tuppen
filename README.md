@@ -12,6 +12,8 @@ only on the server; never put that key in a `VITE_*` variable or browser code.
    instead (or run both if the base schema has not been applied yet).
    If the existing database was created before expenditure tracking was added,
    also run [`backend/create_expenditures.sql`](./backend/create_expenditures.sql).
+   For the working-hour categories, run [`backend/working_hours.sql`](./backend/working_hours.sql)
+   against an existing database.
 3. Install and start the API:
 
 ```powershell
@@ -24,6 +26,9 @@ uvicorn app.main:app --reload
 
 The API documentation is available at `http://localhost:8000/docs`. Set
 `VITE_API_URL` in the frontend environment when the API is not on port 8000.
+Set `CORS_ORIGINS` in `backend/.env` to a comma-separated list of deployed
+frontend origins. Localhost and `127.0.0.1` origins on any development port are
+allowed automatically.
 
 On the first login, the configured `ADMIN_USERNAME`, `ADMIN_EMAIL`, and
 `ADMIN_PASSWORD` are securely hashed into the `admins` table. After signing in,

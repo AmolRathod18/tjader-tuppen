@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import logoUrl from '../assets/TJADERTUPPEN_Logo.jpeg';
-import { getWorkEntryHours } from '../utils/workHours';
+import { getWorkEntryBreakdown, getWorkEntryHours, getWeeklyHours } from '../utils/workHours';
 
 // ─── helpers ────────────────────────────────────────────────
 function fmt(d) { return d.toISOString().split('T')[0]; }
@@ -66,7 +66,15 @@ async function buildPDF({ title, subtitle, entries, expenditures, getProjectById
   const PW = 297, PH = 210, M = 12, CW = PW - M * 2;
   const now = new Date();
   const genStr = now.toLocaleString('en-SE', { dateStyle: 'long', timeStyle: 'short' });
-  const totalHours = entries.reduce((s, e) => s + getWorkEntryHours(e), 0);
+  const totals = entries.reduce((sum, entry) => {
+    const hours = getWorkEntryBreakdown(entry);
+    return {
+      normal: sum.normal + hours.normalHours,
+      overtime: sum.overtime + hours.normalOvertime,
+      weekend: sum.weekend + hours.weekendOvertime,
+    };
+  }, { normal: 0, overtime: 0, weekend: 0 });
+  const totalHours = totals.normal + totals.overtime + totals.weekend;
   const logoData = await loadLogoData();
   const employeeIds = [...new Set(entries.map(entry => entry.employeeId).filter(Boolean))];
   const employeeNames = employeeIds.map(id => getEmployeeById(id)?.name).filter(Boolean);
@@ -74,10 +82,6 @@ async function buildPDF({ title, subtitle, entries, expenditures, getProjectById
     const value = String(getEmployeeById(id)?.empId || id);
     return /^\d+$/.test(value) ? `EMP-${value.padStart(3, '0')}` : value;
   };
-  const hoursByEmployee = entries.reduce((totals, entry) => {
-    totals[entry.employeeId] = (totals[entry.employeeId] || 0) + getWorkEntryHours(entry);
-    return totals;
-  }, {});
   const employeeLabel = employeeNames.length === 1 ? employeeNames[0] : 'Multiple employees';
 
   const drawFooter = (pg, total) => {
@@ -87,7 +91,7 @@ async function buildPDF({ title, subtitle, entries, expenditures, getProjectById
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(10);
     pdf.setTextColor(92, 101, 109);
-    pdf.text('TJÄDERTUPPEN | Project Management System', M, PH - 6);
+    pdf.text('Tjädertuppen Svets och konsult', M, PH - 6);
     pdf.text(`Generated: ${genStr}`, PW / 2, PH - 6, { align: 'center' });
     pdf.text(`Page ${pg} of ${total}`, PW - M, PH - 6, { align: 'right' });
   };
@@ -103,7 +107,7 @@ async function buildPDF({ title, subtitle, entries, expenditures, getProjectById
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(10);
   pdf.setTextColor(92, 101, 109);
-  pdf.text('Project Management System', M + 34, 19);
+  pdf.text('Tjädertuppen Svets och konsult', M + 34, 19);
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(17);
   pdf.setTextColor(24, 29, 33);
@@ -137,7 +141,10 @@ async function buildPDF({ title, subtitle, entries, expenditures, getProjectById
   // ── Summary stats ──
   const stats = [
     { label: 'TOTAL ENTRIES', value: String(entries.length) },
-    { label: 'TOTAL HOURS',   value: `${totalHours.toFixed(1)} h` },
+    { label: 'NORMAL HOURS',  value: `${totals.normal.toFixed(1)} h` },
+    { label: 'NORMAL OVERTIME', value: `${totals.overtime.toFixed(1)} h` },
+    { label: 'WEEKEND OVERTIME', value: `${totals.weekend.toFixed(1)} h` },
+    { label: 'WEEKLY HOURS', value: `${totalHours.toFixed(1)} h` },
     { label: 'EMPLOYEES',     value: String([...new Set(entries.map(e => e.employeeId))].length) },
     { label: 'PROJECTS',      value: String([...new Set(entries.map(e => e.projectId))].length) },
   ];
@@ -171,15 +178,15 @@ async function buildPDF({ title, subtitle, entries, expenditures, getProjectById
   y += 9;
 
   const cols = [
-    { h: 'Date',          w: 23 },
-    { h: 'Employee ID',   w: 37 },
-    { h: 'Client',        w: 31 },
-    { h: 'Project',       w: 36 },
-    { h: 'Description',   w: 46 },
-    { h: 'Time',          w: 25 },
-    { h: 'Hours',         w: 16 },
-    { h: 'Weekly hrs',     w: 25 },
-    { h: 'Remarks',       w: 34 },
+    { h: 'Date',          w: 20 },
+    { h: 'Employee ID',   w: 28 },
+    { h: 'Client',        w: 25 },
+    { h: 'Project',       w: 28 },
+    { h: 'Normal hrs',    w: 25 },
+    { h: 'Normal OT',     w: 23 },
+    { h: 'Weekend OT',    w: 28 },
+    { h: 'Weekly hrs',    w: 25 },
+    { h: 'Remarks',       w: 71 },
   ];
   const HDR_H = 9;
   const drawHeader = (sy) => {
@@ -213,10 +220,10 @@ async function buildPDF({ title, subtitle, entries, expenditures, getProjectById
       emp ? `${emp.name || '—'}\nID: ${employeeCode(entry.employeeId)}` : '—',
       co?.name || '—',
       proj?.name || '—',
-      entry.description || '—',
-      (entry.startTime && entry.endTime) ? `${entry.startTime}–${entry.endTime}` : '—',
-      `${getWorkEntryHours(entry).toFixed(1)}h`,
-      `${(hoursByEmployee[entry.employeeId] || 0).toFixed(1)}h`,
+      `${getWorkEntryBreakdown(entry).normalHours.toFixed(1)}h`,
+      `${getWorkEntryBreakdown(entry).normalOvertime.toFixed(1)}h`,
+      `${getWorkEntryBreakdown(entry).weekendOvertime.toFixed(1)}h`,
+      `${getWeeklyHours(entries, entry.employeeId, entry.date).toFixed(1)}h`,
       entry.remarks || '—',
     ];
     pdf.setFont('helvetica', 'normal');
@@ -232,10 +239,10 @@ async function buildPDF({ title, subtitle, entries, expenditures, getProjectById
     pdf.rect(M, y, CW, rowH, 'S');
     let cx = M;
     lines.forEach((cellLines, cellIndex) => {
-      pdf.setFont('helvetica', cellIndex === 0 || cellIndex === 6 ? 'bold' : 'normal');
-      pdf.setTextColor(cellIndex === 6 ? 61 : 24, cellIndex === 6 ? 75 : 29, cellIndex === 6 ? 87 : 33);
+      pdf.setFont('helvetica', cellIndex === 0 || cellIndex >= 4 && cellIndex <= 7 ? 'bold' : 'normal');
+      pdf.setTextColor(cellIndex >= 4 && cellIndex <= 7 ? 61 : 24, cellIndex >= 4 && cellIndex <= 7 ? 75 : 29, cellIndex >= 4 && cellIndex <= 7 ? 87 : 33);
       cellLines.forEach((line, lineIndex) => {
-        const align = cellIndex === 6 || cellIndex === 7 ? 'right' : 'left';
+        const align = cellIndex >= 4 && cellIndex <= 7 ? 'right' : 'left';
         pdf.text(line, align === 'right' ? cx + cols[cellIndex].w - 2 : cx + 2, y + 4.8 + lineIndex * 3.8, { align });
       });
       pdf.setDrawColor(224, 228, 231);
@@ -255,7 +262,7 @@ async function buildPDF({ title, subtitle, entries, expenditures, getProjectById
   pdf.setFontSize(10);
   pdf.setTextColor(24, 29, 33);
   pdf.text(`TOTAL — ${entries.length} Entries`, M + 2, y + 5);
-  pdf.text(`${totalHours.toFixed(1)} h`, M + CW - 2, y + 5, { align: 'right' });
+  pdf.text(`Normal ${totals.normal.toFixed(1)} h | OT ${totals.overtime.toFixed(1)} h | Weekend ${totals.weekend.toFixed(1)} h | Weekly ${totalHours.toFixed(1)} h`, M + CW - 2, y + 5, { align: 'right' });
   y += 7;
 
   // ── Travel details (only shown when journeys were recorded) ──
@@ -454,7 +461,15 @@ export default function Reports() {
     (!filterClient || getProjectById(item.projectId)?.companyId === filterClient)
   ));
 
-  const totalHours = filtered.reduce((s, w) => s + getWorkEntryHours(w), 0);
+  const reportTotals = filtered.reduce((sum, entry) => {
+    const hours = getWorkEntryBreakdown(entry);
+    return {
+      normal: sum.normal + hours.normalHours,
+      overtime: sum.overtime + hours.normalOvertime,
+      weekend: sum.weekend + hours.weekendOvertime,
+    };
+  }, { normal: 0, overtime: 0, weekend: 0 });
+  const totalHours = reportTotals.normal + reportTotals.overtime + reportTotals.weekend;
   const selectedEmployee = filterEmployee ? getEmployeeById(filterEmployee) : null;
   const reportScope = selectedEmployee
     ? `${selectedEmployee.name} · ${filtered.length} entries · ${totalHours.toFixed(1)}h`
@@ -643,8 +658,8 @@ export default function Reports() {
         <div className="stat-card blue">
           <div className="stat-icon"><Clock size={20} /></div>
           <div className="stat-content">
-            <p>Total Hours</p>
-            <h3>{totalHours.toFixed(1)}h</h3>
+            <p>Normal Working Hours</p>
+            <h3>{reportTotals.normal.toFixed(1)}h</h3>
             <span>for selected period</span>
           </div>
         </div>
@@ -725,9 +740,10 @@ export default function Reports() {
                 <th>Employee</th>
                 <th>Client</th>
                 <th>Project</th>
-                <th>Description</th>
-                <th>Time</th>
-                <th>Hours</th>
+                <th>Normal Working Hours</th>
+                <th>Normal Overtime</th>
+                <th>Weekend Overtime</th>
+                <th>Weekly Hours</th>
                 <th>Remarks</th>
               </tr>
             </thead>
@@ -754,17 +770,12 @@ export default function Reports() {
                       <div style={{ fontWeight: 600 }}>{proj?.name || '—'}</div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{proj?.number}</div>
                     </td>
-                    <td style={{ maxWidth: 200 }}>
-                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {w.description || '—'}
-                      </div>
-                    </td>
-                    <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-                      {w.startTime && w.endTime ? `${w.startTime}–${w.endTime}` : '—'}
-                    </td>
                     <td>
-                      <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{getWorkEntryHours(w)}h</span>
+                      <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{getWorkEntryBreakdown(w).normalHours.toFixed(1)}h</span>
                     </td>
+                    <td>{getWorkEntryBreakdown(w).normalOvertime.toFixed(1)}h</td>
+                    <td>{getWorkEntryBreakdown(w).weekendOvertime.toFixed(1)}h</td>
+                    <td>{getWeeklyHours(workEntries, w.employeeId, w.date).toFixed(1)}h</td>
                     <td style={{ color: 'var(--color-text-muted)', maxWidth: 140 }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {w.remarks || '—'}
@@ -774,7 +785,7 @@ export default function Reports() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={9}>
+                <tr><td colSpan={10}>
                   <div className="empty-state">
                     <div className="empty-state-icon"><BarChart3 size={32} /></div>
                     <h3>No entries found</h3>
@@ -790,7 +801,10 @@ export default function Reports() {
         {filtered.length > 0 && (
           <div style={{ padding: '12px 24px', borderTop: '1px solid var(--color-border-light)', display: 'flex', justifyContent: 'flex-end', gap: 24, background: 'var(--color-bg)' }}>
             <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Total Entries: <strong style={{ color: 'var(--color-text-primary)' }}>{filtered.length}</strong></span>
-            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Total Hours: <strong style={{ color: 'var(--color-primary)', fontSize: 15 }}>{totalHours.toFixed(1)}h</strong></span>
+            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Normal: <strong>{reportTotals.normal.toFixed(1)}h</strong></span>
+            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Normal OT: <strong>{reportTotals.overtime.toFixed(1)}h</strong></span>
+            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Weekend OT: <strong>{reportTotals.weekend.toFixed(1)}h</strong></span>
+            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Weekly Hours: <strong style={{ color: 'var(--color-primary)', fontSize: 15 }}>{totalHours.toFixed(1)}h</strong></span>
           </div>
         )}
       </div>

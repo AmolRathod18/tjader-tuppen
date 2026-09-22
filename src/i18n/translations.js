@@ -168,8 +168,8 @@ const translations = {
     login_signing_in: '● Signing in...',
     login_error_admin: 'Invalid admin credentials. Try admin / admin123',
     login_error_employee: 'Invalid employee ID or password. Use your Employee ID and password emp123',
-    login_footer: 'TJÄDERTUPPEN © 2026 — Project Management System',
-    login_system: 'Project Management System',
+    login_footer: 'Tjädertuppen Svets och konsult © 2026',
+    login_system: 'Tjädertuppen Svets och konsult',
 
     // ── Dashboard ──────────────────────────────────────────
     dash_stat_companies: 'Client Companies',

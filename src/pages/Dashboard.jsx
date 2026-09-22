@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { getWorkEntryHours } from '../utils/workHours';
+import { getWorkEntryBreakdown, getWorkEntryHours } from '../utils/workHours';
 import { useLanguage } from '../context/LanguageContext';
 import { StatCard } from '../components/ui/Components';
 import { Badge } from '../components/ui/Components';
@@ -53,7 +53,14 @@ export default function Dashboard() {
   const today = todayStr();
   const activeProjects  = projects.filter(p => p.status === 'Active').length;
   const activeEmployees = employees.filter(e => e.status === 'Active').length;
-  const totalHours      = workEntries.reduce((s, w) => s + getWorkEntryHours(w), 0);
+  const hourTotals = workEntries.reduce((sum, entry) => {
+    const hours = getWorkEntryBreakdown(entry);
+    return {
+      normal: sum.normal + hours.normalHours,
+      overtime: sum.overtime + hours.normalOvertime,
+      weekend: sum.weekend + hours.weekendOvertime,
+    };
+  }, { normal: 0, overtime: 0, weekend: 0 });
   const todayEntries    = workEntries.filter(w => w.date === today);
   const chartData       = getLast7Days(workEntries);
 
@@ -74,7 +81,9 @@ export default function Dashboard() {
         <StatCard label="Active Projects"     value={activeProjects}                subtext={`${projects.length} total`}                           colorClass="green"  icon={FolderKanban} />
         <StatCard label="Total Employees"     value={activeEmployees}               subtext={`${employees.length} total`}                          colorClass="purple" icon={Users} />
         <StatCard label="Today's Work Entries" value={todayEntries.length}          subtext={today}                                                colorClass="orange" icon={CalendarCheck} />
-        <StatCard label="Total Hours Logged"  value={totalHours.toFixed(0) + 'h'}  subtext={`${workEntries.length} entries`}                      colorClass="blue"   icon={Clock} />
+        <StatCard label="Normal Working Hours" value={hourTotals.normal.toFixed(1) + 'h'} subtext={`${workEntries.length} entries`} colorClass="blue" icon={Clock} />
+        <StatCard label="Normal Overtime" value={hourTotals.overtime.toFixed(1) + 'h'} subtext="manually entered" colorClass="orange" icon={TrendingUp} />
+        <StatCard label="Weekend Overtime" value={hourTotals.weekend.toFixed(1) + 'h'} subtext="Saturday and Sunday" colorClass="purple" icon={CalendarCheck} />
       </div>
 
       <button type="button" className="system-overview-launch" onClick={() => navigate('/system-overview')}>
@@ -101,7 +110,9 @@ export default function Dashboard() {
                 <th>Employee</th>
                 <th>Client</th>
                 <th>Project</th>
-                <th>Hours</th>
+                <th>Normal Hours</th>
+                <th>Normal OT</th>
+                <th>Weekend OT</th>
                 <th>Description</th>
                 <th>Time</th>
               </tr>
@@ -129,9 +140,9 @@ export default function Dashboard() {
                       <div style={{ fontWeight: 600 }}>{proj?.name || '—'}</div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{proj?.number}</div>
                     </td>
-                    <td>
-                      <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{getWorkEntryHours(w)}h</span>
-                    </td>
+                    <td>{getWorkEntryBreakdown(w).normalHours.toFixed(1)}h</td>
+                    <td>{getWorkEntryBreakdown(w).normalOvertime.toFixed(1)}h</td>
+                    <td>{getWorkEntryBreakdown(w).weekendOvertime.toFixed(1)}h</td>
                     <td style={{ maxWidth: 200 }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {w.description || '—'}

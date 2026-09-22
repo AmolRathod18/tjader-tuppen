@@ -157,7 +157,7 @@ export default function Login() {
           </form>
 
           <div className="login-footer">
-            <p>© 2026 TJÄDERTUPPEN | Project Management System</p>
+            <p>© 2026 Tjädertuppen Svets och konsult</p>
           </div>
         </div>
       </div>

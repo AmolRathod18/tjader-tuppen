@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
-import { calculateShiftHours, getWorkEntryHours } from '../utils/workHours';
+import { getWorkEntryHours } from '../utils/workHours';
 
 const AppContext = createContext(null);
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -110,10 +110,10 @@ export function AppProvider({ children }) {
   const updateEmployee = (id, data) => mutate(`/api/employees/${id}`, 'PATCH', data, setEmployees, id);
   const deleteEmployee = (id) => mutate(`/api/employees/${id}`, 'DELETE', null, setEmployees, id);
   const addWorkEntry = (data) => mutate('/api/work-entries', 'POST', {
-    ...data, hours: calculateShiftHours(data.startTime, data.endTime),
+    ...data,
   }, setWorkEntries);
   const updateWorkEntry = (id, data) => mutate(`/api/work-entries/${id}`, 'PATCH', {
-    ...data, hours: calculateShiftHours(data.startTime, data.endTime),
+    ...data,
   }, setWorkEntries, id);
   const deleteWorkEntry = (id) => mutate(`/api/work-entries/${id}`, 'DELETE', null, setWorkEntries, id);
   const addExpenditure = (data) => mutate('/api/expenditures', 'POST', data, setExpenditures);

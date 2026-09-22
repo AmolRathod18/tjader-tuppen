@@ -162,6 +162,9 @@ class WorkEntryBase(BaseModel):
     date: Date
     start_time: Time
     end_time: Time
+    normal_hours: float | None = Field(default=None, ge=0, le=24)
+    normal_overtime: float | None = Field(default=None, ge=0, le=24)
+    weekend_overtime: float | None = Field(default=None, ge=0, le=24)
     description: str = Field(min_length=1)
     remarks: str | None = None
 
@@ -185,6 +188,9 @@ class WorkEntryUpdate(BaseModel):
     date: Date | None = None
     start_time: Time | None = None
     end_time: Time | None = None
+    normal_hours: float | None = Field(default=None, ge=0, le=24)
+    normal_overtime: float | None = Field(default=None, ge=0, le=24)
+    weekend_overtime: float | None = Field(default=None, ge=0, le=24)
     description: str | None = Field(default=None, min_length=1)
     remarks: str | None = None
 

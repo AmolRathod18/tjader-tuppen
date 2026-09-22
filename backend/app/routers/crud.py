@@ -228,7 +228,20 @@ def validate_work_entry(data: dict, ignore_id: str | None = None):
             raise HTTPException(409, "This employee already has an overlapping work entry on this date")
     if end_minutes < start_minutes:
         end_minutes += 24 * 60
-    data["hours"] = round((end_minutes - start_minutes) / 60, 2)
+    shift_hours = round((end_minutes - start_minutes) / 60, 2)
+    from datetime import date as Date
+    entry_date = Date.fromisoformat(data["date"])
+    if entry_date.weekday() >= 5:
+        data["normal_hours"] = 0
+        data["normal_overtime"] = 0
+        data["weekend_overtime"] = shift_hours
+    else:
+        data["normal_hours"] = round(
+            float(data.get("normal_hours") if data.get("normal_hours") is not None else data.get("hours", shift_hours)), 2
+        )
+        data["normal_overtime"] = round(float(data.get("normal_overtime") or 0), 2)
+        data["weekend_overtime"] = 0
+    data["hours"] = round(data["normal_hours"] + data["normal_overtime"] + data["weekend_overtime"], 2)
     return data
 
 

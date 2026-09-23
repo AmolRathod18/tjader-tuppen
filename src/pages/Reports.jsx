@@ -249,26 +249,29 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
   y = drawSectionTitle(text.hoursByEmployee, y);
 
   const employeeSummaryCols = [
-    { h: text.employee, ratio: 0.30 },
-    { h: text.entries, ratio: 0.10 },
-    { h: text.workingHours, ratio: 0.16 },
-    { h: text.overtimeHours, ratio: 0.16 },
-    { h: text.weekendHours, ratio: 0.16 },
-    { h: text.totalHours, ratio: 0.12 },
+    { h: text.employee, ratio: 0.26 },
+    { h: text.entries, ratio: 0.08 },
+    { h: text.workingHours, ratio: 0.17 },
+    { h: text.overtimeHours, ratio: 0.17 },
+    { h: text.weekendHours, ratio: 0.17 },
+    { h: text.totalHours, ratio: 0.15 },
   ];
   const employeeSummaryWidths = employeeSummaryCols.map(column => CW * column.ratio);
-  const summaryHeaderHeight = 8;
+  const summaryHeaderHeight = 13;
   const drawEmployeeSummaryHeader = (sy) => {
     pdf.setFillColor(31, 48, 65);
     pdf.rect(M, sy, CW, summaryHeaderHeight, 'F');
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10);
+    pdf.setFontSize(7.5);
     pdf.setTextColor(255, 255, 255);
     let cx = M;
     employeeSummaryCols.forEach((column, index) => {
       const columnWidth = employeeSummaryWidths[index];
       const rightAligned = index > 0;
-      pdf.text(column.h, rightAligned ? cx + columnWidth - 3 : cx + 3, sy + 5.5, { align: rightAligned ? 'right' : 'left' });
+      const headerLines = pdf.splitTextToSize(column.h, columnWidth - 5);
+      headerLines.forEach((line, lineIndex) => {
+        pdf.text(line, rightAligned ? cx + columnWidth - 3 : cx + 3, sy + 4 + lineIndex * 3.2, { align: rightAligned ? 'right' : 'left' });
+      });
       pdf.setDrawColor(128, 139, 148);
       pdf.setLineWidth(0.2);
       pdf.line(cx, sy, cx, sy + summaryHeaderHeight);

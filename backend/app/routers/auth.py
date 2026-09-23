@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 from fastapi import Depends
 
@@ -7,12 +9,17 @@ from ..repository import insert, rows, update
 from ..schemas import AdminUpdate, LoginRequest, TokenResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest):
     settings = get_settings()
-    administrators = rows("admins")
+    try:
+        administrators = rows("admins")
+    except Exception as error:
+        logger.exception("Admin login database lookup failed: %s", error)
+        raise HTTPException(503, "Authentication service is unavailable") from error
     administrator = next(
         (
             item for item in administrators

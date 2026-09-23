@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 import httpx
 
 from ..auth import require_admin
@@ -6,6 +6,18 @@ from ..schemas import TranslationRequest
 
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_admin)], tags=["Translation"])
+
+
+def translate_with_google(client: httpx.Client, text: str) -> str:
+    response = client.get(
+        "https://translate.googleapis.com/translate_a/single",
+        params={"client": "gtx", "sl": "auto", "tl": "sv", "dt": "t", "q": text},
+    )
+    response.raise_for_status()
+    translated = "".join(part[0] for part in response.json()[0] if part and part[0])
+    if not translated:
+        raise ValueError("Google Translate returned no translation")
+    return translated
 
 
 def translate_with_libretranslate(client: httpx.Client, text: str) -> str:
@@ -39,7 +51,7 @@ def translate_to_swedish(request: TranslationRequest):
     with httpx.Client(timeout=20) as client:
         for text in request.texts:
             translated = None
-            for provider in (translate_with_libretranslate, translate_with_mymemory):
+            for provider in (translate_with_google, translate_with_libretranslate, translate_with_mymemory):
                 try:
                     translated = provider(client, text)
                     break
@@ -51,6 +63,4 @@ def translate_to_swedish(request: TranslationRequest):
             else:
                 translations.append(translated)
 
-    if failures and len(failures) == len(request.texts):
-        raise HTTPException(502, "Free Swedish translation services are unavailable")
-    return {"translations": translations}
+    return {"translations": translations, "failed": len(failures)}

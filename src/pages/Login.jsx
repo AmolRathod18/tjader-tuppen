@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useApp } from '../context/AppContext';
+import { request } from '../utils/api';
 import { LockKeyhole, AlertCircle, ArrowRight, BarChart3, CheckCircle2, Clock3, ShieldCheck, UserRound } from 'lucide-react';
 import logo from '../assets/TJADERTUPPEN_Logo.jpeg';
 
@@ -21,13 +22,10 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/auth/login`, {
+      const body = await request('/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: email, password }),
       });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.detail || t('login_error_admin'));
       setAuth({ isAuthenticated: true, token: body.access_token, user: body.user });
       navigate('/dashboard');
     } catch (submitError) {

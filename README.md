@@ -24,7 +24,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-The API documentation is available at `http://localhost:8000/docs`. Set
+The API documentation is available at `http://127.0.0.1:8000/docs`. Set
 `VITE_API_URL` in the frontend environment when the API is not on port 8000.
 Set `CORS_ORIGINS` in `backend/.env` to a comma-separated list of deployed
 frontend origins. Localhost and `127.0.0.1` origins on any development port are
@@ -40,6 +40,24 @@ longer passwords.
 Expenditure kilometers are entered as whole numbers (for example, `42`).
 
 ## Frontend
+
+The frontend calls the FastAPI service through `VITE_API_URL`. Environment variables
+are embedded at build time, so set this variable in Vercel for Production, Preview,
+and Development as needed:
+
+```text
+VITE_API_URL=https://tjader-tuppen-management.onrender.com
+```
+
+In Render, set the backend `CORS_ORIGINS` variable to the exact Vercel deployment
+origin, for example `https://your-project.vercel.app`. Include any custom domain as
+another comma-separated origin. Do not include a trailing slash, and never put
+Supabase keys, JWT secrets, or administrator credentials in a `VITE_*` variable.
+
+After deploying, verify the backend at
+`https://tjader-tuppen-management.onrender.com/health` and then open the Vercel URL
+to test login. The Vercel rewrite in `vercel.json` keeps React Router routes working
+when a page is refreshed.
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 

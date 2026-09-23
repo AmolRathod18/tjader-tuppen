@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
 import { getWorkEntryHours } from '../utils/workHours';
+import { request } from '../utils/api';
 
 const AppContext = createContext(null);
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const AUTH_KEY = 'wms_auth';
 
 const camelToSnake = (key) => key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
@@ -17,18 +17,6 @@ const mapRow = (row) => Object.fromEntries(Object.entries(row).map(([key, value]
 const mapPayload = (data) => Object.fromEntries(
   Object.entries(data).filter(([, value]) => value !== undefined).map(([key, value]) => [camelToSnake(key), value]),
 );
-
-async function request(path, options = {}, token) {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers || {}) },
-  });
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.detail || `Request failed (${response.status})`);
-  }
-  return response.status === 204 ? null : response.json();
-}
 
 export function AppProvider({ children }) {
   const [auth, setAuthState] = useState(() => {
@@ -145,4 +133,3 @@ export function useApp() {
   return context;
 }
 
-export { request };

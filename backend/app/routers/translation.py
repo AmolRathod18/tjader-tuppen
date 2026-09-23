@@ -1,10 +1,7 @@
-import json
-
 from fastapi import APIRouter, Depends, HTTPException
-from openai import OpenAI
+import httpx
 
 from ..auth import require_admin
-from ..config import get_settings
 from ..schemas import TranslationRequest
 
 
@@ -13,34 +10,22 @@ router = APIRouter(prefix="/api", dependencies=[Depends(require_admin)], tags=["
 
 @router.post("/translate-to-swedish")
 def translate_to_swedish(request: TranslationRequest):
-    settings = get_settings()
-    if not settings.openai_api_key:
-        raise HTTPException(503, "Swedish translation is not configured on the backend")
-
-    client = OpenAI(api_key=settings.openai_api_key)
-    response = client.chat.completions.create(
-        model=settings.openai_model,
-        temperature=0,
-        response_format={"type": "json_object"},
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "Translate each work or travel description into natural Swedish. "
-                    "Preserve names, numbers, codes, and line meaning. Return JSON only "
-                    "with a translations array in the same order as the input."
-                ),
-            },
-            {"role": "user", "content": json.dumps({"texts": request.texts}, ensure_ascii=False)},
-        ],
-    )
-
+    translations = []
     try:
-        result = json.loads(response.choices[0].message.content or "{}")
-        translations = result["translations"]
-    except (KeyError, TypeError, json.JSONDecodeError) as error:
-        raise HTTPException(502, "Translation service returned an invalid response") from error
-
-    if not isinstance(translations, list) or len(translations) != len(request.texts):
-        raise HTTPException(502, "Translation service returned an incomplete response")
-    return {"translations": [str(value) for value in translations]}
+        with httpx.Client(timeout=20) as client:
+            for text in request.texts:
+                response = client.get(
+                    "https://api.mymemory.translated.net/get",
+                    params={"q": text, "langpair": "en|sv"},
+                )
+                response.raise_for_status()
+                payload = response.json()
+                translated = payload.get("responseData", {}).get("translatedText")
+                if not translated:
+                    raise HTTPException(502, "Translation service returned no translation")
+                translations.append(translated)
+    except HTTPException:
+        raise
+    except (httpx.HTTPError, ValueError) as error:
+        raise HTTPException(502, "Free Swedish translation service is unavailable") from error
+    return {"translations": translations}

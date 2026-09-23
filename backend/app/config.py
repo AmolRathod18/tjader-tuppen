@@ -16,9 +16,6 @@ class Settings(BaseSettings):
     admin_email: str = "admin@tjadertuppen.se"
     admin_password: str
 
-    openai_api_key: str | None = None
-    openai_model: str = "gpt-4o-mini"
-
     cors_origins: str = Field(
         default="http://localhost:5173,http://127.0.0.1:5173,https://tjadertuppen-management.vercel.app",
         validation_alias=AliasChoices("CORS_ORIGINS", "FRONTEND_ORIGINS"),

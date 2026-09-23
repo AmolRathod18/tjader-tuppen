@@ -91,7 +91,7 @@ async function translateReportDescriptions(entries, expenditures, lang, token) {
     };
   } catch (error) {
     console.error('Unable to translate report descriptions to Swedish:', error);
-    return { entries, expenditures };
+    throw new Error(error?.message || 'Swedish description translation failed');
   }
 }
 
@@ -690,24 +690,32 @@ export default function Reports() {
 
   const handleDownloadPDF = async () => {
     if (filtered.length === 0) return;
-    const { title, subtitle } = getReportTitle();
-    const translated = await translateReportDescriptions(filtered, reportExpenditures, lang, auth.token);
-    const pdf = await buildPDF({ lang, title, subtitle, entries: translated.entries, expenditures: translated.expenditures, getProjectById, getCompanyById, getEmployeeById });
-    if (tab === 'daily' && selectedEmployee) {
-      const employeeName = sanitizeFilenamePart(selectedEmployee.name);
-      pdf.save(`${employeeName}_Today_work_${todayStr()}.pdf`);
-      return;
+    try {
+      const { title, subtitle } = getReportTitle();
+      const translated = await translateReportDescriptions(filtered, reportExpenditures, lang, auth.token);
+      const pdf = await buildPDF({ lang, title, subtitle, entries: translated.entries, expenditures: translated.expenditures, getProjectById, getCompanyById, getEmployeeById });
+      if (tab === 'daily' && selectedEmployee) {
+        const employeeName = sanitizeFilenamePart(selectedEmployee.name);
+        pdf.save(`${employeeName}_Today_work_${todayStr()}.pdf`);
+        return;
+      }
+      const safeTitle = title.replace(/\s+/g, '_');
+      pdf.save(`TJADERTUPPEN_${safeTitle}_${todayStr()}.pdf`);
+    } catch (error) {
+      window.alert(error.message);
     }
-    const safeTitle = title.replace(/\s+/g, '_');
-    pdf.save(`TJADERTUPPEN_${safeTitle}_${todayStr()}.pdf`);
   };
 
   const handlePreviewPDF = async () => {
     if (filtered.length === 0) return;
-    const { title, subtitle } = getReportTitle();
-    const translated = await translateReportDescriptions(filtered, reportExpenditures, lang, auth.token);
-    const pdf = await buildPDF({ lang, title, subtitle, entries: translated.entries, expenditures: translated.expenditures, getProjectById, getCompanyById, getEmployeeById });
-    window.open(pdf.output('bloburl'), '_blank');
+    try {
+      const { title, subtitle } = getReportTitle();
+      const translated = await translateReportDescriptions(filtered, reportExpenditures, lang, auth.token);
+      const pdf = await buildPDF({ lang, title, subtitle, entries: translated.entries, expenditures: translated.expenditures, getProjectById, getCompanyById, getEmployeeById });
+      window.open(pdf.output('bloburl'), '_blank');
+    } catch (error) {
+      window.alert(error.message);
+    }
   };
 
   const LabelStyle = { fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 };

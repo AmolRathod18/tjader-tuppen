@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     admin_password: str
 
     cors_origins: str = Field(
-        default="http://localhost:5173,http://127.0.0.1:5173",
+        default="http://localhost:5173,http://127.0.0.1:5173,https://tjader-tuppen-management.vercel.app",
         validation_alias=AliasChoices("CORS_ORIGINS", "FRONTEND_ORIGINS"),
     )
 

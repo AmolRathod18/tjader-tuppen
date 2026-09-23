@@ -50,8 +50,13 @@ VITE_API_URL=https://tjader-tuppen-management.onrender.com
 ```
 
 In Render, set the backend `CORS_ORIGINS` variable to the exact Vercel deployment
-origin, for example `https://your-project.vercel.app`. Include any custom domain as
-another comma-separated origin. Do not include a trailing slash, and never put
+origin:
+
+```text
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://tjader-tuppen-management.vercel.app
+```
+
+Include any custom domain as another comma-separated origin. Do not include a trailing slash, and never put
 Supabase keys, JWT secrets, or administrator credentials in a `VITE_*` variable.
 
 After deploying, verify the backend at

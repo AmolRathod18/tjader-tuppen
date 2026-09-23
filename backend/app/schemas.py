@@ -203,6 +203,10 @@ class ReportQuery(BaseModel):
     project_id: str | None = None
 
 
+class TranslationRequest(BaseModel):
+    texts: list[str] = Field(min_length=1, max_length=100)
+
+
 class ApiModel(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 

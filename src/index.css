@@ -317,20 +317,20 @@ body {
 /* ===== STAT CARDS ===== */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 12px;
   margin-bottom: 28px;
 }
 
 .stat-card {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
-  padding: 22px;
+  padding: 14px 12px;
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 9px;
   transition: all var(--transition-base);
   position: relative;
   overflow: hidden;
@@ -357,8 +357,8 @@ body {
 }
 
 .stat-icon {
-  width: 52px;
-  height: 52px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -1702,7 +1702,7 @@ select {
   .table-report-entries tbody tr:not(:has(td[colspan])) td:nth-child(6)::before { content: 'Description'; }
   .table-report-entries tbody tr:not(:has(td[colspan])) td:nth-child(7)::before { content: 'Time'; }
   .table-report-entries tbody tr:not(:has(td[colspan])) td:nth-child(8)::before { content: 'Hours'; }
-  .table-report-entries tbody tr:not(:has(td[colspan])) td:nth-child(9)::before { content: 'Remarks'; }
+  .table-report-entries tbody tr:not(:has(td[colspan])) td:nth-child(9)::before { content: 'Description'; }
   .report-filters { display: grid !important; grid-template-columns: 1fr; gap: 12px !important; align-items: stretch !important; }
   .report-filters > div,
   .report-custom-dates > div { width: 100%; }
@@ -1847,7 +1847,7 @@ select {
   :root { --sidebar-width: 232px; }
   .page-content { padding: 24px; }
   .header { padding-left: 24px; padding-right: 24px; }
-  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (max-width: 768px) {

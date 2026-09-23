@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .routers import auth, crud, reports
+from .routers import translation
 
 settings = get_settings()
 app = FastAPI(
@@ -21,6 +22,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(crud.router)
 app.include_router(reports.router)
+app.include_router(translation.router)
 
 
 @app.get("/health", tags=["Health"])

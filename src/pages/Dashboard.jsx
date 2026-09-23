@@ -8,7 +8,6 @@ import { Badge } from '../components/ui/Components';
 import {
   Building2, FolderKanban, Users, ClipboardList,
   Clock, TrendingUp, Plus, CalendarCheck,
-  Network,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -85,12 +84,6 @@ export default function Dashboard() {
         <StatCard label="Normal Overtime" value={hourTotals.overtime.toFixed(1) + 'h'} subtext="manually entered" colorClass="orange" icon={TrendingUp} />
         <StatCard label="Weekend Overtime" value={hourTotals.weekend.toFixed(1) + 'h'} subtext="Saturday and Sunday" colorClass="purple" icon={CalendarCheck} />
       </div>
-
-      <button type="button" className="system-overview-launch" onClick={() => navigate('/system-overview')}>
-        <span className="system-overview-launch-icon"><Network size={20} /></span>
-        <span><strong>3D System Overview</strong><small>See how client companies, projects, employees, work entries, reports, and PDF export connect.</small></span>
-        <span className="system-overview-launch-arrow"><span>OPEN VIEW</span> <Network size={15} /></span>
-      </button>
 
       {/* ── Today's Work Entries ── */}
       <div className="card" style={{ marginBottom: 24 }}>

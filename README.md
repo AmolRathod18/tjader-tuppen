@@ -53,7 +53,7 @@ In Render, set the backend `CORS_ORIGINS` variable to the exact Vercel deploymen
 origin:
 
 ```text
-CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://tjader-tuppen-management.vercel.app
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://tjadertuppen-management.vercel.app
 ```
 
 Include any custom domain as another comma-separated origin. Do not include a trailing slash, and never put

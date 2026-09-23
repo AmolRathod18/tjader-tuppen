@@ -16,4 +16,12 @@ export async function request(path, options = {}, token) {
   return response.status === 204 ? null : response.json();
 }
 
+export async function translateToSwedish(texts, token) {
+  const response = await request('/api/translate-to-swedish', {
+    method: 'POST',
+    body: JSON.stringify({ texts }),
+  }, token);
+  return response.translations;
+}
+
 export { API_URL };

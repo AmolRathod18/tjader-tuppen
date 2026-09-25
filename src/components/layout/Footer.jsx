@@ -1,9 +1,11 @@
 import React from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function Footer({ className = '' }) {
+  const { t } = useLanguage();
   return (
     <footer className={`site-footer ${className}`.trim()}>
-      © 2026 Tjädertuppen Svets och konsult
+      {t('login_footer')}
     </footer>
   );
 }

@@ -32,7 +32,7 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <div className="login-language-switcher" aria-label="Language selection">
+      <div className="login-language-switcher" aria-label={t('ui_language_selection')}>
         <button
           type="button"
           className={lang === 'en' ? 'active' : ''}
@@ -51,11 +51,11 @@ export default function Login() {
         </button>
       </div>
       <div className="login-container">
-        <section className="login-intro" aria-label="TJÄDERTUPPEN overview">
+        <section className="login-intro" aria-label={t('login_overview_label')}>
           <div className="login-intro-topline">
             <span className="login-mark">TJ</span>
             <span>{t('login_workspace')}</span>
-            <span className="nordic-flag" aria-label="Swedish flag">
+            <span className="nordic-flag" aria-label={t('ui_swedish_flag')}>
               <span />
             </span>
           </div>
@@ -151,7 +151,7 @@ export default function Login() {
           </form>
 
           <div className="login-footer">
-            <p>© 2026 Tjädertuppen Svets och konsult</p>
+            <p>{t('login_footer')}</p>
           </div>
         </div>
       </div>

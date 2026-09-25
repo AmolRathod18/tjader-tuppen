@@ -1,6 +1,8 @@
 import React from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export function Badge({ status }) {
+  const { t } = useLanguage();
   const map = {
     'Active':    { cls: 'badge-success', dot: '🟢' },
     'Completed': { cls: 'badge-info',    dot: '🔵' },
@@ -9,9 +11,16 @@ export function Badge({ status }) {
     'Pending':   { cls: 'badge-warning', dot: '🟡' },
   };
   const info = map[status] || { cls: 'badge-neutral', dot: '⚪' };
+  const statusKeys = {
+    Active: 'status_active',
+    Completed: 'status_completed',
+    'On Hold': 'status_on_hold',
+    Inactive: 'status_inactive',
+    Pending: 'status_pending',
+  };
   return (
     <span className={`badge ${info.cls}`}>
-      {status}
+      {statusKeys[status] ? t(statusKeys[status]) : status}
     </span>
   );
 }

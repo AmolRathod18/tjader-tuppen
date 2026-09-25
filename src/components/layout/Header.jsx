@@ -20,14 +20,14 @@ export default function Header({ onMenuToggle }) {
   const keys = PAGE_KEYS[pathname] || { title: 'page_dashboard', subtitle: '' };
 
   const now = new Date();
-  const dateStr = now.toLocaleDateString('sv-SE', {
+  const dateStr = now.toLocaleDateString(lang === 'sv' ? 'sv-SE' : 'en-GB', {
     weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
   });
 
   return (
     <header className="header">
       <div className="header-left">
-        <button className="mobile-menu-button" onClick={onMenuToggle} aria-label="Open navigation">
+        <button className="mobile-menu-button" onClick={onMenuToggle} aria-label={t('ui_open_navigation')}>
           <Menu size={20} />
         </button>
         <h1>{t(keys.title)}</h1>
@@ -73,7 +73,7 @@ export default function Header({ onMenuToggle }) {
           </button>
         </div>
 
-        <button className="btn btn-ghost btn-icon" title="Notifications">
+        <button className="btn btn-ghost btn-icon" title={t('ui_notifications')} aria-label={t('ui_notifications')}>
           <Bell size={18} />
         </button>
       </div>

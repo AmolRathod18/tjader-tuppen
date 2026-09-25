@@ -22,7 +22,7 @@ const NAV_ITEMS = [
 export default function Sidebar({ mobileOpen, onNavigate }) {
   const { t } = useLanguage();
   const { auth, logout } = useApp();
-  const adminName = auth.user?.username || 'Administrator';
+  const adminName = auth.user?.username || t('ui_administrator');
   const adminEmail = auth.user?.email || 'admin@tjadertuppen.se';
   const adminInitials = adminName.slice(0, 2).toUpperCase();
 
@@ -44,7 +44,7 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
         />
         <div className="sidebar-logo-text">
           <h2>TJÄDERTUPPEN</h2>
-          <span>Management System</span>
+          <span>{t('ui_management_system')}</span>
         </div>
       </div>
 
@@ -53,7 +53,7 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
         <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#C79D4F', flexShrink: 0 }} />
         <span className="sidebar-flag" aria-hidden="true"><span /></span>
         <span style={{ fontSize: 11, fontWeight: 600, color: '#D9B873', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Administrator
+          {t('ui_administrator')}
         </span>
       </div>
 

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import translations from '../i18n/translations';
 
 const LanguageContext = createContext(null);
@@ -17,15 +17,22 @@ function loadLang() {
 export function LanguageProvider({ children }) {
   const [lang, setLangState] = useState(loadLang);
 
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.title = translations[lang].app_title;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', translations[lang].app_description);
+  }, [lang]);
+
   const setLang = (l) => {
     try { localStorage.setItem(STORAGE_KEY, l); } catch {}
     setLangState(l);
   };
 
-  /** Translate a key. Falls back to the key itself if not found. */
-  const t = (key) => {
+  /** Translate a key and replace {0}, {1}, ... placeholders. */
+  const t = (key, values = []) => {
     const dict = translations[lang] || translations.en;
-    return dict[key] ?? translations.en[key] ?? key;
+    const value = dict[key] ?? translations.en[key] ?? key;
+    return String(value).replace(/\{(\d+)\}/g, (_, index) => values[Number(index)] ?? '');
   };
 
   return (

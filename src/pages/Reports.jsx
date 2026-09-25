@@ -34,13 +34,13 @@ function getWeekStart(date) {
   return d;
 }
 
-function weekLabel(weekStart, locale = 'sv-SE') {
+function weekLabel(weekStart, locale = 'en-GB') {
   const end = new Date(weekStart);
   end.setDate(end.getDate() + 6);
   return `${weekStart.toLocaleDateString(locale, { day: '2-digit', month: 'short' })} – ${end.toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}`;
 }
 
-function displayDate(str, locale = 'sv-SE') {
+function displayDate(str, locale = 'en-GB') {
   return new Date(str + 'T00:00:00').toLocaleDateString(locale, {
     weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
   });
@@ -51,9 +51,20 @@ function reportDate(str) {
 }
 
 // ─── PDF generator ──────────────────────────────────────────
-async function loadLogoData() {
+async function loadLogoData(lang = 'en') {
+  const errorText = lang === 'sv'
+    ? {
+      load: 'Det gick inte att läsa in TJÄDERTUPPEN-logotypen för PDF-rapporten.',
+      decode: 'Det gick inte att avkoda TJÄDERTUPPEN-logotypen för PDF-rapporten.',
+      prepare: 'Det gick inte att förbereda TJÄDERTUPPEN-logotypen för PDF-rapporten.',
+    }
+    : {
+      load: 'Unable to load the TJÄDERTUPPEN logo for the PDF report.',
+      decode: 'Unable to decode the TJÄDERTUPPEN logo for the PDF report.',
+      prepare: 'Unable to prepare the TJÄDERTUPPEN logo for the PDF report.',
+    };
   const response = await fetch(logoUrl);
-  if (!response.ok) throw new Error('Unable to load the TJÄDERTUPPEN logo for the PDF report.');
+  if (!response.ok) throw new Error(errorText.load);
   const blob = await response.blob();
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -93,17 +104,12 @@ async function loadLogoData() {
         cropCanvas.getContext('2d').drawImage(image, cropLeft, cropTop, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
         resolve({ data: cropCanvas.toDataURL('image/jpeg', 0.95), width: cropWidth, height: cropHeight });
       };
-      image.onerror = () => reject(new Error('Unable to decode the TJÄDERTUPPEN logo for the PDF report.'));
+      image.onerror = () => reject(new Error(errorText.decode));
       image.src = reader.result;
     };
-    reader.onerror = () => reject(new Error('Unable to prepare the TJÄDERTUPPEN logo for the PDF report.'));
+    reader.onerror = () => reject(new Error(errorText.prepare));
     reader.readAsDataURL(blob);
   });
-}
-
-async function translateReportDescriptions(entries, expenditures, lang) {
-  if (lang !== 'sv') return { entries, expenditures };
-  return { entries, expenditures };
 }
 
 async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditures, getProjectById, getCompanyById, getEmployeeById }) {
@@ -112,7 +118,7 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
   const PH = 297;
   const M = 8;
   const CW = PW - M * 2;
-  const logoData = await loadLogoData();
+  const logoData = await loadLogoData(lang);
   const employeeIds = [...new Set([
     ...entries.map(entry => entry.employeeId),
     ...expenditures.map(item => item.employeeId),
@@ -121,7 +127,7 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
     const nameB = getEmployeeById(b)?.name || '';
     return nameA.localeCompare(nameB);
   });
-  const locale = 'sv-SE';
+  const locale = lang === 'sv' ? 'sv-SE' : 'en-GB';
   const reportTitle = title.replace(/WORK REPORT|ARBETSRAPPORT/gi, lang === 'sv' ? 'RAPPORT' : 'REPORT');
   const headers = lang === 'sv'
     ? ['Datum', 'Företag / Projekt', 'Normal\n(tim)', 'ÖT\n(tim)', 'Helg\n(tim)', 'Resa KM', 'Resa tim']
@@ -156,7 +162,7 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(12);
     pdf.setTextColor(15, 23, 42);
-    pdf.text(employee?.name || 'Unknown employee', M + 4, 46);
+    pdf.text(employee?.name || (lang === 'sv' ? 'Okänd medarbetare' : 'Unknown employee'), M + 4, 46);
     pdf.text(employee?.empId || '—', PW - M - 4, 46, { align: 'right' });
   };
 
@@ -252,7 +258,7 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(10);
     pdf.setTextColor(15, 23, 42);
-    pdf.text('TOTAL', M + 4, y + 8);
+    pdf.text(lang === 'sv' ? 'TOTALT' : 'TOTAL', M + 4, y + 8);
     let totalX = M + columns[0] + columns[1];
     [totals.normal, totals.overtime, totals.weekend, totals.kilometers, totals.travelHours].forEach((value, index) => {
       const columnIndex = index + 2;
@@ -296,7 +302,7 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const PW = 210, PH = 297, M = 12, CW = PW - M * 2;
   const now = new Date();
-  const locale = 'sv-SE';
+  const locale = lang === 'sv' ? 'sv-SE' : 'en-GB';
   const genStr = now.toLocaleString(locale, { dateStyle: 'long', timeStyle: 'short' });
   const text = lang === 'sv' ? {
     generated: 'Skapad', page: 'Sida', reportFor: 'RAPPORT FÖR', reportPeriod: 'RAPPORTPERIOD',
@@ -326,7 +332,7 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
     };
   }, { normal: 0, overtime: 0, weekend: 0 });
   const totalHours = totals.normal + totals.overtime + totals.weekend;
-  const logoData = await loadLogoData();
+  const logoData = await loadLogoData(lang);
   const employeeIds = [...new Set(entries.map(entry => entry.employeeId).filter(Boolean))];
   const employeeNames = employeeIds.map(id => getEmployeeById(id)?.name).filter(Boolean);
   const employeeTotals = employeeIds.map(id => {
@@ -756,7 +762,7 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
   const pageHeight = 297;
   const margin = 10;
   const contentWidth = pageWidth - margin * 2;
-  const logoData = await loadLogoData();
+  const logoData = await loadLogoData(lang);
   const periodName = period === 'daily' ? (lang === 'sv' ? 'Daglig' : 'Daily') : period === 'monthly' ? (lang === 'sv' ? 'Månads' : 'Monthly') : period === 'custom' ? (lang === 'sv' ? 'Anpassad' : 'Custom') : (lang === 'sv' ? 'Vecko' : 'Weekly');
   const formatEmployeeCode = employee => {
     const value = String(employee?.empId || '');
@@ -803,12 +809,12 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     pdf.roundedRect(margin, 40, contentWidth, 15, 1.5, 1.5, 'F');
     pdf.setFontSize(8);
     pdf.setTextColor(92, 101, 109);
-    pdf.text('EMPLOYEE', margin + 4, 46);
-    pdf.text('EMPLOYEE ID', pageWidth - margin - 23, 46, { align: 'right' });
+    pdf.text(lang === 'sv' ? 'MEDARBETARE' : 'EMPLOYEE', margin + 4, 46);
+    pdf.text(lang === 'sv' ? 'MEDARBETAR-ID' : 'EMPLOYEE ID', pageWidth - margin - 23, 46, { align: 'right' });
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(11);
     pdf.setTextColor(24, 29, 33);
-    pdf.text(employee?.name || 'Unknown employee', margin + 4, 52);
+    pdf.text(employee?.name || (lang === 'sv' ? 'Okänd medarbetare' : 'Unknown employee'), margin + 4, 52);
     pdf.text(formatEmployeeCode(employee), pageWidth - margin - 4, 52, { align: 'right' });
   };
 
@@ -858,16 +864,16 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(16);
     pdf.setTextColor(15, 23, 42);
-    pdf.text(`${lang === 'sv' ? '1. ' : '1. '}${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin, 70);
+    pdf.text(`1. ${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin, 70);
 
     const columns = [
-      { label: 'Date', width: 28 },
-      { label: 'Company / Project', width: 58 },
-      { label: 'Normal\n(h)', width: 20 },
-      { label: 'OT\n(h)', width: 18 },
-      { label: 'Weekend\n(h)', width: 24 },
-      { label: 'Travel KM', width: 22 },
-      { label: 'Travel Hrs', width: 20 },
+      { label: lang === 'sv' ? 'Datum' : 'Date', width: 28 },
+      { label: lang === 'sv' ? 'Företag / Projekt' : 'Company / Project', width: 58 },
+      { label: lang === 'sv' ? 'Ordinarie\n(tim)' : 'Normal\n(h)', width: 20 },
+      { label: lang === 'sv' ? 'Övertid\n(tim)' : 'OT\n(h)', width: 18 },
+      { label: lang === 'sv' ? 'Helg\n(tim)' : 'Weekend\n(h)', width: 24 },
+      { label: lang === 'sv' ? 'Resa km' : 'Travel KM', width: 22 },
+      { label: lang === 'sv' ? 'Restid' : 'Travel Hrs', width: 20 },
     ];
     const tableTop = 76;
     const headerHeight = 14;
@@ -891,7 +897,7 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(16);
         pdf.setTextColor(15, 23, 42);
-        pdf.text(`${lang === 'sv' ? '1. ' : '1. '}${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin, 70);
+        pdf.text(`1. ${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin, 70);
         pdf.setFillColor(31, 48, 65);
         pdf.rect(margin, tableTop, contentWidth, headerHeight, 'F');
         pdf.setFont('helvetica', 'bold');
@@ -934,7 +940,7 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
     pdf.setTextColor(24, 29, 33);
-    pdf.text('TOTAL', margin + 4, y + 8);
+    pdf.text(lang === 'sv' ? 'TOTALT' : 'TOTAL', margin + 4, y + 8);
     const totalValues = [totals.normal, totals.overtime, totals.weekend, totals.kilometers, totals.travelHours];
     let totalX = margin + columns[0].width + columns[1].width;
     totalValues.forEach((value, index) => {
@@ -950,10 +956,10 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     }
     const totalsY = y + rowHeight + 28;
     pdf.setFontSize(16);
-    pdf.text(`${lang === 'sv' ? '2. ' : '2. '}${periodName} ${lang === 'sv' ? 'summering' : 'Totals'}`, margin, totalsY);
+    pdf.text(`2. ${periodName} ${lang === 'sv' ? 'sammanfattning' : 'Totals'}`, margin, totalsY);
     const summaryY = totalsY + 9;
     const summaryWidth = (contentWidth - 6) / 2;
-    [{ label: 'Total Work Hours', value: `${totalHours.toFixed(1)} h`, fill: [236, 245, 255] }, { label: 'Total Travel', value: `${Math.round(totals.kilometers)} KM -> ${totals.travelHours.toFixed(2).replace(/\.00$/, '')} hr`, fill: [237, 249, 241] }].forEach((summary, index) => {
+    [{ label: lang === 'sv' ? 'Total arbetstid' : 'Total Work Hours', value: `${totalHours.toFixed(1)} h`, fill: [236, 245, 255] }, { label: lang === 'sv' ? 'Total resa' : 'Total Travel', value: `${Math.round(totals.kilometers)} km -> ${totals.travelHours.toFixed(2).replace(/\.00$/, '')} h`, fill: [237, 249, 241] }].forEach((summary, index) => {
       const summaryX = margin + index * (summaryWidth + 6);
       pdf.setFillColor(...summary.fill);
       pdf.roundedRect(summaryX, summaryY, summaryWidth, 23, 2, 2, 'F');
@@ -998,10 +1004,10 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
 
 // ─── COMPONENT ──────────────────────────────────────────────
 const TABS = [
-  { key: 'daily',   label: 'Daily',    icon: Calendar },
-  { key: 'weekly',  label: 'Weekly',   icon: ChevronRight },
-  { key: 'monthly', label: 'Monthly',  icon: BarChart3 },
-  { key: 'custom',  label: 'Custom Range', icon: Filter },
+  { key: 'daily',   labelKey: 'rep_daily',   icon: Calendar },
+  { key: 'weekly',  labelKey: 'rep_weekly',  icon: ChevronRight },
+  { key: 'monthly', labelKey: 'rep_monthly', icon: BarChart3 },
+  { key: 'custom',  labelKey: 'rep_custom',  icon: Filter },
 ];
 
 export default function Reports() {
@@ -1104,8 +1110,8 @@ export default function Reports() {
   const totalHours = reportTotals.normal + reportTotals.overtime + reportTotals.weekend;
   const selectedEmployee = filterEmployee ? getEmployeeById(filterEmployee) : null;
   const reportScope = selectedEmployee
-    ? `${selectedEmployee.name} · ${filtered.length} entries · ${totalHours.toFixed(1)}h`
-    : `All Employees · ${filtered.length} entries · ${totalHours.toFixed(1)}h combined`;
+    ? `${selectedEmployee.name} · ${t('rep_entries_count', [filtered.length])} · ${totalHours.toFixed(1)}h`
+    : `${t('rep_all_employees')} · ${t('rep_entries_count', [filtered.length])} · ${totalHours.toFixed(1)}h ${t('rep_combined')}`;
 
   const prevWeek = () => { const d = new Date(weekStart + 'T00:00:00'); d.setDate(d.getDate() - 7); setWeekStart(fmt(d)); };
   const nextWeek = () => { const d = new Date(weekStart + 'T00:00:00'); d.setDate(d.getDate() + 7); setWeekStart(fmt(d)); };
@@ -1121,7 +1127,7 @@ export default function Reports() {
   };
 
   const getReportTitle = () => {
-    const locale = lang === 'sv' ? 'sv-SE' : 'en-SE';
+    const locale = lang === 'sv' ? 'sv-SE' : 'en-GB';
     if (tab === 'daily') return { title: lang === 'sv' ? 'DAGLIG ARBETSRAPPORT' : 'DAILY WORK REPORT', subtitle: displayDate(dailyDate, locale) };
     if (tab === 'weekly') return { title: lang === 'sv' ? 'VECKORAPPORT' : 'WEEKLY WORK REPORT', subtitle: weekLabel(wsDate, locale) };
     if (tab === 'monthly') return { title: lang === 'sv' ? 'MÅNADSRAPPORT' : 'MONTHLY WORK REPORT', subtitle: new Date(mYear, mMonth - 1, 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' }) };
@@ -1144,18 +1150,17 @@ export default function Reports() {
 
   const handleDownloadPDF = async () => {
     if (filtered.length === 0) {
-      setReportMessage('There are no work entries for the selected period and filters. Add a work entry or adjust the filters before downloading a PDF.');
+      setReportMessage('rep_no_entries_download');
       return;
     }
     try {
       const { title, subtitle } = getReportTitle();
-      const translated = await translateReportDescriptions(filtered, reportExpenditures, lang);
       const pdf = await buildEmployeeReportPDF({
         lang,
         title,
         subtitle,
         period: tab,
-        groups: getEmployeePDFGroups(translated.entries, translated.expenditures),
+        groups: getEmployeePDFGroups(filtered, reportExpenditures),
         rangeStart: dateFrom,
         rangeEnd: dateTo,
         getProjectById,
@@ -1174,18 +1179,17 @@ export default function Reports() {
 
   const handlePreviewPDF = async () => {
     if (filtered.length === 0) {
-      setReportMessage('There are no work entries for the selected period and filters. Add a work entry or adjust the filters before previewing a PDF.');
+      setReportMessage('rep_no_entries_preview');
       return;
     }
     try {
       const { title, subtitle } = getReportTitle();
-      const translated = await translateReportDescriptions(filtered, reportExpenditures, lang);
       const pdf = await buildEmployeeReportPDF({
         lang,
         title,
         subtitle,
         period: tab,
-        groups: getEmployeePDFGroups(translated.entries, translated.expenditures),
+        groups: getEmployeePDFGroups(filtered, reportExpenditures),
         rangeStart: dateFrom,
         rangeEnd: dateTo,
         getProjectById,
@@ -1207,21 +1211,21 @@ export default function Reports() {
         <div className="page-header-info">
           <h2>{t('rep_title')}</h2>
           <p>
-            {reportScope} · Generate daily, weekly, monthly, and custom reports with professional PDF export
+            {reportScope} · {t('rep_page_subtitle')}
           </p>
         </div>
       </div>
 
       {/* ── Tab Switcher ── */}
       <div className="report-tabs" style={{ display: 'flex', gap: 0, marginBottom: 20, background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 10, overflow: 'hidden', width: 'fit-content', boxShadow: 'var(--shadow-sm)' }}>
-        {TABS.map(({ key, label, icon: Icon }) => (
+        {TABS.map(({ key, labelKey, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
             className={`btn btn-sm ${tab === key ? 'btn-primary' : 'btn-ghost'}`}
             style={{ borderRadius: 0, border: 'none', padding: '10px 22px', fontSize: 13 }}
           >
-            <Icon size={14} /> {label}
+            <Icon size={14} /> {t(labelKey)}
           </button>
         ))}
       </div>
@@ -1229,7 +1233,7 @@ export default function Reports() {
       {/* ── Filters Card ── */}
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
-          <div><h3>Report Filters</h3><p>Select period and narrow results by employee, client or project. Every total, detail row and PDF uses the selected scope.</p></div>
+          <div><h3>{t('rep_filters')}</h3><p>{t('rep_select_scope')}</p></div>
         </div>
         <div className="card-body">
           <div className="report-filters" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -1237,7 +1241,7 @@ export default function Reports() {
             {/* Period control */}
             {tab === 'daily' && (
               <div>
-                <label style={LabelStyle}>Date</label>
+                <label style={LabelStyle}>{t('lbl_date')}</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button className="btn btn-ghost btn-icon" onClick={prevDay}><ChevronLeft size={18} /></button>
                   <DatePicker value={dailyDate} onChange={e => setDailyDate(e.target.value)} style={{ fontWeight: 600 }} />
@@ -1248,11 +1252,11 @@ export default function Reports() {
 
             {tab === 'weekly' && (
               <div>
-                <label style={LabelStyle}>Week</label>
+                <label style={LabelStyle}>{t('rep_week')}</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button className="btn btn-ghost btn-icon" onClick={prevWeek}><ChevronLeft size={18} /></button>
                   <div style={{ background: 'var(--color-bg)', border: '1.5px solid var(--color-border)', borderRadius: 8, padding: '8px 16px', fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap' }}>
-                    {weekLabel(wsDate)}
+                    {weekLabel(wsDate, t('ui_locale'))}
                   </div>
                   <button className="btn btn-ghost btn-icon" onClick={nextWeek}><ChevronRight size={18} /></button>
                 </div>
@@ -1261,10 +1265,10 @@ export default function Reports() {
 
             {tab === 'monthly' && (
               <div>
-                <label style={LabelStyle}>Month</label>
+                <label style={LabelStyle}>{t('rep_month')}</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button className="btn btn-ghost btn-icon" onClick={prevMonth}><ChevronLeft size={18} /></button>
-                  <input type="month" lang="sv-SE" value={monthYear} onChange={e => setMonthYear(e.target.value)} style={{ fontWeight: 600, padding: '8px 12px' }} />
+                  <input type="month" lang={t('ui_locale')} value={monthYear} onChange={e => setMonthYear(e.target.value)} style={{ fontWeight: 600, padding: '8px 12px' }} />
                   <button className="btn btn-ghost btn-icon" onClick={nextMonth}><ChevronRight size={18} /></button>
                 </div>
               </div>
@@ -1273,11 +1277,11 @@ export default function Reports() {
             {tab === 'custom' && (
               <div className="report-custom-dates" style={{ display: 'flex', gap: 12 }}>
                 <div>
-                  <label style={LabelStyle}>From Date</label>
+                  <label style={LabelStyle}>{t('rep_filter_from')}</label>
                   <DatePicker value={fromDate} onChange={e => setFromDate(e.target.value)} />
                 </div>
                 <div>
-                  <label style={LabelStyle}>To Date</label>
+                  <label style={LabelStyle}>{t('rep_filter_to')}</label>
                   <DatePicker value={toDate} onChange={e => setToDate(e.target.value)} />
                 </div>
               </div>
@@ -1285,27 +1289,27 @@ export default function Reports() {
 
             {/* Common filters */}
             <div>
-              <label style={LabelStyle}>Employee</label>
+              <label style={LabelStyle}>{t('lbl_employee')}</label>
               <select value={filterEmployee} onChange={e => {
                 setFilterEmployee(e.target.value);
                 setFilterClient('');
                 setFilterProject('');
               }} style={{ minWidth: 180 }}>
-                <option value="">All Employees</option>
+                <option value="">{t('rep_all_employees')}</option>
                 {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
               </select>
             </div>
             <div>
-              <label style={LabelStyle}>Client</label>
+              <label style={LabelStyle}>{t('rep_client')}</label>
               <select value={filterClient} onChange={e => { setFilterClient(e.target.value); setFilterProject(''); }} style={{ minWidth: 180 }}>
-                <option value="">All Clients</option>
+                <option value="">{t('we_all_clients')}</option>
                 {availableCompanies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label style={LabelStyle}>Project</label>
+              <label style={LabelStyle}>{t('lbl_project')}</label>
               <select value={filterProject} onChange={e => setFilterProject(e.target.value)} style={{ minWidth: 180 }}>
-                <option value="">All Projects</option>
+                <option value="">{t('rep_all_projects')}</option>
                 {availableProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
@@ -1313,7 +1317,7 @@ export default function Reports() {
             {(filterEmployee || filterClient || filterProject) && (
               <div style={{ alignSelf: 'flex-end' }}>
                 <button className="btn btn-ghost btn-sm" onClick={() => { setFilterEmployee(''); setFilterClient(''); setFilterProject(''); }}>
-                  Clear Filters
+                  {t('rep_clear_filters')}
                 </button>
               </div>
             )}
@@ -1326,33 +1330,33 @@ export default function Reports() {
         <div className="stat-card blue">
           <div className="stat-icon blue"><Clock size={20} /></div>
           <div className="stat-info">
-            <p>Normal Working Hours</p>
+            <p>{t('rep_normal_hours')}</p>
             <h3>{reportTotals.normal.toFixed(1)}h</h3>
-            <span>for selected period</span>
+            <span>{t('rep_for_period')}</span>
           </div>
         </div>
         <div className="stat-card green">
           <div className="stat-icon green"><FileText size={20} /></div>
           <div className="stat-info">
-            <p>Total Entries</p>
+            <p>{t('rep_total_entries')}</p>
             <h3>{filtered.length}</h3>
-            <span>work entries found</span>
+            <span>{t('rep_entries_found')}</span>
           </div>
         </div>
         <div className="stat-card purple">
           <div className="stat-icon purple"><Users size={20} /></div>
           <div className="stat-info">
-            <p>Employees</p>
+            <p>{t('rep_employees_count')}</p>
             <h3>{[...new Set(filtered.map(w => w.employeeId))].length}</h3>
-            <span>in this report</span>
+            <span>{t('rep_in_report')}</span>
           </div>
         </div>
         <div className="stat-card orange">
           <div className="stat-icon orange"><FolderKanban size={20} /></div>
           <div className="stat-info">
-            <p>Projects</p>
+            <p>{t('rep_projects_count')}</p>
             <h3>{[...new Set(filtered.map(w => w.projectId))].length}</h3>
-            <span>covered</span>
+            <span>{t('rep_covered')}</span>
           </div>
         </div>
       </div>
@@ -1361,7 +1365,7 @@ export default function Reports() {
       <div className="card report-entries-card">
         <div className="card-header">
           <div>
-            <h3>Work Entries</h3>
+            <h3>{t('rep_work_entries')}</h3>
             <p>{reportScope}</p>
           </div>
         </div>
@@ -1370,15 +1374,15 @@ export default function Reports() {
             <thead>
               <tr>
                 <th>#</th>
-                <th>Date</th>
-                <th>Employee</th>
-                <th>Client</th>
-                <th>Project</th>
-                <th>Normal Working Hours</th>
-                <th>Normal Overtime</th>
-                <th>Weekend Overtime</th>
-                <th>Weekly Hours</th>
-                <th>Description</th>
+                <th>{t('lbl_date')}</th>
+                <th>{t('lbl_employee')}</th>
+                <th>{t('rep_client')}</th>
+                <th>{t('lbl_project')}</th>
+                <th>{t('rep_normal_hours')}</th>
+                <th>{t('we_normal_overtime')}</th>
+                <th>{t('we_weekend_overtime')}</th>
+                <th>{t('we_weekly_hours')}</th>
+                <th>{t('we_description')}</th>
               </tr>
             </thead>
             <tbody>
@@ -1392,7 +1396,7 @@ export default function Reports() {
                     <td>
                       <div style={{ fontWeight: 600 }}>{w.date}</div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-                        {new Date(w.date + 'T00:00:00').toLocaleDateString('sv-SE', { weekday: 'short' })}
+                        {new Date(w.date + 'T00:00:00').toLocaleDateString(t('ui_locale'), { weekday: 'short' })}
                       </div>
                     </td>
                     <td>
@@ -1422,8 +1426,8 @@ export default function Reports() {
                 <tr><td colSpan={10}>
                   <div className="empty-state">
                     <div className="empty-state-icon"><BarChart3 size={32} /></div>
-                    <h3>No entries found</h3>
-                    <p>No work entries match the selected period and filters.</p>
+                    <h3>{t('rep_no_entries')}</h3>
+                    <p>{t('rep_no_match')}</p>
                   </div>
                 </td></tr>
               )}
@@ -1434,30 +1438,30 @@ export default function Reports() {
         {/* Footer totals */}
         {filtered.length > 0 && (
           <div style={{ padding: '12px 24px', borderTop: '1px solid var(--color-border-light)', display: 'flex', justifyContent: 'flex-end', gap: 24, background: 'var(--color-bg)' }}>
-            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Total Entries: <strong style={{ color: 'var(--color-text-primary)' }}>{filtered.length}</strong></span>
-            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Normal: <strong>{reportTotals.normal.toFixed(1)}h</strong></span>
-            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Normal OT: <strong>{reportTotals.overtime.toFixed(1)}h</strong></span>
-            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Weekend OT: <strong>{reportTotals.weekend.toFixed(1)}h</strong></span>
-            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Weekly Hours: <strong style={{ color: 'var(--color-primary)', fontSize: 15 }}>{totalHours.toFixed(1)}h</strong></span>
+            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{t('rep_total_entries')}: <strong style={{ color: 'var(--color-text-primary)' }}>{filtered.length}</strong></span>
+            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{t('rep_normal_short')}: <strong>{reportTotals.normal.toFixed(1)}h</strong></span>
+            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{t('rep_normal_ot')}: <strong>{reportTotals.overtime.toFixed(1)}h</strong></span>
+            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{t('rep_weekend_ot')}: <strong>{reportTotals.weekend.toFixed(1)}h</strong></span>
+            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{t('we_weekly_hours')}: <strong style={{ color: 'var(--color-primary)', fontSize: 15 }}>{totalHours.toFixed(1)}h</strong></span>
           </div>
         )}
       </div>
       <div className="report-actions-bottom">
         <button className="btn btn-outline" onClick={handlePreviewPDF}>
-          <FileText size={15} /> Preview PDF
+          <FileText size={15} /> {t('rep_preview')}
         </button>
         <button className="btn btn-primary" onClick={handleDownloadPDF}>
-          <Download size={15} /> Download PDF
+          <Download size={15} /> {t('rep_download')}
         </button>
       </div>
       <Modal
         isOpen={!!reportMessage}
         onClose={() => setReportMessage('')}
-        title="No report data"
-        subtitle="PDF action unavailable"
-        footer={<button className="btn btn-primary" onClick={() => setReportMessage('')}>Close</button>}
+        title={t('rep_no_data_title')}
+        subtitle={t('rep_pdf_unavailable')}
+        footer={<button className="btn btn-primary" onClick={() => setReportMessage('')}>{t('ui_close')}</button>}
       >
-        <p className="report-empty-message">{reportMessage}</p>
+        <p className="report-empty-message">{t(reportMessage)}</p>
       </Modal>
     </div>
   );

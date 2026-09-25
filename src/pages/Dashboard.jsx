@@ -32,6 +32,7 @@ export default function Dashboard() {
   }, []);
 
   const today = todayStr();
+  const todayLabel = new Date(`${today}T00:00:00`).toLocaleDateString(t('ui_locale'));
   const activeProjects  = projects.filter(p => p.status === 'Active').length;
   const activeEmployees = employees.filter(e => e.status === 'Active').length;
   const hourTotals = workEntries.reduce((sum, entry) => {
@@ -57,45 +58,45 @@ export default function Dashboard() {
     <div className="dashboard-page">
       {/* ── Stat Cards ── */}
       <div className="stat-grid">
-        <StatCard label="Clients" value={companies.length} subtext={`${companies.length} registered`} colorClass="blue" icon={Building2} />
-        <StatCard label="Active projects" value={activeProjects} subtext={`${projects.length} total`} colorClass="green" icon={FolderKanban} />
-        <StatCard label="Employees" value={activeEmployees} subtext={`${employees.length} total`} colorClass="purple" icon={Users} />
-        <StatCard label="Today's entries" value={todayEntries.length} subtext={today} colorClass="orange" icon={CalendarCheck} />
-        <StatCard label="Regular hours" value={hourTotals.normal.toFixed(1) + 'h'} subtext={`${workEntries.length} entries`} colorClass="blue" icon={Clock} />
-        <StatCard label="Regular overtime" value={hourTotals.overtime.toFixed(1) + 'h'} subtext="Manually entered" colorClass="orange" icon={TrendingUp} />
-        <StatCard label="Weekend overtime" value={hourTotals.weekend.toFixed(1) + 'h'} subtext="Saturday and Sunday" colorClass="purple" icon={CalendarCheck} />
+        <StatCard label={t('dash_clients')} value={companies.length} subtext={t('dash_registered', [companies.length])} colorClass="blue" icon={Building2} />
+        <StatCard label={t('dash_active_projects')} value={activeProjects} subtext={t('dash_total', [projects.length])} colorClass="green" icon={FolderKanban} />
+        <StatCard label={t('lbl_employee')} value={activeEmployees} subtext={t('dash_total', [employees.length])} colorClass="purple" icon={Users} />
+        <StatCard label={t('dash_today_entries')} value={todayEntries.length} subtext={todayLabel} colorClass="orange" icon={CalendarCheck} />
+        <StatCard label={t('dash_regular_hours')} value={hourTotals.normal.toFixed(1) + 'h'} subtext={`${workEntries.length} ${t('lbl_entries')}`} colorClass="blue" icon={Clock} />
+        <StatCard label={t('dash_regular_overtime')} value={hourTotals.overtime.toFixed(1) + 'h'} subtext={t('dash_manual_entered')} colorClass="orange" icon={TrendingUp} />
+        <StatCard label={t('dash_weekend_overtime')} value={hourTotals.weekend.toFixed(1) + 'h'} subtext={t('dash_saturday_sunday')} colorClass="purple" icon={CalendarCheck} />
       </div>
 
       {/* ── Today's Work Entries ── */}
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="card-header">
           <div>
-            <h3>Today's Work Entries</h3>
-            <p>{today} · {todayEntries.length} entries logged</p>
+            <h3>{t('dash_today_work_entries')}</h3>
+            <p>{todayLabel} · {t('dash_entries_logged', [todayEntries.length])}</p>
           </div>
           <button className="btn btn-primary btn-sm" onClick={() => navigate('/work-entry')}>
-            <Plus size={14} /> Add Entry
+            <Plus size={14} /> {t('dash_add_entry')}
           </button>
         </div>
         <div className="table-wrapper table-dashboard-entries">
           <table>
             <thead>
               <tr>
-                <th>Employee</th>
-                <th>Client</th>
-                <th>Project</th>
-                <th>Normal Hours</th>
-                <th>Normal OT</th>
-                <th>Weekend OT</th>
-                <th>Description</th>
-                <th>Time</th>
+                <th>{t('lbl_employee')}</th>
+                <th>{t('dash_col_client')}</th>
+                <th>{t('lbl_project')}</th>
+                <th>{t('dash_normal_hours')}</th>
+                <th>{t('dash_normal_ot')}</th>
+                <th>{t('dash_weekend_ot')}</th>
+                <th>{t('lbl_description')}</th>
+                <th>{t('dash_time')}</th>
               </tr>
             </thead>
             <tbody>
               {todayEntries.length === 0 && (
                 <tr>
                   <td colSpan={6} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: 32 }}>
-                    No work entries logged for today. <button className="btn btn-primary btn-sm" style={{ marginLeft: 12 }} onClick={() => navigate('/work-entry')}><Plus size={13} /> Add Entry</button>
+                    {t('dash_no_today_entries')} <button className="btn btn-primary btn-sm" style={{ marginLeft: 12 }} onClick={() => navigate('/work-entry')}><Plus size={13} /> {t('dash_add_entry')}</button>
                   </td>
                 </tr>
               )}
@@ -106,7 +107,7 @@ export default function Dashboard() {
                 return (
                   <tr key={w.id}>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{emp?.name || '—'}</div>
+                        <div style={{ fontWeight: 600 }}>{emp?.name || '—'}</div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{emp?.role}</div>
                     </td>
                     <td>{co?.name || '—'}</td>
@@ -140,8 +141,8 @@ export default function Dashboard() {
               <h3>{t('dash_recent_title')}</h3>
               <p>{t('dash_recent_sub')}</p>
             </div>
-            <button className="btn btn-outline btn-sm" onClick={() => navigate('/work-entry')}>
-              View All
+              <button className="btn btn-outline btn-sm" onClick={() => navigate('/work-entry')}>
+              {t('btn_view_all')}
             </button>
           </div>
           <div className="card-body">
@@ -157,8 +158,8 @@ export default function Dashboard() {
                     <div key={entry.id} className="activity-item">
                       <div className={`activity-dot ${recentDots[i % recentDots.length]}`} />
                       <div className="activity-info">
-                        <p><strong>{employee?.name || 'Unknown'}</strong> — {project?.name || 'Unknown'}</p>
-                        <span>{getWorkEntryHours(entry)}h on {entry.date} · {co?.name || ''} · {entry.description?.slice(0, 40) || 'No description'}</span>
+                        <p><strong>{employee?.name || t('ui_unknown')}</strong> — {project?.name || t('ui_unknown')}</p>
+                        <span>{getWorkEntryHours(entry)}h {t('dash_on_date')} {entry.date} · {co?.name || ''} · {entry.description?.slice(0, 40) || t('ui_no_description')}</span>
                       </div>
                     </div>
                   );

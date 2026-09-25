@@ -14,7 +14,12 @@ const EMPTY_FORM = {
   name: '', empId: '', role: '', phone: '', email: '', status: 'Active', photo: '',
   experience: '', skills: '', workType: '', certifications: '', joiningDate: '', notes: '',
 };
-const ROLES = ['Senior Welder', 'Pipe Welder', 'MIG/MAG Welder', 'TIG Welder', 'Welding Inspector', 'Foreman', 'Helper', 'Other'];
+const ROLES = [
+  ['Senior Welder', 'role_senior_welder'], ['Pipe Welder', 'role_pipe_welder'],
+  ['MIG/MAG Welder', 'role_mig_mag_welder'], ['TIG Welder', 'role_tig_welder'],
+  ['Welding Inspector', 'role_welding_inspector'], ['Foreman', 'role_foreman'],
+  ['Helper', 'role_helper'], ['Other', 'role_other'],
+];
 const STATUS_OPTIONS = ['Active', 'Inactive'];
 
 function EmployeeField({ field, label, type = 'text', placeholder, required, form, setForm, errors }) {
@@ -117,8 +122,8 @@ export default function Employees() {
 
   const getInitials  = (name) => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   const avatarColors = ['#B88A3B', '#527A5A', '#80683D', '#D97706', '#4B7A7A', '#B94A3D'];
-  const formatDate = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not provided';
-  const profileValue = (value) => value || 'Not provided';
+  const formatDate = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateString(t('ui_locale'), { day: 'numeric', month: 'short', year: 'numeric' }) : t('ui_not_provided');
+  const profileValue = (value) => value || t('ui_not_provided');
   const getSkills = (employee) => Array.isArray(employee?.skills) ? employee.skills : (employee?.skills ? employee.skills.split(',').map(skill => skill.trim()).filter(Boolean) : []);
 
   return (
@@ -153,8 +158,8 @@ export default function Employees() {
                 <th>{t('emp_col_employee')}</th>
                 <th>{t('emp_col_id')}</th>
                 <th>{t('emp_col_role')}</th>
-                <th>Contact</th>
-                <th>Work Log</th>
+                <th>{t('lbl_contact')}</th>
+                <th>{t('lbl_work_log')}</th>
                 <th>{t('emp_col_status')}</th>
                 <th>{t('emp_col_actions')}</th>
               </tr>
@@ -172,7 +177,7 @@ export default function Employees() {
                       setProfileEmployee(e);
                     }
                   }}
-                  aria-label={`Open profile for ${e.name}`}
+                  aria-label={t('emp_open_profile', [e.name])}
                 >
                   <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
                   <td>
@@ -202,9 +207,9 @@ export default function Employees() {
                   <td><Badge status={e.status} /></td>
                   <td>
                     <div className="table-actions">
-                      <button className="btn btn-ghost btn-icon btn-sm" title="Edit" onClick={event => { event.stopPropagation(); openEdit(e); }}><Pencil size={15} /></button>
-                      <button className="btn btn-ghost btn-icon btn-sm" title="View employee profile" onClick={event => { event.stopPropagation(); setProfileEmployee(e); }}><Eye size={15} /></button>
-                      <button className="btn btn-ghost btn-icon btn-sm" title="Delete" onClick={event => { event.stopPropagation(); setDeleteTarget(e); }} style={{ color: 'var(--color-danger)' }}><Trash2 size={15} /></button>
+                      <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_edit')} onClick={event => { event.stopPropagation(); openEdit(e); }}><Pencil size={15} /></button>
+                      <button className="btn btn-ghost btn-icon btn-sm" title={t('emp_view_profile')} onClick={event => { event.stopPropagation(); setProfileEmployee(e); }}><Eye size={15} /></button>
+                      <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_delete')} onClick={event => { event.stopPropagation(); setDeleteTarget(e); }} style={{ color: 'var(--color-danger)' }}><Trash2 size={15} /></button>
                     </div>
                   </td>
                 </tr>
@@ -228,12 +233,12 @@ export default function Employees() {
       <Modal
         isOpen={!!profileEmployee}
         onClose={() => setProfileEmployee(null)}
-        title="Employee Profile"
+        title={t('emp_profile_title')}
         subtitle={profileEmployee ? `${profileEmployee.name} · ${profileEmployee.empId}` : ''}
         size="xl"
         footer={<>
-          <button className="btn btn-ghost" onClick={() => setProfileEmployee(null)}>Close Profile</button>
-          <button className="btn btn-primary" onClick={() => { const employee = profileEmployee; setProfileEmployee(null); openEdit(employee); }}><Pencil size={14} /> Edit Profile</button>
+          <button className="btn btn-ghost" onClick={() => setProfileEmployee(null)}>{t('emp_close_profile')}</button>
+          <button className="btn btn-primary" onClick={() => { const employee = profileEmployee; setProfileEmployee(null); openEdit(employee); }}><Pencil size={14} /> {t('emp_edit_profile')}</button>
         </>}
       >
         {profileEmployee && (
@@ -251,44 +256,44 @@ export default function Employees() {
               </div>
               <div className="employee-profile-total">
                 <strong>{profileEntries.reduce((sum, entry) => sum + getWorkEntryHours(entry), 0).toFixed(1)}h</strong>
-                <span>Total hours logged</span>
+                <span>{t('emp_total_hours_logged')}</span>
               </div>
             </div>
 
             <div className="employee-profile-grid">
               <section className="employee-profile-section">
-                <div className="employee-profile-section-title"><Users size={16} /><h4>Contact & employment</h4></div>
+                <div className="employee-profile-section-title"><Users size={16} /><h4>{t('emp_contact_employment')}</h4></div>
                 <div className="employee-profile-details">
-                  <div><span>Employee ID</span><strong>{profileValue(profileEmployee.empId)}</strong></div>
-                  <div><span>Phone</span><strong>{profileValue(profileEmployee.phone)}</strong></div>
-                  <div><span>Email</span><strong>{profileValue(profileEmployee.email)}</strong></div>
-                  <div><span>Joining date</span><strong>{formatDate(profileEmployee.joiningDate || profileEmployee.createdAt)}</strong></div>
-                  <div><span>Work type</span><strong>{profileValue(profileEmployee.workType)}</strong></div>
-                  <div><span>Experience</span><strong>{profileValue(profileEmployee.experience)}</strong></div>
+                  <div><span>{t('lbl_employee_id')}</span><strong>{profileValue(profileEmployee.empId)}</strong></div>
+                  <div><span>{t('lbl_phone')}</span><strong>{profileValue(profileEmployee.phone)}</strong></div>
+                  <div><span>{t('lbl_email')}</span><strong>{profileValue(profileEmployee.email)}</strong></div>
+                  <div><span>{t('emp_joining_date')}</span><strong>{formatDate(profileEmployee.joiningDate || profileEmployee.createdAt)}</strong></div>
+                  <div><span>{t('emp_work_type')}</span><strong>{profileValue(profileEmployee.workType)}</strong></div>
+                  <div><span>{t('emp_experience')}</span><strong>{profileValue(profileEmployee.experience)}</strong></div>
                 </div>
               </section>
 
               <section className="employee-profile-section">
-                <div className="employee-profile-section-title"><Award size={16} /><h4>Skills & certifications</h4></div>
+                <div className="employee-profile-section-title"><Award size={16} /><h4>{t('emp_skills_certifications')}</h4></div>
                 <div className="employee-profile-tags">
-                  {getSkills(profileEmployee).length > 0 ? getSkills(profileEmployee).map(skill => <span key={skill}>{skill}</span>) : <em>Skills not provided</em>}
+                  {getSkills(profileEmployee).length > 0 ? getSkills(profileEmployee).map(skill => <span key={skill}>{skill}</span>) : <em>{t('emp_skills_not_provided')}</em>}
                 </div>
                 <div className="employee-profile-certification"><Award size={14} /><span>{profileValue(profileEmployee.certifications)}</span></div>
               </section>
             </div>
 
             <section className="employee-profile-section employee-profile-notes">
-              <div className="employee-profile-section-title"><FileText size={16} /><h4>Notes</h4></div>
+              <div className="employee-profile-section-title"><FileText size={16} /><h4>{t('lbl_notes')}</h4></div>
               <p>{profileValue(profileEmployee.notes)}</p>
             </section>
 
             <section className="employee-history">
               <div className="employee-history-heading">
-                <div><h4>Work & project history</h4><p>Every recorded work entry connected to this employee.</p></div>
-                <span>{profileEntries.length} entries</span>
+                <div><h4>{t('emp_work_history')}</h4><p>{t('emp_work_history_sub')}</p></div>
+                <span>{t('emp_entries_count', [profileEntries.length])}</span>
               </div>
               {profileEntries.length === 0 ? (
-                <div className="employee-history-empty">No work history recorded for this employee.</div>
+                <div className="employee-history-empty">{t('emp_no_work_history')}</div>
               ) : (
                 <div className="employee-history-list">
                   {profileEntries.map((entry, index) => {
@@ -299,13 +304,13 @@ export default function Employees() {
                         <div className="employee-history-marker"><span>{index + 1}</span></div>
                         <div className="employee-history-date"><strong>{formatDate(entry.date)}</strong><span>{entry.startTime || '—'} – {entry.endTime || '—'}</span></div>
                         <div className="employee-history-content">
-                          <strong>{project?.name || 'Project not found'}</strong>
-                          <span className="employee-history-client"><BriefcaseBusiness size={12} /> {company?.name || 'Client not provided'} {project?.location && <><MapPin size={12} /> {project.location}</>}</span>
-                          <p>{entry.description || 'No work details recorded.'}{entry.remarks && ` · ${entry.remarks}`}</p>
+                          <strong>{project?.name || t('emp_project_not_found')}</strong>
+                          <span className="employee-history-client"><BriefcaseBusiness size={12} /> {company?.name || t('emp_client_not_provided')} {project?.location && <><MapPin size={12} /> {project.location}</>}</span>
+                          <p>{entry.description || t('emp_no_work_details')}{entry.remarks && ` · ${entry.remarks}`}</p>
                         </div>
                         <div className="employee-history-hours">
                           <strong>{getWorkEntryHours(entry).toFixed(1)}h</strong>
-                          <span>Normal {getWorkEntryBreakdown(entry).normalHours.toFixed(1)}h · OT {getWorkEntryBreakdown(entry).normalOvertime.toFixed(1)}h · Weekend {getWorkEntryBreakdown(entry).weekendOvertime.toFixed(1)}h</span>
+                          <span>{t('we_normal_hours')} {getWorkEntryBreakdown(entry).normalHours.toFixed(1)}h · {t('we_normal_overtime')} {getWorkEntryBreakdown(entry).normalOvertime.toFixed(1)}h · {t('we_weekend_overtime')} {getWorkEntryBreakdown(entry).weekendOvertime.toFixed(1)}h</span>
                         </div>
                       </article>
                     );
@@ -332,7 +337,7 @@ export default function Employees() {
           <label>{t('emp_form_role')}</label>
           <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
             <option value="">{t('emp_form_role_ph')}</option>
-            {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+            {ROLES.map(([value, key]) => <option key={value} value={value}>{t(key)}</option>)}
           </select>
         </div>
         <div className="form-row">
@@ -342,29 +347,29 @@ export default function Employees() {
         <div className="form-group">
           <label>{t('emp_form_status')}</label>
           <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{t(`status_${s.toLowerCase()}`)}</option>)}
           </select>
         </div>
-        <div className="profile-form-divider">Profile details</div>
+        <div className="profile-form-divider">{t('emp_profile_details')}</div>
         <div className="form-row">
-          <EmployeeField form={form} setForm={setForm} errors={errors} field="photo" label="Photo URL" placeholder="https://..." />
-          <EmployeeField form={form} setForm={setForm} errors={errors} field="joiningDate" type="date" label="Joining date" />
+          <EmployeeField form={form} setForm={setForm} errors={errors} field="photo" label={t('emp_photo_url')} placeholder="https://..." />
+          <EmployeeField form={form} setForm={setForm} errors={errors} field="joiningDate" type="date" label={t('emp_joining_date')} />
         </div>
         <div className="form-row">
-          <EmployeeField form={form} setForm={setForm} errors={errors} field="experience" label="Experience" placeholder="e.g. 8 years" />
-          <EmployeeField form={form} setForm={setForm} errors={errors} field="workType" label="Work type" placeholder="e.g. Field / Project-based" />
+          <EmployeeField form={form} setForm={setForm} errors={errors} field="experience" label={t('emp_experience')} placeholder={t('emp_experience_ph')} />
+          <EmployeeField form={form} setForm={setForm} errors={errors} field="workType" label={t('emp_work_type')} placeholder={t('emp_work_type_ph')} />
         </div>
         <div className="form-group">
-          <label>Skills</label>
-          <input placeholder="Separate skills with commas" value={form.skills} onChange={e => setForm(f => ({ ...f, skills: e.target.value }))} />
+          <label>{t('emp_skills')}</label>
+          <input placeholder={t('emp_skills_ph')} value={form.skills} onChange={e => setForm(f => ({ ...f, skills: e.target.value }))} />
         </div>
         <div className="form-group">
-          <label>Certifications</label>
-          <input placeholder="e.g. ISO 9606, Hot Work" value={form.certifications} onChange={e => setForm(f => ({ ...f, certifications: e.target.value }))} />
+          <label>{t('emp_certifications')}</label>
+          <input placeholder={t('emp_certifications_ph')} value={form.certifications} onChange={e => setForm(f => ({ ...f, certifications: e.target.value }))} />
         </div>
         <div className="form-group">
-          <label>Notes</label>
-          <textarea rows={3} placeholder="Add professional notes" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+          <label>{t('lbl_notes')}</label>
+          <textarea rows={3} placeholder={t('emp_notes_ph')} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
         </div>
       </Modal>
 

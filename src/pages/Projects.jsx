@@ -124,7 +124,7 @@ export default function Projects() {
           </select>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ maxWidth: 160 }}>
             <option value="">{t('proj_all_statuses')}</option>
-            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{t(`status_${s.toLowerCase().replace(' ', '_')}`)}</option>)}
           </select>
         </div>
 
@@ -138,7 +138,7 @@ export default function Projects() {
                 <th>{t('proj_col_location')}</th>
                 <th>{t('proj_col_start')}</th>
                 <th>{t('proj_col_end')}</th>
-                <th>Work Log</th>
+                <th>{t('lbl_work_log')}</th>
                 <th>{t('proj_col_status')}</th>
                 <th>{t('proj_col_actions')}</th>
               </tr>
@@ -168,13 +168,13 @@ export default function Projects() {
                     <td>{p.endDate}</td>
                     <td>
                       <div style={{ fontWeight: 700 }}>{getTotalHrs(p.id)}h</div>
-                      <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{getEntryCount(p.id)} entries</div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{getEntryCount(p.id)} {t('lbl_entries')}</div>
                     </td>
                     <td><Badge status={p.status} /></td>
                     <td>
                       <div className="table-actions">
-                        <button className="btn btn-ghost btn-icon btn-sm" title="Edit" onClick={() => openEdit(p)}><Pencil size={15} /></button>
-                        <button className="btn btn-ghost btn-icon btn-sm" title="Delete" onClick={() => setDeleteTarget(p)} style={{ color: 'var(--color-danger)' }}><Trash2 size={15} /></button>
+                        <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_edit')} onClick={() => openEdit(p)}><Pencil size={15} /></button>
+                        <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_delete')} onClick={() => setDeleteTarget(p)} style={{ color: 'var(--color-danger)' }}><Trash2 size={15} /></button>
                       </div>
                     </td>
                   </tr>

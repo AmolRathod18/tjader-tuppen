@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useLanguage } from '../../context/LanguageContext';
 import { ArrowUp } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -9,6 +10,7 @@ export default function Layout({ children }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const location = useLocation();
+  const { t } = useLanguage();
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
@@ -30,7 +32,7 @@ export default function Layout({ children }) {
       {mobileNavOpen && (
         <button
           className="mobile-nav-backdrop"
-          aria-label="Close navigation"
+          aria-label={t('ui_close_navigation')}
           onClick={() => setMobileNavOpen(false)}
         />
       )}
@@ -46,8 +48,8 @@ export default function Layout({ children }) {
           className="scroll-top-button"
           type="button"
           onClick={scrollToTop}
-          aria-label="Scroll to top"
-          title="Scroll to top"
+          aria-label={t('ui_scroll_top')}
+          title={t('ui_scroll_top')}
         >
           <ArrowUp size={18} />
         </button>

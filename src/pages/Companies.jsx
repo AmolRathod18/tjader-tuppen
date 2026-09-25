@@ -161,10 +161,10 @@ export default function Companies() {
                     </td>
                     <td>
                       <div className="table-actions">
-                        <button className="btn btn-ghost btn-icon btn-sm" title="Edit" onClick={() => openEdit(c)}>
+                        <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_edit')} onClick={() => openEdit(c)}>
                           <Pencil size={15} />
                         </button>
-                        <button className="btn btn-ghost btn-icon btn-sm" title="Delete" onClick={() => setDeleteTarget(c)}
+                        <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_delete')} onClick={() => setDeleteTarget(c)}
                           style={{ color: 'var(--color-danger)' }}>
                           <Trash2 size={15} />
                         </button>

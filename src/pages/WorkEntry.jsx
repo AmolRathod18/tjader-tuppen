@@ -49,7 +49,7 @@ function SectionLabel({ icon: Icon, label }) {
    FORM VIEW  (full-page, standalone)
 ───────────────────────────────────────────── */
 function FormView({ form, errors, submitError, setField, onSave, onCancel, editItem,
-  companies, formProjects, activeEmployees, getCompanyById, workEntries }) {
+  companies, formProjects, activeEmployees, getCompanyById, workEntries, t }) {
 
   const isWeekend = form.date && [0, 6].includes(new Date(`${form.date}T00:00:00`).getDay());
   const shiftHours = calculateShiftHours(form.startTime, form.endTime);
@@ -81,23 +81,23 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
             <button
               className="btn btn-ghost btn-icon btn-sm"
               onClick={onCancel}
-              title="Back to list"
+              title={t('we_back_to_list')}
               style={{ marginRight: 4 }}
             >
               <ArrowLeft size={18} />
             </button>
             <div>
-              <h2>{editItem ? 'Edit Work Entry' : 'Log Daily Work Entry'}</h2>
-              <p>{editItem ? 'Update the details for this entry.' : 'Fill in the details for the work performed.'}</p>
+              <h2>{editItem ? t('we_edit_title') : t('we_new_title')}</h2>
+              <p>{editItem ? t('we_edit_subtitle') : t('we_new_subtitle')}</p>
             </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+          <button className="btn btn-ghost" onClick={onCancel}>{t('btn_cancel')}</button>
           <button id="save-work-btn" className="btn btn-primary" onClick={onSave}
             style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <CheckCircle size={15} />
-            {editItem ? 'Save Changes' : 'Log Work Entry'}
+            {editItem ? t('btn_save') : t('we_btn_log')}
           </button>
         </div>
       </div>
@@ -108,11 +108,11 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
         <div style={{ padding: '4px 24px 24px' }}>
 
           {/* ── Section 1: Work Details ── */}
-          <SectionLabel icon={Calendar} label="Work Details" />
+          <SectionLabel icon={Calendar} label={t('we_work_details')} />
           <div className="work-entry-form-grid work-entry-form-grid--two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
 
             <div className="form-group">
-              <label>Date *</label>
+              <label>{t('lbl_date')} *</label>
               <DatePicker value={form.date}
                 onChange={e => setField('date', e.target.value)}
                 style={fs('date')} />
@@ -120,11 +120,11 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
             </div>
 
             <div className="form-group">
-              <label>Employee *</label>
+              <label>{t('lbl_employee')} *</label>
               <select value={form.employeeId}
                 onChange={e => setField('employeeId', e.target.value)}
                 style={fs('employeeId')}>
-                <option value="">Select employee…</option>
+                <option value="">{t('we_select_employee')}</option>
                 {activeEmployees.map(e => (
                   <option key={e.id} value={e.id}>{e.name} — {e.role}</option>
                 ))}
@@ -133,10 +133,10 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
             </div>
 
             <div className="form-group">
-              <label>Client Company</label>
+              <label>{t('we_client_company')}</label>
               <select value={form.companyId}
                 onChange={e => setField('companyId', e.target.value)}>
-                <option value="">Select client company…</option>
+                <option value="">{t('we_select_company')}</option>
                 {companies.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -144,11 +144,11 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
             </div>
 
             <div className="form-group">
-              <label>Project *</label>
+              <label>{t('lbl_project')} *</label>
               <select value={form.projectId}
                 onChange={e => setField('projectId', e.target.value)}
                 style={fs('projectId')}>
-                <option value="">Select project…</option>
+                <option value="">{t('we_select_project')}</option>
                 {formProjects.map(p => {
                   const co = getCompanyById(p.companyId);
                   return (
@@ -163,56 +163,56 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
           </div>
 
           {/* ── Section 2: Working Hours ── */}
-          <SectionLabel icon={AlarmClock} label="Working Hours" />
+          <SectionLabel icon={AlarmClock} label={t('we_working_hours')} />
           <div className="work-entry-form-grid work-entry-form-grid--three" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0 24px' }}>
 
             <div className="form-group">
-              <label>Start Time</label>
+              <label>{t('we_start_time')}</label>
               <input type="time" value={form.startTime}
                 onChange={e => setField('startTime', e.target.value)} />
             </div>
 
             <div className="form-group">
-              <label>End Time</label>
+              <label>{t('we_end_time')}</label>
               <input type="time" value={form.endTime}
                 onChange={e => setField('endTime', e.target.value)} />
             </div>
 
             <div className="form-group">
-              <label>Normal Working Hours</label>
+              <label>{t('we_normal_hours')}</label>
               <input type="text" value={shiftHours === null ? '' : automaticNormalHours.toFixed(2)} readOnly
                 aria-readonly="true" style={{ background: 'var(--color-bg)', cursor: 'default', ...fs('normalHours') }} />
             </div>
 
             <div className="form-group">
-              <label>Normal Overtime</label>
+              <label>{t('we_normal_overtime')}</label>
               <input type="number" min="0" max="24" step="0.25" value={isWeekend ? 0 : form.normalOvertime}
                 onChange={e => setField('normalOvertime', e.target.value)} disabled={isWeekend} />
             </div>
 
             <div className="form-group">
-              <label>Weekend Overtime</label>
+              <label>{t('we_weekend_overtime')}</label>
               <input type="number" min="0" max="24" step="0.25" value={form.weekendOvertime}
                 onChange={e => setField('weekendOvertime', e.target.value)}
                 style={fs('weekendOvertime')} />
-              <small style={{ color: 'var(--color-text-muted)' }}>Enter weekend overtime when applicable.</small>
+              <small style={{ color: 'var(--color-text-muted)' }}>{t('we_weekend_overtime_hint')}</small>
             </div>
 
             <div className="form-group">
-              <label>Weekly Hours (read-only)</label>
-              <input type="text" value={`${weeklyHours.toFixed(2)} hours`} readOnly
+              <label>{t('we_weekly_hours')}</label>
+              <input type="text" value={`${weeklyHours.toFixed(2)} ${t('lbl_hours').toLowerCase()}`} readOnly
                 aria-readonly="true" style={{ background: 'var(--color-bg)', cursor: 'default' }} />
             </div>
           </div>
 
           {/* ── Section 3: Work Information ── */}
-          <SectionLabel icon={FileText} label="Work Information" />
+          <SectionLabel icon={FileText} label={t('we_work_information')} />
           <div className="work-entry-form-grid work-entry-form-grid--two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
 
             <div className="form-group">
-              <label>Work Description *</label>
+              <label>{t('we_description')} *</label>
               <textarea
-                placeholder="Describe the work performed…"
+                placeholder={t('we_desc_ph')}
                 value={form.description}
                 onChange={e => setField('description', e.target.value)}
                 style={{ minHeight: 90, ...fs('description') }}
@@ -222,13 +222,13 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
 
             <div className="form-group">
               <label>
-                Remarks
+                {t('we_remarks')}
                 <span style={{ fontWeight: 400, color: 'var(--color-text-muted)', marginLeft: 4 }}>
-                  (optional)
+                  ({t('ui_optional')})
                 </span>
               </label>
               <textarea
-                placeholder="Additional notes or remarks…"
+                placeholder={t('we_remarks_ph')}
                 value={form.remarks}
                 onChange={e => setField('remarks', e.target.value)}
                 style={{ minHeight: 90 }}
@@ -246,11 +246,11 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
           background: 'var(--color-bg)',
           borderRadius: '0 0 12px 12px',
         }}>
-          <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+          <button className="btn btn-ghost" onClick={onCancel}>{t('btn_cancel')}</button>
           <button className="btn btn-primary" onClick={onSave}
             style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <CheckCircle size={15} />
-            {editItem ? 'Save Changes' : 'Log Work Entry'}
+            {editItem ? t('btn_save') : t('we_btn_log')}
           </button>
         </div>
       </div>
@@ -275,7 +275,7 @@ function ListView({ filtered, totalHours, projects, employees, companies,
           <h2>{t('we_title')}</h2>
           <p>
             {workEntries.length} {t('lbl_entries')} ·{' '}
-            {workEntries.reduce((s, w) => s + getWorkEntryHours(w), 0).toFixed(1)}h total
+            {workEntries.reduce((s, w) => s + getWorkEntryHours(w), 0).toFixed(1)}h {t('lbl_total').toLowerCase()}
           </p>
         </div>
         <button id="add-work-btn" className="btn btn-primary" onClick={onAdd}>
@@ -285,14 +285,14 @@ function ListView({ filtered, totalHours, projects, employees, companies,
 
       {/* Summary strip */}
       <div className="summary-row" style={{ marginBottom: 20 }}>
-        <div className="summary-item"><p>Filtered Entries</p><h4>{filtered.length}</h4></div>
-        <div className="summary-item"><p>Filtered Hours</p><h4>{totalHours.toFixed(1)}h</h4></div>
+        <div className="summary-item"><p>{t('we_filtered_entries')}</p><h4>{filtered.length}</h4></div>
+        <div className="summary-item"><p>{t('we_filtered_hours')}</p><h4>{totalHours.toFixed(1)}h</h4></div>
         <div className="summary-item">
-          <p>Avg Hours / Entry</p>
+          <p>{t('we_avg_entry')}</p>
           <h4>{filtered.length > 0 ? (totalHours / filtered.length).toFixed(1) : '0'}h</h4>
         </div>
         <div className="summary-item">
-          <p>Active Projects</p>
+          <p>{t('we_active_projects')}</p>
           <h4>{projects.filter(p => p.status === 'Active').length}</h4>
         </div>
       </div>
@@ -305,36 +305,36 @@ function ListView({ filtered, totalHours, projects, employees, companies,
             <div className="search-input-wrapper" style={{ flex: 1, minWidth: 180 }}>
               <Search size={16} className="search-icon" />
               <input id="search-entries"
-                placeholder="Search employee, project, description…"
+                placeholder={t('we_search_ph')}
                 value={search} onChange={e => setSearch(e.target.value)} />
             </div>
 
             <DatePicker value={filterDate}
               onChange={e => setFilterDate(e.target.value)}
-              style={{ maxWidth: 155 }} title="Filter by date" />
+              style={{ maxWidth: 155 }} title={t('ui_filter_by_date')} />
 
             <select value={filterEmployee}
               onChange={e => setFilterEmployee(e.target.value)} style={{ maxWidth: 175 }}>
-              <option value="">All Employees</option>
+              <option value="">{t('we_all_employees')}</option>
               {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
 
             <select value={filterClient}
               onChange={e => { setFilterClient(e.target.value); setFilterProject(''); }}
               style={{ maxWidth: 190 }}>
-              <option value="">All Clients</option>
+              <option value="">{t('we_all_clients')}</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
 
             <select value={filterProject}
               onChange={e => setFilterProject(e.target.value)} style={{ maxWidth: 190 }}>
-              <option value="">All Projects</option>
+              <option value="">{t('we_all_projects')}</option>
               {filterProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
 
             {hasFilters && (
               <button className="btn btn-ghost btn-sm" onClick={clearFilters}>
-                <Filter size={13} /> Clear
+                <Filter size={13} /> {t('we_clear')}
               </button>
             )}
           </div>
@@ -346,18 +346,18 @@ function ListView({ filtered, totalHours, projects, employees, companies,
             <thead>
               <tr>
                 <th>#</th>
-                <th>Date</th>
-                <th>Employee</th>
-                <th>Client</th>
-                <th>Project</th>
-                <th>Time</th>
-                <th>Normal Hours</th>
-                <th>Normal OT</th>
-                <th>Weekend OT</th>
-                <th>Weekly Hours</th>
-                <th>Description</th>
-                <th>Remarks</th>
-                <th>Actions</th>
+                <th>{t('lbl_date')}</th>
+                <th>{t('lbl_employee')}</th>
+                <th>{t('we_client')}</th>
+                <th>{t('lbl_project')}</th>
+                <th>{t('dash_time')}</th>
+                <th>{t('we_normal_hours')}</th>
+                <th>{t('we_normal_ot_short')}</th>
+                <th>{t('we_weekend_ot_short')}</th>
+                <th>{t('we_weekly_hours')}</th>
+                <th>{t('we_description')}</th>
+                <th>{t('we_remarks')}</th>
+                <th>{t('lbl_actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -371,7 +371,7 @@ function ListView({ filtered, totalHours, projects, employees, companies,
                     <td>
                       <div style={{ fontWeight: 600 }}>{w.date}</div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-                        {new Date(w.date + 'T00:00:00').toLocaleDateString('sv-SE', { weekday: 'short' })}
+                        {new Date(w.date + 'T00:00:00').toLocaleDateString(t('ui_locale'), { weekday: 'short' })}
                       </div>
                     </td>
                     <td>
@@ -403,11 +403,11 @@ function ListView({ filtered, totalHours, projects, employees, companies,
                     </td>
                     <td>
                       <div className="table-actions">
-                        <button className="btn btn-ghost btn-icon btn-sm" title="Edit"
+                        <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_edit')}
                           onClick={() => onEdit(w)}>
                           <Pencil size={15} />
                         </button>
-                        <button className="btn btn-ghost btn-icon btn-sm" title="Delete"
+                        <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_delete')}
                           onClick={() => onDelete(w)}
                           style={{ color: 'var(--color-danger)' }}>
                           <Trash2 size={15} />
@@ -422,10 +422,10 @@ function ListView({ filtered, totalHours, projects, employees, companies,
                 <tr><td colSpan={10}>
                   <div className="empty-state">
                     <div className="empty-state-icon"><ClipboardList size={32} /></div>
-                    <h3>No work entries found</h3>
+                    <h3>{t('we_no_entries')}</h3>
                     <p>{hasFilters
-                      ? 'No entries match the current filters.'
-                      : 'Start by logging the first work entry.'}</p>
+                      ? t('we_no_match')
+                      : t('we_start_first')}</p>
                     {!hasFilters && (
                       <button className="btn btn-primary" onClick={onAdd}>
                         <Plus size={16} /> {t('we_btn_log')}
@@ -550,11 +550,11 @@ export default function WorkEntry() {
 
   const handleSave = async () => {
     const e = {};
-    if (!form.date)                                                         e.date        = 'Date is required';
-    if (!form.employeeId)                                                   e.employeeId  = 'Employee is required';
-    if (!form.projectId)                                                    e.projectId   = 'Project is required';
-    if (!form.description?.trim())                                          e.description = 'Work description is required';
-    if (!form.startTime || !form.endTime)                                    e.hours = 'Start and end time are required';
+    if (!form.date)                                                         e.date        = t('we_err_date');
+    if (!form.employeeId)                                                   e.employeeId  = t('we_err_employee');
+    if (!form.projectId)                                                    e.projectId   = t('we_err_project_required');
+    if (!form.description?.trim())                                          e.description = t('we_err_description_required');
+    if (!form.startTime || !form.endTime)                                    e.hours = t('we_err_time');
     if (Object.keys(e).length > 0) { setErrors(e); return; }
 
     const isWeekend = [0, 6].includes(new Date(`${form.date}T00:00:00`).getDay());
@@ -599,13 +599,13 @@ export default function WorkEntry() {
           form={form} errors={errors} submitError={submitError} setField={setField}
           onSave={handleSave} onCancel={handleCancel} editItem={editItem}
           companies={companies} formProjects={formProjects}
-          activeEmployees={activeEmployees} getCompanyById={getCompanyById} workEntries={workEntries}
+          activeEmployees={activeEmployees} getCompanyById={getCompanyById} workEntries={workEntries} t={t}
         />
         <ConfirmDeleteModal
           isOpen={!!deleteTarget}
           onClose={() => setDeleteTarget(null)}
           onConfirm={handleDelete}
-          itemName={`work entry on ${deleteTarget?.date}`}
+          itemName={t('we_delete_item', [deleteTarget?.date])}
         />
       </>
     );
@@ -633,7 +633,7 @@ export default function WorkEntry() {
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
-        itemName={`work entry on ${deleteTarget?.date}`}
+          itemName={t('we_delete_item', [deleteTarget?.date])}
       />
     </>
   );

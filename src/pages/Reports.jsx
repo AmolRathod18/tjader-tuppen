@@ -13,6 +13,7 @@ import jsPDF from 'jspdf';
 import logoUrl from '../assets/TJADERTUPPEN_Logo.jpeg';
 import { getWorkEntryBreakdown, getWorkEntryHours, getWeeklyHours } from '../utils/workHours';
 import { translateToSwedish } from '../utils/api';
+import { Modal } from '../components/ui/Modal';
 
 // ─── helpers ────────────────────────────────────────────────
 function fmt(d) { return d.toISOString().split('T')[0]; }
@@ -595,6 +596,7 @@ export default function Reports() {
   // Custom
   const [fromDate, setFromDate] = useState('');
   const [toDate,   setToDate]   = useState('');
+  const [reportMessage, setReportMessage] = useState('');
 
   // Derived week dates
   const wsDate = new Date(weekStart + 'T00:00:00');
@@ -692,7 +694,10 @@ export default function Reports() {
   };
 
   const handleDownloadPDF = async () => {
-    if (filtered.length === 0) return;
+    if (filtered.length === 0) {
+      setReportMessage('There are no work entries for the selected period and filters. Add a work entry or adjust the filters before downloading a PDF.');
+      return;
+    }
     try {
       const { title, subtitle } = getReportTitle();
       const translated = await translateReportDescriptions(filtered, reportExpenditures, lang, auth.token);
@@ -710,7 +715,10 @@ export default function Reports() {
   };
 
   const handlePreviewPDF = async () => {
-    if (filtered.length === 0) return;
+    if (filtered.length === 0) {
+      setReportMessage('There are no work entries for the selected period and filters. Add a work entry or adjust the filters before previewing a PDF.');
+      return;
+    }
     try {
       const { title, subtitle } = getReportTitle();
       const translated = await translateReportDescriptions(filtered, reportExpenditures, lang, auth.token);
@@ -734,10 +742,10 @@ export default function Reports() {
           </p>
         </div>
         <div className="page-header-actions" style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-outline" onClick={handlePreviewPDF} disabled={filtered.length === 0}>
+          <button className="btn btn-outline" onClick={handlePreviewPDF}>
             <FileText size={15} /> Preview PDF
           </button>
-          <button className="btn btn-primary" onClick={handleDownloadPDF} disabled={filtered.length === 0}>
+          <button className="btn btn-primary" onClick={handleDownloadPDF}>
             <Download size={15} /> Download PDF
           </button>
         </div>
@@ -923,10 +931,10 @@ export default function Reports() {
             <p>{reportScope}</p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-outline btn-sm" onClick={handlePreviewPDF} disabled={filtered.length === 0}>
+            <button className="btn btn-outline btn-sm" onClick={handlePreviewPDF}>
               <FileText size={13} /> Preview
             </button>
-            <button className="btn btn-primary btn-sm" onClick={handleDownloadPDF} disabled={filtered.length === 0}>
+            <button className="btn btn-primary btn-sm" onClick={handleDownloadPDF}>
               <Download size={13} /> PDF
             </button>
           </div>
@@ -1008,6 +1016,15 @@ export default function Reports() {
           </div>
         )}
       </div>
+      <Modal
+        isOpen={!!reportMessage}
+        onClose={() => setReportMessage('')}
+        title="No report data"
+        subtitle="PDF action unavailable"
+        footer={<button className="btn btn-primary" onClick={() => setReportMessage('')}>Close</button>}
+      >
+        <p className="report-empty-message">{reportMessage}</p>
+      </Modal>
     </div>
   );
 }

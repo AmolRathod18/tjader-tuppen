@@ -87,7 +87,7 @@ export default function Expenditure() {
           <input placeholder="Search project, employee or place…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
-      <div className="table-wrapper">
+      <div className="table-wrapper table-expenditures">
         <table><thead><tr><th>#</th><th>Date</th><th>Project</th><th>Employee</th><th>Journey</th><th>Kilometers</th><th>Actions</th></tr></thead>
           <tbody>{filtered.map((item, index) => {
             const project = getProjectById(item.projectId);

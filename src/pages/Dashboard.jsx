@@ -76,13 +76,13 @@ export default function Dashboard() {
     <div>
       {/* ── Stat Cards ── */}
       <div className="stat-grid">
-        <StatCard label="Total Clients"       value={companies.length}              subtext={`${companies.length} registered`}                     colorClass="blue"   icon={Building2} />
-        <StatCard label="Active Projects"     value={activeProjects}                subtext={`${projects.length} total`}                           colorClass="green"  icon={FolderKanban} />
-        <StatCard label="Total Employees"     value={activeEmployees}               subtext={`${employees.length} total`}                          colorClass="purple" icon={Users} />
-        <StatCard label="Today's Work Entries" value={todayEntries.length}          subtext={today}                                                colorClass="orange" icon={CalendarCheck} />
-        <StatCard label="Normal Working Hours" value={hourTotals.normal.toFixed(1) + 'h'} subtext={`${workEntries.length} entries`} colorClass="blue" icon={Clock} />
-        <StatCard label="Normal Overtime" value={hourTotals.overtime.toFixed(1) + 'h'} subtext="manually entered" colorClass="orange" icon={TrendingUp} />
-        <StatCard label="Weekend Overtime" value={hourTotals.weekend.toFixed(1) + 'h'} subtext="Saturday and Sunday" colorClass="purple" icon={CalendarCheck} />
+        <StatCard label="Clients" value={companies.length} subtext={`${companies.length} registered`} colorClass="blue" icon={Building2} />
+        <StatCard label="Active projects" value={activeProjects} subtext={`${projects.length} total`} colorClass="green" icon={FolderKanban} />
+        <StatCard label="Employees" value={activeEmployees} subtext={`${employees.length} total`} colorClass="purple" icon={Users} />
+        <StatCard label="Today's entries" value={todayEntries.length} subtext={today} colorClass="orange" icon={CalendarCheck} />
+        <StatCard label="Regular hours" value={hourTotals.normal.toFixed(1) + 'h'} subtext={`${workEntries.length} entries`} colorClass="blue" icon={Clock} />
+        <StatCard label="Regular overtime" value={hourTotals.overtime.toFixed(1) + 'h'} subtext="Manually entered" colorClass="orange" icon={TrendingUp} />
+        <StatCard label="Weekend overtime" value={hourTotals.weekend.toFixed(1) + 'h'} subtext="Saturday and Sunday" colorClass="purple" icon={CalendarCheck} />
       </div>
 
       {/* ── Today's Work Entries ── */}
@@ -165,15 +165,16 @@ export default function Dashboard() {
           <div className="card-body">
             <div className="chart-container">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E3DDD2" />
-                  <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#94A3B8' }} />
-                  <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} />
+                <BarChart data={chartData} margin={{ top: 12, right: 16, left: 4, bottom: 8 }}>
+                  <CartesianGrid vertical={false} strokeDasharray="4 6" stroke="#E5DED2" />
+                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#7D827B' }} />
+                  <YAxis axisLine={false} tickLine={false} width={30} tick={{ fontSize: 11, fill: '#7D827B' }} />
                   <Tooltip
-                    contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }}
+                    cursor={false}
+                    contentStyle={{ borderRadius: 10, border: '1px solid #D9C9A9', boxShadow: '0 8px 20px rgba(46, 55, 48, 0.12)', fontSize: 12 }}
                     formatter={(v) => [`${v}h`, 'Hours']}
                   />
-                  <Bar dataKey="hours" fill="#B88A3B" radius={[4,4,0,0]} />
+                  <Bar dataKey="hours" fill="#B88A3B" radius={[6,6,2,2]} maxBarSize={52} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

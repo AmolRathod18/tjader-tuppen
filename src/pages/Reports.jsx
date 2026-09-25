@@ -853,34 +853,34 @@ export default function Reports() {
       </div>
 
       {/* ── Summary Stats ── */}
-      <div className="stat-grid" style={{ marginBottom: 20 }}>
+      <div className="stat-grid report-stat-grid" style={{ marginBottom: 20 }}>
         <div className="stat-card blue">
-          <div className="stat-icon"><Clock size={20} /></div>
-          <div className="stat-content">
+          <div className="stat-icon blue"><Clock size={20} /></div>
+          <div className="stat-info">
             <p>Normal Working Hours</p>
             <h3>{reportTotals.normal.toFixed(1)}h</h3>
             <span>for selected period</span>
           </div>
         </div>
         <div className="stat-card green">
-          <div className="stat-icon"><FileText size={20} /></div>
-          <div className="stat-content">
+          <div className="stat-icon green"><FileText size={20} /></div>
+          <div className="stat-info">
             <p>Total Entries</p>
             <h3>{filtered.length}</h3>
             <span>work entries found</span>
           </div>
         </div>
         <div className="stat-card purple">
-          <div className="stat-icon"><Users size={20} /></div>
-          <div className="stat-content">
+          <div className="stat-icon purple"><Users size={20} /></div>
+          <div className="stat-info">
             <p>Employees</p>
             <h3>{[...new Set(filtered.map(w => w.employeeId))].length}</h3>
             <span>in this report</span>
           </div>
         </div>
         <div className="stat-card orange">
-          <div className="stat-icon"><FolderKanban size={20} /></div>
-          <div className="stat-content">
+          <div className="stat-icon orange"><FolderKanban size={20} /></div>
+          <div className="stat-info">
             <p>Projects</p>
             <h3>{[...new Set(filtered.map(w => w.projectId))].length}</h3>
             <span>covered</span>
@@ -890,23 +890,24 @@ export default function Reports() {
 
       {/* ── Chart ── */}
       {chartData.length > 0 && (
-        <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card report-chart-card" style={{ marginBottom: 20 }}>
           <div className="card-header">
             <div><h3>Hours per Day</h3><p>{selectedEmployee ? `Work hours for ${selectedEmployee.name}` : 'Combined work hours for all employees'} across the selected period</p></div>
             <BarChart3 size={20} color="var(--color-text-muted)" />
           </div>
           <div className="card-body">
-            <div className="chart-container">
+            <div className="chart-container report-chart-container">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E3DDD2" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94A3B8' }} />
-                  <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} />
+                <BarChart data={chartData} margin={{ top: 12, right: 18, left: 4, bottom: 8 }}>
+                  <CartesianGrid vertical={false} strokeDasharray="4 6" stroke="#E5DED2" />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#7D827B' }} />
+                  <YAxis axisLine={false} tickLine={false} width={32} tick={{ fontSize: 11, fill: '#7D827B' }} />
                   <Tooltip
-                    contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }}
+                    cursor={false}
+                    contentStyle={{ borderRadius: 10, border: '1px solid #D9C9A9', boxShadow: '0 8px 20px rgba(46, 55, 48, 0.12)', fontSize: 12 }}
                     formatter={(v) => [`${v}h`, 'Hours']}
                   />
-                  <Bar dataKey="hours" fill="#B88A3B" radius={[4,4,0,0]} />
+                  <Bar dataKey="hours" fill="#B88A3B" radius={[6,6,2,2]} maxBarSize={56} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -915,7 +916,7 @@ export default function Reports() {
       )}
 
       {/* ── Entries Table ── */}
-      <div className="card">
+      <div className="card report-entries-card">
         <div className="card-header">
           <div>
             <h3>Work Entries</h3>

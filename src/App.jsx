@@ -19,6 +19,7 @@ function ProtectedRoute({ children }) {
   const { auth } = useApp();
   const location = useLocation();
 
+  if (auth.loading) return null;
   if (!auth.isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }

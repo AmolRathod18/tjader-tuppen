@@ -1,115 +1,143 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { getWorkEntryHours } from '../utils/workHours';
-import { request } from '../utils/api';
+import { supabase } from '../lib/supabase';
+import {
+  deleteRow,
+  insertRow,
+  mapPayload,
+  mapRow,
+  normalizeSupabaseError,
+  selectRows,
+  updateRow,
+} from '../utils/supabaseData';
 
 const AppContext = createContext(null);
-const AUTH_KEY = 'wms_auth';
-
-const camelToSnake = (key) => key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-const snakeToCamel = (key) => key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-const mapRow = (row) => Object.fromEntries(Object.entries(row).map(([key, value]) => {
-  const frontendKey = snakeToCamel(key);
-  const frontendValue = (frontendKey === 'startTime' || frontendKey === 'endTime') && typeof value === 'string'
-    ? value.slice(0, 5)
-    : value;
-  return [frontendKey, frontendValue];
-}));
-const mapPayload = (data) => Object.fromEntries(
-  Object.entries(data).filter(([, value]) => value !== undefined).map(([key, value]) => [camelToSnake(key), value]),
-);
 
 export function AppProvider({ children }) {
-  const [auth, setAuthState] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(AUTH_KEY)) || { isAuthenticated: false, user: null }; }
-    catch { return { isAuthenticated: false, user: null }; }
-  });
-  const token = auth.token;
+  const [auth, setAuthState] = useState({ isAuthenticated: false, loading: true, user: null, session: null });
   const [companies, setCompanies] = useState([]);
   const [projects, setProjects] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [workEntries, setWorkEntries] = useState([]);
   const [expenditures, setExpenditures] = useState([]);
 
-  const setAuth = (authData) => {
-    const next = { ...authData };
-    setAuthState(next);
-    localStorage.setItem(AUTH_KEY, JSON.stringify(next));
+  useEffect(() => {
+    let mounted = true;
+    const applySession = async (session) => {
+      if (!session?.user) {
+        if (mounted) setAuthState({ isAuthenticated: false, loading: false, user: null, session: null });
+        return;
+      }
+      const { data, error } = await supabase
+        .from('admin_profiles')
+        .select('id, username, email, role, created_at, updated_at')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      if (!mounted) return;
+      if (error || !data || data.role !== 'admin') {
+        await supabase.auth.signOut();
+        setAuthState({ isAuthenticated: false, loading: false, user: null, session: null });
+        return;
+      }
+      setAuthState({ isAuthenticated: true, loading: false, user: { ...session.user, ...mapRow(data) }, session });
+    };
+    supabase.auth.getSession().then(({ data: { session } }) => applySession(session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => applySession(session));
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw normalizeSupabaseError(error);
   };
-  const logout = () => {
-    setAuthState({ isAuthenticated: false, user: null });
-    localStorage.removeItem(AUTH_KEY);
-  };
+
   const updateAdmin = async (data) => {
-    const response = await request('/auth/me', { method: 'PATCH', body: JSON.stringify(data) }, token);
-    const next = { ...auth, user: response };
-    setAuthState(next);
-    localStorage.setItem(AUTH_KEY, JSON.stringify(next));
-    return response;
+    const emailChanged = data.email && data.email !== auth.user.email;
+    if (data.current_password) {
+      const { error } = await supabase.auth.signInWithPassword({ email: auth.user.email, password: data.current_password });
+      if (error) throw normalizeSupabaseError(error);
+    }
+    const { error: authError } = await supabase.auth.updateUser({
+      ...(emailChanged ? { email: data.email } : {}),
+      ...(data.password ? { password: data.password } : {}),
+    });
+    if (authError) throw normalizeSupabaseError(authError);
+    const { data: profile, error: profileError } = await supabase
+      .from('admin_profiles')
+      .update({ username: data.username, ...(emailChanged ? { email: data.email } : {}) })
+      .eq('id', auth.user.id)
+      .select('id, username, email, role, created_at, updated_at')
+      .single();
+    if (profileError) throw normalizeSupabaseError(profileError);
+    const nextUser = { ...auth.user, ...mapRow(profile) };
+    setAuthState(current => ({ ...current, user: nextUser }));
+    return nextUser;
   };
 
   const loadCompanies = async () => {
-    if (!token) return;
-    const response = await request('/api/companies', {}, token);
-    setCompanies(response.map(mapRow));
+    setCompanies(await selectRows('companies'));
   };
   const loadProjects = async () => {
-    if (!token) return;
-    const response = await request('/api/projects', {}, token);
-    setProjects(response.map(mapRow));
+    setProjects(await selectRows('projects'));
   };
   const loadEmployees = async () => {
-    if (!token) return;
-    const response = await request('/api/employees', {}, token);
-    setEmployees(response.map(mapRow));
+    setEmployees(await selectRows('employees'));
   };
   const loadWorkEntries = async () => {
-    if (!token) return;
-    const response = await request('/api/work-entries', {}, token);
-    setWorkEntries(response.map(mapRow));
+    setWorkEntries(await selectRows('work_entries'));
   };
   const loadExpenditures = async () => {
-    if (!token) return;
-    const response = await request('/api/expenditures', {}, token);
-    setExpenditures(response.map(mapRow));
+    setExpenditures(await selectRows('expenditures'));
   };
   const loadAll = async () => {
     await Promise.all([loadCompanies(), loadProjects(), loadEmployees(), loadWorkEntries()]);
   };
 
-  const mutate = async (path, method, data, setter, id) => {
-    const result = await request(path, { method, body: data ? JSON.stringify(mapPayload(data)) : undefined }, token);
-    if (method === 'DELETE') {
-      setter(items => items.filter(item => item.id !== id));
-    } else if (method === 'POST') {
-      setter(items => [...items, mapRow(result)]);
-    } else {
-      setter(items => items.map(item => item.id === id ? mapRow(result) : item));
-    }
-    return result ? mapRow(result) : null;
+  const mutate = async (table, method, data, setter, id) => {
+    const result = method === 'DELETE'
+      ? await deleteRow(table, id)
+      : method === 'POST'
+        ? await insertRow(table, data)
+        : await updateRow(table, id, data);
+    if (method === 'DELETE') setter(items => items.filter(item => item.id !== id));
+    else if (method === 'POST') setter(items => [...items, result]);
+    else setter(items => items.map(item => item.id === id ? result : item));
+    return result;
   };
 
-  const addCompany = (data) => mutate('/api/companies', 'POST', data, setCompanies);
-  const updateCompany = (id, data) => mutate(`/api/companies/${id}`, 'PATCH', data, setCompanies, id);
-  const deleteCompany = (id) => mutate(`/api/companies/${id}`, 'DELETE', null, setCompanies, id);
-  const addProject = (data) => mutate('/api/projects', 'POST', data, setProjects);
-  const updateProject = (id, data) => mutate(`/api/projects/${id}`, 'PATCH', data, setProjects, id);
-  const deleteProject = (id) => mutate(`/api/projects/${id}`, 'DELETE', null, setProjects, id);
-  const addEmployee = (data) => mutate('/api/employees', 'POST', data, setEmployees);
-  const updateEmployee = (id, data) => mutate(`/api/employees/${id}`, 'PATCH', data, setEmployees, id);
-  const deleteEmployee = (id) => mutate(`/api/employees/${id}`, 'DELETE', null, setEmployees, id);
-  const addWorkEntry = (data) => mutate('/api/work-entries', 'POST', {
-    ...data,
-  }, setWorkEntries);
-  const updateWorkEntry = (id, data) => mutate(`/api/work-entries/${id}`, 'PATCH', {
-    ...data,
-  }, setWorkEntries, id);
-  const deleteWorkEntry = (id) => mutate(`/api/work-entries/${id}`, 'DELETE', null, setWorkEntries, id);
-  const addExpenditure = (data) => mutate('/api/expenditures', 'POST', data, setExpenditures);
-  const updateExpenditure = (id, data) => mutate(`/api/expenditures/${id}`, 'PATCH', data, setExpenditures, id);
-  const deleteExpenditure = (id) => mutate(`/api/expenditures/${id}`, 'DELETE', null, setExpenditures, id);
+  const addCompany = data => mutate('companies', 'POST', data, setCompanies);
+  const updateCompany = (id, data) => mutate('companies', 'PATCH', data, setCompanies, id);
+  const deleteCompany = id => mutate('companies', 'DELETE', null, setCompanies, id);
+  const addProject = data => mutate('projects', 'POST', data, setProjects);
+  const updateProject = (id, data) => mutate('projects', 'PATCH', data, setProjects, id);
+  const deleteProject = id => mutate('projects', 'DELETE', null, setProjects, id);
+  const addEmployee = data => mutate('employees', 'POST', data, setEmployees);
+  const updateEmployee = (id, data) => mutate('employees', 'PATCH', data, setEmployees, id);
+  const deleteEmployee = id => mutate('employees', 'DELETE', null, setEmployees, id);
+  const callWorkEntry = async (name, args, setter, id) => {
+    const { data, error } = await supabase.rpc(name, args);
+    if (error) throw normalizeSupabaseError(error);
+    const result = mapRow(Array.isArray(data) ? data[0] : data);
+    if (id) setter(items => items.map(item => item.id === id ? result : item));
+    else setter(items => [...items, result]);
+    return result;
+  };
+  const addWorkEntry = data => callWorkEntry('create_work_entry', { entry_payload: mapPayload(data) }, setWorkEntries);
+  const updateWorkEntry = (id, data) => callWorkEntry('update_work_entry', { entry_id: id, entry_payload: mapPayload(data) }, setWorkEntries, id);
+  const deleteWorkEntry = async id => {
+    const { error } = await supabase.from('work_entries').delete().eq('id', id);
+    if (error) throw normalizeSupabaseError(error);
+    setWorkEntries(items => items.filter(item => item.id !== id));
+  };
+  const addExpenditure = data => mutate('expenditures', 'POST', data, setExpenditures);
+  const updateExpenditure = (id, data) => mutate('expenditures', 'PATCH', data, setExpenditures, id);
+  const deleteExpenditure = id => mutate('expenditures', 'DELETE', null, setExpenditures, id);
 
   const value = useMemo(() => ({
-    auth, setAuth, logout, updateAdmin, loadCompanies, loadProjects, loadEmployees, loadWorkEntries, loadExpenditures, loadAll,
+    auth, logout, updateAdmin, loadCompanies, loadProjects, loadEmployees, loadWorkEntries, loadExpenditures, loadAll,
     companies, addCompany, updateCompany, deleteCompany,
     projects, addProject, updateProject, deleteProject,
     employees, addEmployee, updateEmployee, deleteEmployee,
@@ -122,7 +150,7 @@ export function AppProvider({ children }) {
     getWorkEntriesByProject: id => workEntries.filter(item => item.projectId === id),
     getTotalHours: entries => entries.reduce((sum, entry) => sum + getWorkEntryHours(entry), 0),
     getWorkEntryHours,
-  }), [auth, companies, projects, employees, workEntries]);
+  }), [auth, companies, projects, employees, workEntries, expenditures]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

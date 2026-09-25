@@ -1,68 +1,87 @@
 # TJÄDERTUPPEN Management System
 
-## Backend setup
+## Supabase setup
 
-The FastAPI backend is in [`backend/`](./backend). It uses the Supabase service key
-only on the server; never put that key in a `VITE_*` variable or browser code.
+The browser uses Supabase Auth, PostgreSQL, and RLS directly. The former FastAPI
+backend and Render deployment files have been removed; the frontend does not use
+a custom backend.
 
-1. Copy `backend/.env.example` to `backend/.env` and fill in the Supabase URL,
-   service-role key, JWT secret, and administrator password.
-2. Run [`backend/schema.sql`](./backend/schema.sql) in the Supabase SQL editor.
-   For an existing database, run [`backend/create_admin.sql`](./backend/create_admin.sql)
-   instead (or run both if the base schema has not been applied yet).
-   If the existing database was created before expenditure tracking was added,
-   also run [`backend/create_expenditures.sql`](./backend/create_expenditures.sql).
-   For the working-hour categories, run [`backend/working_hours.sql`](./backend/working_hours.sql)
-   against an existing database.
-3. Install and start the API:
+1. Create a Supabase project and open the SQL editor.
+2. Apply [`supabase/migrations/0001_initial_schema.sql`](./supabase/migrations/0001_initial_schema.sql), then
+   [`supabase/migrations/0002_security_and_work_entry_rpc.sql`](./supabase/migrations/0002_security_and_work_entry_rpc.sql).
+3. In Authentication, create the first user with an email and password. Do not
+   use the old `admins.password_hash` table for authentication.
+4. Insert the matching profile as the first administrator:
+
+```sql
+insert into public.admin_profiles (id, username, email, role)
+select id, 'admin', email, 'admin'
+from auth.users
+where email = 'admin@example.com';
+```
+
+Replace the username and email with the values used in Supabase Auth. The first
+login field accepts an email address. Username login is intentionally not exposed
+because resolving usernames for anonymous login would create an account-enumeration
+endpoint.
+
+## Environment and local development
+
+Copy [`.env.example`](./.env.example) to `.env.local` and set:
+
+```text
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-or-publishable-key
+```
+
+Only the anon/publishable key belongs in Vite variables. Never put a service-role
+key, secret key, JWT secret, password, or password hash in frontend code or any
+`VITE_*` variable.
 
 ```powershell
-cd backend
-python -m venv .venv
-.\venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+npm install
+npm run dev
 ```
 
-The API documentation is available at `http://127.0.0.1:8000/docs`. Set
-`VITE_API_URL` in the frontend environment when the API is not on port 8000.
-Set `CORS_ORIGINS` in `backend/.env` to a comma-separated list of deployed
-frontend origins. Localhost and `127.0.0.1` origins on any development port are
-allowed automatically.
+For Vercel, set the same two variables for Production, Preview, and Development.
+The rewrite in [`vercel.json`](./vercel.json) keeps React Router routes working on
+refresh.
 
-On the first login, the configured `ADMIN_USERNAME`, `ADMIN_EMAIL`, and
-`ADMIN_PASSWORD` are securely hashed into the `admins` table. After signing in,
-use **Settings** in the administrator sidebar to change the username, email, or
-password. The current password is required for every credentials update.
-Passwords must be between 8 and 72 UTF-8 bytes because bcrypt cannot process
-longer passwords.
+## Security and business rules
 
-Expenditure kilometers are entered as whole numbers (for example, `42`).
+Every browser-accessed table has RLS enabled. Policies require an authenticated
+user whose `admin_profiles.role` is `admin`; anonymous CRUD is denied. The
+`is_admin()` function is `SECURITY DEFINER` with a fixed search path and does not
+trust client-provided role values.
 
-## Frontend
+PostgreSQL generates project numbers (`P-0001`) and employee IDs (`EMP-001`),
+checks project dates, derives a work entry's company and hours, handles overnight
+and weekend entries, prevents overlapping employee entries, and enforces positive
+whole-number kilometers. Work-entry writes use `create_work_entry` and
+`update_work_entry` RPCs so calculated fields cannot be supplied by the browser.
+Foreign-key deletes use `restrict` for business records; employee history still
+cascades with its employee.
 
-The frontend calls the FastAPI service through `VITE_API_URL`. Environment variables
-are embedded at build time, so set this variable in Vercel for Production, Preview,
-and Development as needed:
+Reports and PDF export remain client-side. Automatic description translation was
+removed: Swedish reports preserve the original descriptions. Interface translation
+continues to use the frontend translation files. No translation provider key is
+sent to the browser.
 
-```text
-VITE_API_URL=https://tjader-tuppen-management.onrender.com
-```
+## RLS verification checklist
 
-In Render, set the backend `CORS_ORIGINS` variable to the exact Vercel deployment
-origin:
+Use the Supabase SQL editor or a SQL test runner with separate sessions to verify:
 
-```text
-CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://tjadertuppen-management.vercel.app
-```
+- `anon` cannot select, insert, update, or delete business rows.
+- An authenticated non-admin cannot access business rows.
+- An authenticated admin can perform intended CRUD operations.
+- An admin cannot change `admin_profiles.role` away from `admin`.
+- Invalid dates, kilometers, company/project relationships, overlaps, and derived
+  hour values are rejected or calculated by PostgreSQL.
 
-Include any custom domain as another comma-separated origin. Do not include a trailing slash, and never put
-Supabase keys, JWT secrets, or administrator credentials in a `VITE_*` variable.
-
-After deploying, verify the backend at
-`https://tjader-tuppen-management.onrender.com/health` and then open the Vercel URL
-to test login. The Vercel rewrite in `vercel.json` keeps React Router routes working
-when a page is refreshed.
+The migration cannot be called fully verified until these checks are run against
+the target Supabase project with an anon session and real Auth users. Complete a
+full CRUD, report, PDF, reload-session, logout, and password-update pass after
+deploying the migrations.
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 

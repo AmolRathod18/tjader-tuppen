@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
-import { useApp } from '../context/AppContext';
-import { request } from '../utils/api';
+import { supabase } from '../lib/supabase';
+import { normalizeSupabaseError } from '../utils/supabaseData';
 import { LockKeyhole, AlertCircle, ArrowRight, BarChart3, CheckCircle2, Clock3, ShieldCheck, UserRound } from 'lucide-react';
 import logo from '../assets/TJADERTUPPEN_Logo.jpeg';
 
 export default function Login() {
   const { lang, setLang, t } = useLanguage();
   const navigate = useNavigate();
-  const { setAuth } = useApp();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,11 +21,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const body = await request('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ username: email, password }),
-      });
-      setAuth({ isAuthenticated: true, token: body.access_token, user: body.user });
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (signInError) throw normalizeSupabaseError(signInError);
       navigate('/dashboard');
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : String(submitError));

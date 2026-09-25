@@ -12,7 +12,6 @@ import {
 import jsPDF from 'jspdf';
 import logoUrl from '../assets/TJADERTUPPEN_Logo.jpeg';
 import { getWorkEntryBreakdown, getWorkEntryHours, getWeeklyHours } from '../utils/workHours';
-import { translateToSwedish } from '../utils/api';
 import { Modal } from '../components/ui/Modal';
 
 // ─── helpers ────────────────────────────────────────────────
@@ -67,33 +66,9 @@ async function loadLogoData() {
   });
 }
 
-async function translateReportDescriptions(entries, expenditures, lang, token) {
+async function translateReportDescriptions(entries, expenditures, lang) {
   if (lang !== 'sv') return { entries, expenditures };
-
-  const sourceTexts = [
-    ...entries.map(entry => entry.description).filter(Boolean),
-    ...expenditures.map(item => item.remarks).filter(Boolean),
-  ];
-  const uniqueTexts = [...new Set(sourceTexts)];
-  if (uniqueTexts.length === 0) return { entries, expenditures };
-
-  try {
-    const translated = await translateToSwedish(uniqueTexts, token);
-    const translations = new Map(uniqueTexts.map((text, index) => [text, translated[index]]));
-    return {
-      entries: entries.map(entry => ({
-        ...entry,
-        description: entry.description ? translations.get(entry.description) || entry.description : entry.description,
-      })),
-      expenditures: expenditures.map(item => ({
-        ...item,
-        remarks: item.remarks ? translations.get(item.remarks) || item.remarks : item.remarks,
-      })),
-    };
-  } catch (error) {
-    console.error('Unable to translate report descriptions to Swedish:', error);
-    throw new Error(error?.message || 'Swedish description translation failed');
-  }
+  return { entries, expenditures };
 }
 
 async function buildPDF({ lang, title, subtitle, entries, expenditures, getProjectById, getCompanyById, getEmployeeById }) {
@@ -564,7 +539,7 @@ const TABS = [
 
 export default function Reports() {
   const {
-    auth, companies, projects, employees, workEntries, expenditures,
+    companies, projects, employees, workEntries, expenditures,
     getProjectById, getEmployeeById, getCompanyById,
     loadCompanies, loadProjects, loadEmployees, loadWorkEntries, loadExpenditures,
   } = useApp();
@@ -700,7 +675,7 @@ export default function Reports() {
     }
     try {
       const { title, subtitle } = getReportTitle();
-      const translated = await translateReportDescriptions(filtered, reportExpenditures, lang, auth.token);
+      const translated = await translateReportDescriptions(filtered, reportExpenditures, lang);
       const pdf = await buildPDF({ lang, title, subtitle, entries: translated.entries, expenditures: translated.expenditures, getProjectById, getCompanyById, getEmployeeById });
       if (tab === 'daily' && selectedEmployee) {
         const employeeName = sanitizeFilenamePart(selectedEmployee.name);
@@ -721,7 +696,7 @@ export default function Reports() {
     }
     try {
       const { title, subtitle } = getReportTitle();
-      const translated = await translateReportDescriptions(filtered, reportExpenditures, lang, auth.token);
+      const translated = await translateReportDescriptions(filtered, reportExpenditures, lang);
       const pdf = await buildPDF({ lang, title, subtitle, entries: translated.entries, expenditures: translated.expenditures, getProjectById, getCompanyById, getEmployeeById });
       window.open(pdf.output('bloburl'), '_blank');
     } catch (error) {

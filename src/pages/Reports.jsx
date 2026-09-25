@@ -2,17 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer
-} from 'recharts';
-import {
   BarChart3, Download, Calendar, FileText,
-  ChevronLeft, ChevronRight, Filter, Clock, Users, Building2, FolderKanban
+  ChevronLeft, ChevronRight, Filter, Clock, Users, FolderKanban
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import logoUrl from '../assets/TJADERTUPPEN_Logo.jpeg';
-import { getWorkEntryBreakdown, getWorkEntryHours, getWeeklyHours } from '../utils/workHours';
+import { getWorkEntryBreakdown, getWeeklyHours } from '../utils/workHours';
 import { Modal } from '../components/ui/Modal';
+import DatePicker from '../components/ui/DatePicker';
 
 // ─── helpers ────────────────────────────────────────────────
 function fmt(d) { return d.toISOString().split('T')[0]; }
@@ -37,13 +34,13 @@ function getWeekStart(date) {
   return d;
 }
 
-function weekLabel(weekStart, locale = 'en-SE') {
+function weekLabel(weekStart, locale = 'sv-SE') {
   const end = new Date(weekStart);
   end.setDate(end.getDate() + 6);
   return `${weekStart.toLocaleDateString(locale, { day: '2-digit', month: 'short' })} – ${end.toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}`;
 }
 
-function displayDate(str, locale = 'en-SE') {
+function displayDate(str, locale = 'sv-SE') {
   return new Date(str + 'T00:00:00').toLocaleDateString(locale, {
     weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
   });
@@ -60,7 +57,45 @@ async function loadLogoData() {
   const blob = await response.blob();
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const sourceCanvas = document.createElement('canvas');
+        sourceCanvas.width = image.width;
+        sourceCanvas.height = image.height;
+        const sourceContext = sourceCanvas.getContext('2d');
+        sourceContext.drawImage(image, 0, 0);
+        const pixels = sourceContext.getImageData(0, 0, image.width, image.height).data;
+        let left = image.width;
+        let top = image.height;
+        let right = 0;
+        let bottom = 0;
+        for (let y = 0; y < image.height; y += 1) {
+          for (let x = 0; x < image.width; x += 1) {
+            const offset = (y * image.width + x) * 4;
+            const darkness = 255 - Math.min(pixels[offset], pixels[offset + 1], pixels[offset + 2]);
+            if (darkness > 18) {
+              left = Math.min(left, x);
+              top = Math.min(top, y);
+              right = Math.max(right, x);
+              bottom = Math.max(bottom, y);
+            }
+          }
+        }
+        const padding = 10;
+        const cropLeft = Math.max(0, left - padding);
+        const cropTop = Math.max(0, top - padding);
+        const cropWidth = Math.min(image.width - cropLeft, right - left + padding * 2);
+        const cropHeight = Math.min(image.height - cropTop, bottom - top + padding * 2);
+        const cropCanvas = document.createElement('canvas');
+        cropCanvas.width = cropWidth;
+        cropCanvas.height = cropHeight;
+        cropCanvas.getContext('2d').drawImage(image, cropLeft, cropTop, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+        resolve({ data: cropCanvas.toDataURL('image/jpeg', 0.95), width: cropWidth, height: cropHeight });
+      };
+      image.onerror = () => reject(new Error('Unable to decode the TJÄDERTUPPEN logo for the PDF report.'));
+      image.src = reader.result;
+    };
     reader.onerror = () => reject(new Error('Unable to prepare the TJÄDERTUPPEN logo for the PDF report.'));
     reader.readAsDataURL(blob);
   });
@@ -71,11 +106,197 @@ async function translateReportDescriptions(entries, expenditures, lang) {
   return { entries, expenditures };
 }
 
+async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditures, getProjectById, getCompanyById, getEmployeeById }) {
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const PW = 210;
+  const PH = 297;
+  const M = 8;
+  const CW = PW - M * 2;
+  const logoData = await loadLogoData();
+  const employeeIds = [...new Set([
+    ...entries.map(entry => entry.employeeId),
+    ...expenditures.map(item => item.employeeId),
+  ].filter(Boolean))].sort((a, b) => {
+    const nameA = getEmployeeById(a)?.name || '';
+    const nameB = getEmployeeById(b)?.name || '';
+    return nameA.localeCompare(nameB);
+  });
+  const locale = 'sv-SE';
+  const reportTitle = title.replace(/WORK REPORT|ARBETSRAPPORT/gi, lang === 'sv' ? 'RAPPORT' : 'REPORT');
+  const headers = lang === 'sv'
+    ? ['Datum', 'Företag / Projekt', 'Normal\n(tim)', 'ÖT\n(tim)', 'Helg\n(tim)', 'Resa KM', 'Resa tim']
+    : ['Date', 'Company / Project', 'Normal\n(h)', 'OT\n(h)', 'Weekend\n(h)', 'Travel KM', 'Travel Hrs'];
+  const columns = [26, 58, 24, 20, 24, 22, 20];
+
+  const drawPageHeader = (employee) => {
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, 0, PW, PH, 'F');
+    pdf.addImage(logoData.data, 'JPEG', M, 5, 82, 24);
+    pdf.setFillColor(31, 48, 65);
+    pdf.roundedRect(PW - M - 51, 8, 51, 10, 2, 2, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text(reportTitle, PW - M - 25.5, 14.5, { align: 'center' });
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    pdf.setTextColor(24, 29, 33);
+    pdf.text(subtitle, PW - M - 25.5, 23, { align: 'center' });
+    pdf.setDrawColor(157, 169, 178);
+    pdf.setLineWidth(0.35);
+    pdf.line(M, 30, PW - M, 30);
+
+    pdf.setFillColor(247, 249, 251);
+    pdf.roundedRect(M, 34, CW, 16, 2, 2, 'F');
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(92, 101, 109);
+    pdf.text(lang === 'sv' ? 'ANSTÄLLD' : 'EMPLOYEE', M + 4, 40);
+    pdf.text(lang === 'sv' ? 'ANSTÄLLNINGS-ID' : 'EMPLOYEE ID', PW - M - 4, 40, { align: 'right' });
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(employee?.name || 'Unknown employee', M + 4, 46);
+    pdf.text(employee?.empId || '—', PW - M - 4, 46, { align: 'right' });
+  };
+
+  const drawTableHeader = (y) => {
+    pdf.setFillColor(31, 48, 65);
+    pdf.rect(M, y, CW, 14, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(255, 255, 255);
+    let x = M;
+    headers.forEach((header, index) => {
+      const lines = header.split('\n');
+      lines.forEach((line, lineIndex) => pdf.text(line, index > 1 ? x + columns[index] / 2 : x + 3, y + 6 + lineIndex * 4, { align: index > 1 ? 'center' : 'left' }));
+      pdf.setDrawColor(128, 139, 148);
+      pdf.setLineWidth(0.2);
+      pdf.line(x, y, x, y + 14);
+      x += columns[index];
+    });
+    pdf.line(M + CW, y, M + CW, y + 14);
+    return y + 14;
+  };
+
+  employeeIds.forEach((employeeId, employeeIndex) => {
+    if (employeeIndex > 0) pdf.addPage();
+    const employee = getEmployeeById(employeeId);
+    const employeeEntries = entries.filter(entry => entry.employeeId === employeeId);
+    const employeeExpenditures = expenditures.filter(item => item.employeeId === employeeId);
+    const byDate = new Map();
+    employeeEntries.forEach(entry => {
+      const hours = getWorkEntryBreakdown(entry);
+      const row = byDate.get(entry.date) || { date: entry.date, project: '', normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: 0 };
+      const project = getProjectById(entry.projectId);
+      const company = getCompanyById(entry.companyId || project?.companyId);
+      row.project = [company?.name, project?.name].filter(Boolean).join(' / ') || '—';
+      row.normal += hours.normalHours;
+      row.overtime += hours.normalOvertime;
+      row.weekend += hours.weekendOvertime;
+      byDate.set(entry.date, row);
+    });
+    employeeExpenditures.forEach(item => {
+      const row = byDate.get(item.journeyDate) || { date: item.journeyDate, project: '', normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: 0 };
+      const project = getProjectById(item.projectId);
+      const company = project ? getCompanyById(project.companyId) : null;
+      if (!row.project) row.project = [company?.name, project?.name].filter(Boolean).join(' / ') || '—';
+      row.kilometers += Number(item.kilometers || 0);
+      row.travelHours += Number(item.kilometers || 0) / 50;
+      byDate.set(item.journeyDate, row);
+    });
+    const rows = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+    const totals = rows.reduce((sum, row) => ({
+      normal: sum.normal + row.normal,
+      overtime: sum.overtime + row.overtime,
+      weekend: sum.weekend + row.weekend,
+      kilometers: sum.kilometers + row.kilometers,
+      travelHours: sum.travelHours + row.travelHours,
+    }), { normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: 0 });
+
+    drawPageHeader(employee);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(15);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(lang === 'sv' ? '1. Veckotid och resor' : '1. Weekly Working Hours & Travel', M, 66);
+    let y = drawTableHeader(72);
+    rows.forEach((row, index) => {
+      const rowHeight = 13;
+      pdf.setFillColor(index % 2 ? 247 : 255, index % 2 ? 249 : 255, index % 2 ? 251 : 255);
+      pdf.rect(M, y, CW, rowHeight, 'F');
+      pdf.setDrawColor(220, 226, 231);
+      pdf.setLineWidth(0.2);
+      pdf.rect(M, y, CW, rowHeight, 'S');
+      const values = [
+        new Date(`${row.date}T00:00:00`).toLocaleDateString(locale),
+        row.project || '—',
+        row.normal.toFixed(1),
+        row.overtime.toFixed(1),
+        row.weekend.toFixed(1),
+        row.kilometers.toLocaleString(),
+        row.travelHours.toFixed(2).replace(/0$/, ''),
+      ];
+      let x = M;
+      values.forEach((value, valueIndex) => {
+        pdf.setFont('helvetica', valueIndex === 1 ? 'bold' : 'normal');
+        pdf.setFontSize(9.5);
+        pdf.setTextColor(24, 29, 33);
+        pdf.text(String(value), valueIndex > 1 ? x + columns[valueIndex] / 2 : x + 4, y + 8, { align: valueIndex > 1 ? 'center' : 'left' });
+        pdf.line(x, y, x, y + rowHeight);
+        x += columns[valueIndex];
+      });
+      y += rowHeight;
+    });
+    pdf.setFillColor(231, 239, 247);
+    pdf.rect(M, y, CW, 12, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text('TOTAL', M + 4, y + 8);
+    let totalX = M + columns[0] + columns[1];
+    [totals.normal, totals.overtime, totals.weekend, totals.kilometers, totals.travelHours].forEach((value, index) => {
+      const columnIndex = index + 2;
+      pdf.text(index > 2 ? (index === 3 ? value.toLocaleString() : value.toFixed(2).replace(/0$/, '')) : value.toFixed(1), totalX + columns[columnIndex] / 2, y + 8, { align: 'center' });
+      totalX += columns[columnIndex];
+    });
+    y += 24;
+    pdf.setDrawColor(157, 169, 178);
+    pdf.line(M, y, PW - M, y);
+    pdf.setFontSize(15);
+    pdf.text(lang === 'sv' ? '2. Veckosammanfattning' : '2. Weekly Totals', M, y + 11);
+    const boxY = y + 18;
+    const boxW = (CW - 6) / 2;
+    pdf.setFillColor(235, 245, 255);
+    pdf.roundedRect(M, boxY, boxW, 23, 2, 2, 'F');
+    pdf.setFillColor(232, 247, 237);
+    pdf.roundedRect(M + boxW + 6, boxY, boxW, 23, 2, 2, 'F');
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    pdf.setTextColor(61, 75, 87);
+    pdf.text(lang === 'sv' ? 'Total arbetstid' : 'Total Work Hours', M + 24, boxY + 8);
+    pdf.text(lang === 'sv' ? 'Total resa' : 'Total Travel', M + boxW + 30, boxY + 8);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(17);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(`${(totals.normal + totals.overtime + totals.weekend).toFixed(1)} h`, M + 24, boxY + 17);
+    pdf.text(`${totals.kilometers.toLocaleString()} KM -> ${totals.travelHours.toFixed(2).replace(/0$/, '')} hr`, M + boxW + 30, boxY + 17);
+    pdf.setDrawColor(157, 169, 178);
+    pdf.line(M, PH - 18, PW - M, PH - 18);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(92, 101, 109);
+    pdf.text('Tjädertuppen Svets och konsult', PW / 2 - 15, PH - 9, { align: 'right' });
+    pdf.text(`${lang === 'sv' ? 'Sida' : 'Page'} ${employeeIndex + 1}`, PW / 2 + 15, PH - 9);
+  });
+  return pdf;
+}
+
 async function buildPDF({ lang, title, subtitle, entries, expenditures, getProjectById, getCompanyById, getEmployeeById }) {
+  return buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditures, getProjectById, getCompanyById, getEmployeeById });
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const PW = 210, PH = 297, M = 12, CW = PW - M * 2;
   const now = new Date();
-  const locale = lang === 'sv' ? 'sv-SE' : 'en-SE';
+  const locale = 'sv-SE';
   const genStr = now.toLocaleString(locale, { dateStyle: 'long', timeStyle: 'short' });
   const text = lang === 'sv' ? {
     generated: 'Skapad', page: 'Sida', reportFor: 'RAPPORT FÖR', reportPeriod: 'RAPPORTPERIOD',
@@ -155,7 +376,7 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
   // ── Header ──
   pdf.setFillColor(255, 255, 255);
   pdf.rect(0, 0, PW, 31, 'F');
-  pdf.addImage(logoData, 'JPEG', M, 5, 28, 20);
+  pdf.addImage(logoData.data, 'JPEG', M, 5, 28, 20);
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(22);
   pdf.setTextColor(24, 29, 33);
@@ -529,6 +750,252 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
   return pdf;
 }
 
+async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, rangeStart, rangeEnd, getProjectById, getCompanyById, getEmployeeById }) {
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageWidth = 210;
+  const pageHeight = 297;
+  const margin = 10;
+  const contentWidth = pageWidth - margin * 2;
+  const logoData = await loadLogoData();
+  const periodName = period === 'daily' ? (lang === 'sv' ? 'Daglig' : 'Daily') : period === 'monthly' ? (lang === 'sv' ? 'Månads' : 'Monthly') : period === 'custom' ? (lang === 'sv' ? 'Anpassad' : 'Custom') : (lang === 'sv' ? 'Vecko' : 'Weekly');
+  const formatEmployeeCode = employee => {
+    const value = String(employee?.empId || '');
+    return value || '—';
+  };
+
+  const getDates = (entries, expenditures) => {
+    const values = [...entries.map(entry => entry.date), ...expenditures.map(item => item.journeyDate)].filter(Boolean);
+    if (!rangeStart || !rangeEnd) return [...new Set(values)].sort();
+    const start = new Date(`${rangeStart}T00:00:00`);
+    const end = new Date(`${rangeEnd}T00:00:00`);
+    const days = Math.round((end - start) / 86400000);
+    if (days < 0 || days > 31) return [...new Set(values)].sort();
+    const matchingValues = values.filter(value => value >= rangeStart && value <= rangeEnd);
+    if (days === 0 && matchingValues.length === 0 && values.length > 0) return [...new Set(values)].sort();
+    const dates = [];
+    for (let index = 0; index <= days; index += 1) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      dates.push(fmt(date));
+    }
+    return [...new Set([...dates, ...matchingValues])].sort();
+  };
+
+  const drawHeader = (employee) => {
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+    pdf.addImage(logoData.data, 'JPEG', margin, 7, 82, 24);
+    pdf.setFillColor(31, 48, 65);
+    pdf.roundedRect(pageWidth - margin - 53, 8, 53, 10, 2, 2, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text(title.replace('DAILY WORK REPORT', 'DAILY REPORT').replace('WEEKLY WORK REPORT', 'WEEKLY REPORT').replace('MONTHLY WORK REPORT', 'MONTHLY REPORT'), pageWidth - margin - 26.5, 14.5, { align: 'center' });
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    pdf.setTextColor(24, 29, 33);
+    pdf.text(subtitle, pageWidth - margin - 26.5, 24, { align: 'center' });
+    pdf.setDrawColor(157, 169, 177);
+    pdf.setLineWidth(0.35);
+    pdf.line(margin, 35, pageWidth - margin, 35);
+
+    pdf.setFillColor(247, 248, 249);
+    pdf.roundedRect(margin, 40, contentWidth, 15, 1.5, 1.5, 'F');
+    pdf.setFontSize(8);
+    pdf.setTextColor(92, 101, 109);
+    pdf.text('EMPLOYEE', margin + 4, 46);
+    pdf.text('EMPLOYEE ID', pageWidth - margin - 23, 46, { align: 'right' });
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.setTextColor(24, 29, 33);
+    pdf.text(employee?.name || 'Unknown employee', margin + 4, 52);
+    pdf.text(formatEmployeeCode(employee), pageWidth - margin - 4, 52, { align: 'right' });
+  };
+
+  const drawFooter = (page, totalPages) => {
+    pdf.setDrawColor(157, 169, 177);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin, pageHeight - 18, pageWidth - margin, pageHeight - 18);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(92, 101, 109);
+    pdf.text('Tjädertuppen Svets och konsult', pageWidth / 2 - 8, pageHeight - 10, { align: 'right' });
+    pdf.text(`${lang === 'sv' ? 'Sida' : 'Page'} ${page} / ${totalPages}`, pageWidth / 2 + 8, pageHeight - 10);
+  };
+
+  const drawPage = (group, isFirstPage) => {
+    if (!isFirstPage) pdf.addPage();
+    const employee = getEmployeeById(group.employeeId);
+    drawHeader(employee);
+    const entries = group.entries;
+    const expenditures = group.expenditures;
+    const dates = getDates(entries, expenditures);
+    const rows = dates.map(date => {
+      const dateEntries = entries.filter(entry => entry.date === date);
+      const dateTravel = expenditures.filter(item => item.journeyDate === date);
+      const hours = dateEntries.reduce((sum, entry) => {
+        const breakdown = getWorkEntryBreakdown(entry);
+        return {
+          normal: sum.normal + breakdown.normalHours,
+          overtime: sum.overtime + breakdown.normalOvertime,
+          weekend: sum.weekend + breakdown.weekendOvertime,
+        };
+      }, { normal: 0, overtime: 0, weekend: 0 });
+      const project = dateEntries[0] ? getProjectById(dateEntries[0].projectId) : dateTravel[0] ? getProjectById(dateTravel[0].projectId) : null;
+      const company = project ? getCompanyById(project.companyId) : null;
+      const kilometers = dateTravel.reduce((sum, item) => sum + Number(item.kilometers || 0), 0);
+      return { date, project, company, hours, kilometers, travelHours: kilometers ? kilometers / 50 : 0 };
+    });
+    const totals = rows.reduce((sum, row) => ({
+      normal: sum.normal + row.hours.normal,
+      overtime: sum.overtime + row.hours.overtime,
+      weekend: sum.weekend + row.hours.weekend,
+      kilometers: sum.kilometers + row.kilometers,
+      travelHours: sum.travelHours + row.travelHours,
+    }), { normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: 0 });
+    const totalHours = totals.normal + totals.overtime + totals.weekend;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(16);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(`${lang === 'sv' ? '1. ' : '1. '}${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin, 70);
+
+    const columns = [
+      { label: 'Date', width: 28 },
+      { label: 'Company / Project', width: 58 },
+      { label: 'Normal\n(h)', width: 20 },
+      { label: 'OT\n(h)', width: 18 },
+      { label: 'Weekend\n(h)', width: 24 },
+      { label: 'Travel KM', width: 22 },
+      { label: 'Travel Hrs', width: 20 },
+    ];
+    const tableTop = 76;
+    const headerHeight = 14;
+    const rowHeight = 13;
+    let x = margin;
+    pdf.setFillColor(31, 48, 65);
+    pdf.rect(margin, tableTop, contentWidth, headerHeight, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(255, 255, 255);
+    columns.forEach(column => {
+      const lines = column.label.split('\n');
+      lines.forEach((line, index) => pdf.text(line, x + column.width / 2, tableTop + 6 + index * 4, { align: 'center' }));
+      x += column.width;
+    });
+    let y = tableTop + headerHeight;
+    rows.forEach((row, index) => {
+      if (y + rowHeight > pageHeight - 55) {
+        pdf.addPage();
+        drawHeader(employee);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(16);
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(`${lang === 'sv' ? '1. ' : '1. '}${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin, 70);
+        pdf.setFillColor(31, 48, 65);
+        pdf.rect(margin, tableTop, contentWidth, headerHeight, 'F');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(255, 255, 255);
+        let headerX = margin;
+        columns.forEach(column => {
+          column.label.split('\n').forEach((line, lineIndex) => pdf.text(line, headerX + column.width / 2, tableTop + 6 + lineIndex * 4, { align: 'center' }));
+          headerX += column.width;
+        });
+        y = tableTop + headerHeight;
+      }
+      pdf.setFillColor(index % 2 === 0 ? 255 : 247, index % 2 === 0 ? 255 : 249, index % 2 === 0 ? 255 : 252);
+      pdf.rect(margin, y, contentWidth, rowHeight, 'F');
+      pdf.setDrawColor(220, 226, 230);
+      pdf.setLineWidth(0.2);
+      pdf.rect(margin, y, contentWidth, rowHeight, 'S');
+      const values = [
+        row.date ? reportDate(row.date) : '—',
+        row.project ? `${row.company?.name || '—'}\n${row.project.name}` : '—',
+        row.hours.normal.toFixed(1),
+        row.hours.overtime.toFixed(1),
+        row.hours.weekend.toFixed(1),
+        String(Math.round(row.kilometers)),
+        row.travelHours.toFixed(2).replace(/\.00$/, ''),
+      ];
+      let cellX = margin;
+      values.forEach((value, cellIndex) => {
+        pdf.setFont('helvetica', cellIndex === 1 ? 'bold' : 'normal');
+        pdf.setFontSize(cellIndex === 1 ? 8.5 : 9);
+        pdf.setTextColor(24, 29, 33);
+        String(value).split('\n').forEach((line, lineIndex) => pdf.text(line, cellX + (cellIndex === 1 ? 4 : columns[cellIndex].width / 2), y + 5 + lineIndex * 4, { align: cellIndex === 1 ? 'left' : 'center' }));
+        cellX += columns[cellIndex].width;
+      });
+      y += rowHeight;
+    });
+
+    pdf.setFillColor(232, 240, 247);
+    pdf.rect(margin, y, contentWidth, rowHeight, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(24, 29, 33);
+    pdf.text('TOTAL', margin + 4, y + 8);
+    const totalValues = [totals.normal, totals.overtime, totals.weekend, totals.kilometers, totals.travelHours];
+    let totalX = margin + columns[0].width + columns[1].width;
+    totalValues.forEach((value, index) => {
+      const column = columns[index + 2];
+      pdf.text(index === 3 ? String(Math.round(value)) : value.toFixed(2).replace(/\.00$/, ''), totalX + column.width / 2, y + 8, { align: 'center' });
+      totalX += column.width;
+    });
+
+    if (y + rowHeight + 58 > pageHeight - 18) {
+      pdf.addPage();
+      drawHeader(employee);
+      y = tableTop + headerHeight;
+    }
+    const totalsY = y + rowHeight + 28;
+    pdf.setFontSize(16);
+    pdf.text(`${lang === 'sv' ? '2. ' : '2. '}${periodName} ${lang === 'sv' ? 'summering' : 'Totals'}`, margin, totalsY);
+    const summaryY = totalsY + 9;
+    const summaryWidth = (contentWidth - 6) / 2;
+    [{ label: 'Total Work Hours', value: `${totalHours.toFixed(1)} h`, fill: [236, 245, 255] }, { label: 'Total Travel', value: `${Math.round(totals.kilometers)} KM -> ${totals.travelHours.toFixed(2).replace(/\.00$/, '')} hr`, fill: [237, 249, 241] }].forEach((summary, index) => {
+      const summaryX = margin + index * (summaryWidth + 6);
+      pdf.setFillColor(...summary.fill);
+      pdf.roundedRect(summaryX, summaryY, summaryWidth, 23, 2, 2, 'F');
+      const iconX = summaryX + 13;
+      const iconY = summaryY + 11.5;
+      pdf.setFillColor(index === 0 ? 219 : 216, index === 0 ? 235 : 242, index === 0 ? 252 : 224);
+      pdf.circle(iconX, iconY, 7, 'F');
+      pdf.setDrawColor(index === 0 ? 37 : 41, index === 0 ? 112 : 91, index === 0 ? 177 : 73);
+      pdf.setLineWidth(1.1);
+      if (index === 0) {
+        pdf.circle(iconX, iconY, 4.2, 'S');
+        pdf.line(iconX, iconY, iconX, iconY - 2.8);
+        pdf.line(iconX, iconY, iconX + 2.4, iconY + 1.8);
+      } else {
+        pdf.setLineWidth(2.2);
+        pdf.line(iconX - 3.6, iconY + 5, iconX - 1.3, iconY - 5);
+        pdf.line(iconX + 3.6, iconY + 5, iconX + 1.3, iconY - 5);
+        pdf.setLineWidth(1.1);
+        pdf.line(iconX, iconY - 3.5, iconX, iconY - 1.5);
+        pdf.line(iconX, iconY + 0.5, iconX, iconY + 2.5);
+      }
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      pdf.setTextColor(70, 80, 88);
+      pdf.text(summary.label, summaryX + 24, summaryY + 9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(17);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(summary.value, summaryX + 24, summaryY + 18);
+    });
+    return { totalHours, totals };
+  };
+
+  groups.forEach((group, index) => drawPage(group, index === 0));
+  const totalPages = pdf.internal.getNumberOfPages();
+  for (let page = 1; page <= totalPages; page += 1) {
+    pdf.setPage(page);
+    drawFooter(page, totalPages);
+  }
+  return pdf;
+}
+
 // ─── COMPONENT ──────────────────────────────────────────────
 const TABS = [
   { key: 'daily',   label: 'Daily',    icon: Calendar },
@@ -640,13 +1107,6 @@ export default function Reports() {
     ? `${selectedEmployee.name} · ${filtered.length} entries · ${totalHours.toFixed(1)}h`
     : `All Employees · ${filtered.length} entries · ${totalHours.toFixed(1)}h combined`;
 
-  // Chart data
-  const dateMap = {};
-  filtered.forEach(w => { dateMap[w.date] = (dateMap[w.date] || 0) + getWorkEntryHours(w); });
-  const chartData = Object.entries(dateMap)
-    .sort(([a], [b]) => a.localeCompare(b)).slice(-20)
-    .map(([date, hours]) => ({ date: date.slice(5), hours: parseFloat(hours.toFixed(1)) }));
-
   const prevWeek = () => { const d = new Date(weekStart + 'T00:00:00'); d.setDate(d.getDate() - 7); setWeekStart(fmt(d)); };
   const nextWeek = () => { const d = new Date(weekStart + 'T00:00:00'); d.setDate(d.getDate() + 7); setWeekStart(fmt(d)); };
   const prevDay  = () => { const d = new Date(dailyDate + 'T00:00:00'); d.setDate(d.getDate() - 1); setDailyDate(fmt(d)); };
@@ -668,6 +1128,20 @@ export default function Reports() {
     return { title: lang === 'sv' ? 'ARBETSRAPPORT' : 'WORK REPORT', subtitle: `${fromDate || '—'} ${lang === 'sv' ? 'till' : 'to'} ${toDate || '—'}` };
   };
 
+  const getEmployeePDFGroups = (reportEntries, reportTravel) => {
+    const employeeIds = [...new Set([
+      ...reportEntries.map(entry => entry.employeeId),
+      ...reportTravel.map(item => item.employeeId),
+    ].filter(Boolean))];
+    return employeeIds
+      .sort((a, b) => (getEmployeeById(a)?.name || '').localeCompare(getEmployeeById(b)?.name || ''))
+      .map(employeeId => ({
+        employeeId,
+        entries: reportEntries.filter(entry => entry.employeeId === employeeId),
+        expenditures: reportTravel.filter(item => item.employeeId === employeeId),
+      }));
+  };
+
   const handleDownloadPDF = async () => {
     if (filtered.length === 0) {
       setReportMessage('There are no work entries for the selected period and filters. Add a work entry or adjust the filters before downloading a PDF.');
@@ -676,14 +1150,23 @@ export default function Reports() {
     try {
       const { title, subtitle } = getReportTitle();
       const translated = await translateReportDescriptions(filtered, reportExpenditures, lang);
-      const pdf = await buildPDF({ lang, title, subtitle, entries: translated.entries, expenditures: translated.expenditures, getProjectById, getCompanyById, getEmployeeById });
-      if (tab === 'daily' && selectedEmployee) {
-        const employeeName = sanitizeFilenamePart(selectedEmployee.name);
-        pdf.save(`${employeeName}_Today_work_${todayStr()}.pdf`);
-        return;
-      }
+      const pdf = await buildEmployeeReportPDF({
+        lang,
+        title,
+        subtitle,
+        period: tab,
+        groups: getEmployeePDFGroups(translated.entries, translated.expenditures),
+        rangeStart: dateFrom,
+        rangeEnd: dateTo,
+        getProjectById,
+        getCompanyById,
+        getEmployeeById,
+      });
       const safeTitle = title.replace(/\s+/g, '_');
-      pdf.save(`TJADERTUPPEN_${safeTitle}_${todayStr()}.pdf`);
+      const filename = selectedEmployee
+        ? `${sanitizeFilenamePart(selectedEmployee.name)}_${safeTitle}_${todayStr()}.pdf`
+        : `TJADERTUPPEN_${safeTitle}_All_Employees_${todayStr()}.pdf`;
+      pdf.save(filename);
     } catch (error) {
       window.alert(error.message);
     }
@@ -697,7 +1180,18 @@ export default function Reports() {
     try {
       const { title, subtitle } = getReportTitle();
       const translated = await translateReportDescriptions(filtered, reportExpenditures, lang);
-      const pdf = await buildPDF({ lang, title, subtitle, entries: translated.entries, expenditures: translated.expenditures, getProjectById, getCompanyById, getEmployeeById });
+      const pdf = await buildEmployeeReportPDF({
+        lang,
+        title,
+        subtitle,
+        period: tab,
+        groups: getEmployeePDFGroups(translated.entries, translated.expenditures),
+        rangeStart: dateFrom,
+        rangeEnd: dateTo,
+        getProjectById,
+        getCompanyById,
+        getEmployeeById,
+      });
       window.open(pdf.output('bloburl'), '_blank');
     } catch (error) {
       window.alert(error.message);
@@ -715,14 +1209,6 @@ export default function Reports() {
           <p>
             {reportScope} · Generate daily, weekly, monthly, and custom reports with professional PDF export
           </p>
-        </div>
-        <div className="page-header-actions" style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-outline" onClick={handlePreviewPDF}>
-            <FileText size={15} /> Preview PDF
-          </button>
-          <button className="btn btn-primary" onClick={handleDownloadPDF}>
-            <Download size={15} /> Download PDF
-          </button>
         </div>
       </div>
 
@@ -743,7 +1229,7 @@ export default function Reports() {
       {/* ── Filters Card ── */}
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
-          <div><h3>Report Filters</h3><p>Select period and narrow results by employee, client or project. Every total, chart, detail row and PDF uses the selected scope.</p></div>
+          <div><h3>Report Filters</h3><p>Select period and narrow results by employee, client or project. Every total, detail row and PDF uses the selected scope.</p></div>
         </div>
         <div className="card-body">
           <div className="report-filters" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -754,7 +1240,7 @@ export default function Reports() {
                 <label style={LabelStyle}>Date</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button className="btn btn-ghost btn-icon" onClick={prevDay}><ChevronLeft size={18} /></button>
-                  <input type="date" value={dailyDate} onChange={e => setDailyDate(e.target.value)} style={{ fontWeight: 600 }} />
+                  <DatePicker value={dailyDate} onChange={e => setDailyDate(e.target.value)} style={{ fontWeight: 600 }} />
                   <button className="btn btn-ghost btn-icon" onClick={nextDay}><ChevronRight size={18} /></button>
                 </div>
               </div>
@@ -778,7 +1264,7 @@ export default function Reports() {
                 <label style={LabelStyle}>Month</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button className="btn btn-ghost btn-icon" onClick={prevMonth}><ChevronLeft size={18} /></button>
-                  <input type="month" value={monthYear} onChange={e => setMonthYear(e.target.value)} style={{ fontWeight: 600, padding: '8px 12px' }} />
+                  <input type="month" lang="sv-SE" value={monthYear} onChange={e => setMonthYear(e.target.value)} style={{ fontWeight: 600, padding: '8px 12px' }} />
                   <button className="btn btn-ghost btn-icon" onClick={nextMonth}><ChevronRight size={18} /></button>
                 </div>
               </div>
@@ -788,11 +1274,11 @@ export default function Reports() {
               <div className="report-custom-dates" style={{ display: 'flex', gap: 12 }}>
                 <div>
                   <label style={LabelStyle}>From Date</label>
-                  <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+                  <DatePicker value={fromDate} onChange={e => setFromDate(e.target.value)} />
                 </div>
                 <div>
                   <label style={LabelStyle}>To Date</label>
-                  <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} />
+                  <DatePicker value={toDate} onChange={e => setToDate(e.target.value)} />
                 </div>
               </div>
             )}
@@ -871,47 +1357,12 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* ── Chart ── */}
-      {chartData.length > 0 && (
-        <div className="card report-chart-card" style={{ marginBottom: 20 }}>
-          <div className="card-header">
-            <div><h3>Hours per Day</h3><p>{selectedEmployee ? `Work hours for ${selectedEmployee.name}` : 'Combined work hours for all employees'} across the selected period</p></div>
-            <BarChart3 size={20} color="var(--color-text-muted)" />
-          </div>
-          <div className="card-body">
-            <div className="chart-container report-chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 12, right: 18, left: 4, bottom: 8 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="4 6" stroke="#E5DED2" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#7D827B' }} />
-                  <YAxis axisLine={false} tickLine={false} width={32} tick={{ fontSize: 11, fill: '#7D827B' }} />
-                  <Tooltip
-                    cursor={false}
-                    contentStyle={{ borderRadius: 10, border: '1px solid #D9C9A9', boxShadow: '0 8px 20px rgba(46, 55, 48, 0.12)', fontSize: 12 }}
-                    formatter={(v) => [`${v}h`, 'Hours']}
-                  />
-                  <Bar dataKey="hours" fill="#B88A3B" radius={[6,6,2,2]} maxBarSize={56} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Entries Table ── */}
       <div className="card report-entries-card">
         <div className="card-header">
           <div>
             <h3>Work Entries</h3>
             <p>{reportScope}</p>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-outline btn-sm" onClick={handlePreviewPDF}>
-              <FileText size={13} /> Preview
-            </button>
-            <button className="btn btn-primary btn-sm" onClick={handleDownloadPDF}>
-              <Download size={13} /> PDF
-            </button>
           </div>
         </div>
         <div className="table-wrapper table-report-entries">
@@ -941,7 +1392,7 @@ export default function Reports() {
                     <td>
                       <div style={{ fontWeight: 600 }}>{w.date}</div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-                        {new Date(w.date + 'T00:00:00').toLocaleDateString('en-SE', { weekday: 'short' })}
+                        {new Date(w.date + 'T00:00:00').toLocaleDateString('sv-SE', { weekday: 'short' })}
                       </div>
                     </td>
                     <td>
@@ -990,6 +1441,14 @@ export default function Reports() {
             <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Weekly Hours: <strong style={{ color: 'var(--color-primary)', fontSize: 15 }}>{totalHours.toFixed(1)}h</strong></span>
           </div>
         )}
+      </div>
+      <div className="report-actions-bottom">
+        <button className="btn btn-outline" onClick={handlePreviewPDF}>
+          <FileText size={15} /> Preview PDF
+        </button>
+        <button className="btn btn-primary" onClick={handleDownloadPDF}>
+          <Download size={15} /> Download PDF
+        </button>
       </div>
       <Modal
         isOpen={!!reportMessage}

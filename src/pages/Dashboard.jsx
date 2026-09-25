@@ -6,30 +6,12 @@ import { useLanguage } from '../context/LanguageContext';
 import { StatCard } from '../components/ui/Components';
 import { Badge } from '../components/ui/Components';
 import {
-  Building2, FolderKanban, Users, ClipboardList,
+  Building2, FolderKanban, Users,
   Clock, TrendingUp, Plus, CalendarCheck,
 } from 'lucide-react';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
-} from 'recharts';
 
 function todayStr() {
   return new Date().toISOString().split('T')[0];
-}
-
-function getLast7Days(workEntries) {
-  const days = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const key = d.toISOString().split('T')[0];
-    const label = d.toLocaleDateString('en-SE', { weekday: 'short', day: 'numeric' });
-    const entries = workEntries.filter(w => w.date === key);
-    const hours = entries.reduce((s, w) => s + getWorkEntryHours(w), 0);
-    days.push({ day: label, hours: parseFloat(hours.toFixed(1)), entries: entries.length });
-  }
-  return days;
 }
 
 export default function Dashboard() {
@@ -61,7 +43,6 @@ export default function Dashboard() {
     };
   }, { normal: 0, overtime: 0, weekend: 0 });
   const todayEntries    = workEntries.filter(w => w.date === today);
-  const chartData       = getLast7Days(workEntries);
 
   const recentEntries = [...workEntries]
     .sort((a, b) => {
@@ -73,7 +54,7 @@ export default function Dashboard() {
   const recentDots = ['blue', 'green', 'purple', 'orange', 'blue'];
 
   return (
-    <div>
+    <div className="dashboard-page">
       {/* ── Stat Cards ── */}
       <div className="stat-grid">
         <StatCard label="Clients" value={companies.length} subtext={`${companies.length} registered`} colorClass="blue" icon={Building2} />
@@ -152,36 +133,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Charts + Recent Activity ── */}
-      <div className="grid-2" style={{ marginBottom: 24 }}>
-        <div className="card">
-          <div className="card-header">
-            <div>
-              <h3>{t('dash_chart_title')}</h3>
-              <p>{t('dash_chart_sub')}</p>
-            </div>
-            <TrendingUp size={20} color="var(--color-text-muted)" />
-          </div>
-          <div className="card-body">
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 12, right: 16, left: 4, bottom: 8 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="4 6" stroke="#E5DED2" />
-                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#7D827B' }} />
-                  <YAxis axisLine={false} tickLine={false} width={30} tick={{ fontSize: 11, fill: '#7D827B' }} />
-                  <Tooltip
-                    cursor={false}
-                    contentStyle={{ borderRadius: 10, border: '1px solid #D9C9A9', boxShadow: '0 8px 20px rgba(46, 55, 48, 0.12)', fontSize: 12 }}
-                    formatter={(v) => [`${v}h`, 'Hours']}
-                  />
-                  <Bar dataKey="hours" fill="#B88A3B" radius={[6,6,2,2]} maxBarSize={52} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
+      {/* ── Recent Activity ── */}
+      <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-header">
             <div>
               <h3>{t('dash_recent_title')}</h3>
@@ -214,7 +167,6 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-      </div>
 
       {/* ── Projects Overview ── */}
       <div className="card">

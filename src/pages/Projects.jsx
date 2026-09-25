@@ -5,6 +5,7 @@ import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Components';
 import { FolderKanban, Plus, Search, Pencil, Trash2, MapPin, Calendar } from 'lucide-react';
 import { getWorkEntryHours } from '../utils/workHours';
+import DatePicker from '../components/ui/DatePicker';
 
 const EMPTY_FORM = { companyId: '', name: '', location: '', startDate: '', endDate: '', status: 'Active' };
 const STATUS_OPTIONS = ['Active', 'Completed', 'On Hold'];
@@ -13,9 +14,13 @@ function ProjectField({ field, label, type = 'text', placeholder, required, form
   return (
     <div className="form-group">
       <label>{label}{required ? ' *' : ''}</label>
-      <input type={type} placeholder={placeholder} value={form[field]}
-        onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
-        style={errors[field] ? { borderColor: 'var(--color-danger)' } : {}} />
+      {type === 'date' ? (
+        <DatePicker value={form[field]} onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))} />
+      ) : (
+        <input type={type} placeholder={placeholder} value={form[field]}
+          onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+          style={errors[field] ? { borderColor: 'var(--color-danger)' } : {}} />
+      )}
       {errors[field] && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors[field]}</p>}
     </div>
   );

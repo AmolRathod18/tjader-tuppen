@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Car, Plus, Pencil, Trash2, Search, MapPin, Calendar, Route } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
+import DatePicker from '../components/ui/DatePicker';
 
 const EMPTY = {
   projectId: '', employeeId: '', journeyDate: new Date().toISOString().split('T')[0],
@@ -115,7 +116,7 @@ export default function Expenditure() {
         <Field label="Project *" error={errors.projectId}><select value={form.projectId} onChange={e => setForm(f => ({ ...f, projectId: e.target.value }))}><option value="">Select project…</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name} ({p.number})</option>)}</select></Field>
         <Field label="Employee *" error={errors.employeeId}><select value={form.employeeId} onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))}><option value="">Select employee…</option>{employees.filter(e => e.status === 'Active').map(e => <option key={e.id} value={e.id}>{e.name} ({e.empId})</option>)}</select></Field>
       </div>
-      <Field label="Journey Date *" error={errors.journeyDate}><input type="date" value={form.journeyDate} onChange={e => setForm(f => ({ ...f, journeyDate: e.target.value }))} /></Field>
+      <Field label="Journey Date *" error={errors.journeyDate}><DatePicker value={form.journeyDate} onChange={e => setForm(f => ({ ...f, journeyDate: e.target.value }))} /></Field>
       <div className="form-row">
         <Field label="Start Place *" error={errors.startPlace}><input placeholder="e.g. Stockholm office" value={form.startPlace} onChange={e => setForm(f => ({ ...f, startPlace: e.target.value }))} /></Field>
         <Field label="End Place *" error={errors.endPlace}><input placeholder="e.g. Project site" value={form.endPlace} onChange={e => setForm(f => ({ ...f, endPlace: e.target.value }))} /></Field>

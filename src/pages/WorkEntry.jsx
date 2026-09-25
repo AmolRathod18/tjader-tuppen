@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { ConfirmDeleteModal } from '../components/ui/Modal';
+import DatePicker from '../components/ui/DatePicker';
 import {
   ClipboardList, Plus, Search, Pencil, Trash2,
   Filter, ArrowLeft, CheckCircle,
@@ -51,7 +52,10 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
   companies, formProjects, activeEmployees, getCompanyById, workEntries }) {
 
   const isWeekend = form.date && [0, 6].includes(new Date(`${form.date}T00:00:00`).getDay());
-  const automaticWeekendHours = isWeekend ? calculateShiftHours(form.startTime, form.endTime) : null;
+  const shiftHours = calculateShiftHours(form.startTime, form.endTime);
+  const automaticNormalHours = !isWeekend && shiftHours !== null ? Math.min(shiftHours, 8) : 0;
+  const enteredNormalOvertime = !isWeekend ? Number(form.normalOvertime || 0) : 0;
+  const enteredWeekendOvertime = Number(form.weekendOvertime || 0);
   const weeklyEntries = [
     ...workEntries.filter(entry => entry.id !== editItem?.id),
     {
@@ -59,9 +63,9 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
       date: form.date,
       startTime: form.startTime,
       endTime: form.endTime,
-      normalHours: isWeekend ? 0 : Number(form.normalHours || 0),
-      normalOvertime: isWeekend ? 0 : Number(form.normalOvertime || 0),
-      weekendOvertime: isWeekend ? automaticWeekendHours : 0,
+      normalHours: automaticNormalHours,
+      normalOvertime: enteredNormalOvertime,
+      weekendOvertime: enteredWeekendOvertime,
     },
   ];
   const weeklyHours = getWeeklyHours(weeklyEntries, form.employeeId, form.date);
@@ -69,7 +73,7 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
   const fs = (f) => errors[f] ? { borderColor: 'var(--color-danger)' } : {};
 
   return (
-    <div>
+    <div className="work-entry-page">
       {/* Page-level back header */}
       <div className="page-header">
         <div className="page-header-info">
@@ -105,11 +109,11 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
 
           {/* ── Section 1: Work Details ── */}
           <SectionLabel icon={Calendar} label="Work Details" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+          <div className="work-entry-form-grid work-entry-form-grid--two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
 
             <div className="form-group">
               <label>Date *</label>
-              <input type="date" value={form.date}
+              <DatePicker value={form.date}
                 onChange={e => setField('date', e.target.value)}
                 style={fs('date')} />
               <FieldError message={errors.date} />
@@ -160,7 +164,7 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
 
           {/* ── Section 2: Working Hours ── */}
           <SectionLabel icon={AlarmClock} label="Working Hours" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0 24px' }}>
+          <div className="work-entry-form-grid work-entry-form-grid--three" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0 24px' }}>
 
             <div className="form-group">
               <label>Start Time</label>
@@ -175,13 +179,9 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
             </div>
 
             <div className="form-group">
-              <label>
-                Normal Working Hours *
-              </label>
-              <input type="number" min="0" max="24" step="0.25" value={isWeekend ? 0 : form.normalHours}
-                onChange={e => setField('normalHours', e.target.value)} disabled={isWeekend}
-                style={fs('normalHours')} />
-              <FieldError message={errors.normalHours} />
+              <label>Normal Working Hours</label>
+              <input type="text" value={shiftHours === null ? '' : automaticNormalHours.toFixed(2)} readOnly
+                aria-readonly="true" style={{ background: 'var(--color-bg)', cursor: 'default', ...fs('normalHours') }} />
             </div>
 
             <div className="form-group">
@@ -191,11 +191,11 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
             </div>
 
             <div className="form-group">
-              <label>Weekend Overtime {isWeekend ? '(automatic)' : ''}</label>
-              <input type="number" min="0" max="24" step="0.25" value={isWeekend ? (automaticWeekendHours ?? '') : 0}
-                onChange={e => setField('weekendOvertime', e.target.value)} disabled={isWeekend}
+              <label>Weekend Overtime</label>
+              <input type="number" min="0" max="24" step="0.25" value={form.weekendOvertime}
+                onChange={e => setField('weekendOvertime', e.target.value)}
                 style={fs('weekendOvertime')} />
-              {isWeekend && <small style={{ color: 'var(--color-text-muted)' }}>Calculated from Start and End Time.</small>}
+              <small style={{ color: 'var(--color-text-muted)' }}>Enter weekend overtime when applicable.</small>
             </div>
 
             <div className="form-group">
@@ -207,7 +207,7 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
 
           {/* ── Section 3: Work Information ── */}
           <SectionLabel icon={FileText} label="Work Information" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+          <div className="work-entry-form-grid work-entry-form-grid--two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
 
             <div className="form-group">
               <label>Work Description *</label>
@@ -269,7 +269,7 @@ function ListView({ filtered, totalHours, projects, employees, companies,
   onAdd, onEdit, onDelete, t, workEntries }) {
 
   return (
-    <div>
+    <div className="work-entry-page">
       <div className="page-header">
         <div className="page-header-info">
           <h2>{t('we_title')}</h2>
@@ -309,7 +309,7 @@ function ListView({ filtered, totalHours, projects, employees, companies,
                 value={search} onChange={e => setSearch(e.target.value)} />
             </div>
 
-            <input type="date" value={filterDate}
+            <DatePicker value={filterDate}
               onChange={e => setFilterDate(e.target.value)}
               style={{ maxWidth: 155 }} title="Filter by date" />
 
@@ -371,7 +371,7 @@ function ListView({ filtered, totalHours, projects, employees, companies,
                     <td>
                       <div style={{ fontWeight: 600 }}>{w.date}</div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-                        {new Date(w.date + 'T00:00:00').toLocaleDateString('en-SE', { weekday: 'short' })}
+                        {new Date(w.date + 'T00:00:00').toLocaleDateString('sv-SE', { weekday: 'short' })}
                       </div>
                     </td>
                     <td>
@@ -554,18 +554,16 @@ export default function WorkEntry() {
     if (!form.employeeId)                                                   e.employeeId  = 'Employee is required';
     if (!form.projectId)                                                    e.projectId   = 'Project is required';
     if (!form.description?.trim())                                          e.description = 'Work description is required';
-    const isWeekend = [0, 6].includes(new Date(`${form.date}T00:00:00`).getDay());
     if (!form.startTime || !form.endTime)                                    e.hours = 'Start and end time are required';
-    if (!isWeekend && Number(form.normalHours) < 0)                          e.normalHours = 'Normal working hours are required';
-    if (!isWeekend && !form.normalHours)                                     e.normalHours = 'Normal working hours are required';
     if (Object.keys(e).length > 0) { setErrors(e); return; }
 
+    const isWeekend = [0, 6].includes(new Date(`${form.date}T00:00:00`).getDay());
     const proj = getProjectById(form.projectId);
     const data = {
       ...form,
-      normalHours: isWeekend ? 0 : Number(form.normalHours),
+      normalHours: undefined,
       normalOvertime: isWeekend ? 0 : Number(form.normalOvertime || 0),
-      weekendOvertime: isWeekend ? undefined : 0,
+      weekendOvertime: Number(form.weekendOvertime || 0),
       companyId: form.companyId || proj?.companyId || '',
     };
     try {

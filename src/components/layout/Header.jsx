@@ -20,7 +20,7 @@ export default function Header({ onMenuToggle }) {
   const keys = PAGE_KEYS[pathname] || { title: 'page_dashboard', subtitle: '' };
 
   const now = new Date();
-  const dateStr = now.toLocaleDateString(lang === 'sv' ? 'sv-SE' : 'en-SE', {
+  const dateStr = now.toLocaleDateString('sv-SE', {
     weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
   });
 

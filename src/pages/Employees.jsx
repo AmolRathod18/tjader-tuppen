@@ -8,6 +8,7 @@ import {
   Award, BriefcaseBusiness, MapPin, FileText,
 } from 'lucide-react';
 import { getWorkEntryBreakdown, getWorkEntryHours } from '../utils/workHours';
+import DatePicker from '../components/ui/DatePicker';
 
 const EMPTY_FORM = {
   name: '', empId: '', role: '', phone: '', email: '', status: 'Active', photo: '',
@@ -20,9 +21,13 @@ function EmployeeField({ field, label, type = 'text', placeholder, required, for
   return (
     <div className="form-group">
       <label>{label}{required ? ' *' : ''}</label>
-      <input type={type} placeholder={placeholder} value={form[field]}
-        onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
-        style={errors[field] ? { borderColor: 'var(--color-danger)' } : {}} />
+      {type === 'date' ? (
+        <DatePicker value={form[field]} onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))} />
+      ) : (
+        <input type={type} placeholder={placeholder} value={form[field]}
+          onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+          style={errors[field] ? { borderColor: 'var(--color-danger)' } : {}} />
+      )}
       {errors[field] && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors[field]}</p>}
     </div>
   );
@@ -87,7 +92,11 @@ export default function Employees() {
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     try {
       if (editItem) await updateEmployee(editItem.id, form);
-      else await addEmployee(form);
+      else {
+        const employeePayload = { ...form };
+        delete employeePayload.empId;
+        await addEmployee(employeePayload);
+      }
       setModalOpen(false);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : String(error));

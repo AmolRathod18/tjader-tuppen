@@ -1742,7 +1742,79 @@ select {
   font-size: 12.5px;
 }
 
+.auth-success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #edfaef;
+  border: 1px solid #b9e0bb;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  color: #1f6f3a;
+  font-size: 12.5px;
+}
+
+.auth-success svg,
 .login-error svg { flex-shrink: 0; }
+
+.auth-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 14px;
+}
+
+.auth-actions-space-between {
+  justify-content: flex-end;
+}
+
+.auth-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #3e4e2f;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-link:hover {
+  color: #1d241d;
+}
+
+.back-link {
+  margin-top: 10px;
+}
+
+.auth-inline-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 120px;
+  color: #4d514b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.auth-compact-container {
+  max-width: 980px;
+}
+
+.auth-card-compact {
+  padding-top: 32px;
+}
+
+.auth-intro-hide-mobile {
+  display: flex;
+}
+
+@media (max-width: 900px) {
+  .auth-intro-hide-mobile {
+    display: none;
+  }
+}
 
 .login-footer {
   margin-top: 20px;

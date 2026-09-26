@@ -67,9 +67,13 @@ export default function Expenditure() {
     if (!form.startPlace.trim()) nextErrors.startPlace = t('exp_err_start_place');
     if (!form.endPlace.trim()) nextErrors.endPlace = t('exp_err_end_place');
     if (!form.kilometers || !Number.isInteger(Number(form.kilometers)) || Number(form.kilometers) <= 0) nextErrors.kilometers = t('exp_err_kilometers');
+    if (form.startPlace.trim().length > 120) nextErrors.startPlace = t('exp_err_place_length');
+    if (form.endPlace.trim().length > 120) nextErrors.endPlace = t('exp_err_place_length');
+    if (form.remarks.trim().length > 500) nextErrors.remarks = t('exp_err_remarks_length');
+    if (form.journeyDate && !/^\d{4}-\d{2}-\d{2}$/.test(form.journeyDate)) nextErrors.journeyDate = t('exp_err_date_invalid');
     if (Object.keys(nextErrors).length) { setErrors(nextErrors); return; }
     try {
-      if (editItem) await updateExpenditure(editItem.id, form);
+      if (editItem) await updateExpenditure(editItem.id, { ...form, kilometers: Number(form.kilometers) });
       else await addExpenditure({ ...form, kilometers: Number(form.kilometers) });
       setModalOpen(false);
     } catch (error) { setSubmitError(error.message); }
@@ -124,7 +128,7 @@ export default function Expenditure() {
         <Field label={`${t('exp_end_place')} *`} error={errors.endPlace}><input placeholder={t('exp_end_place_ph')} value={form.endPlace} onChange={e => setForm(f => ({ ...f, endPlace: e.target.value }))} /></Field>
       </div>
       <Field label={`${t('exp_kilometers_travelled')} *`} error={errors.kilometers}><input type="number" min="1" step="1" inputMode="numeric" placeholder={t('exp_kilometers_ph')} value={form.kilometers} onChange={e => setForm(f => ({ ...f, kilometers: e.target.value }))} /></Field>
-      <Field label={t('exp_remarks')}><textarea placeholder={t('exp_optional_notes')} value={form.remarks} onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))} /></Field>
+      <Field label={t('exp_remarks')} error={errors.remarks}><textarea placeholder={t('exp_optional_notes')} value={form.remarks} onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))} /></Field>
     </Modal>
     <ConfirmDeleteModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={remove} itemName={t('exp_delete_item')} />
   </div>;

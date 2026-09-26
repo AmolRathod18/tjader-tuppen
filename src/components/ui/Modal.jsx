@@ -3,14 +3,14 @@ import { createPortal } from 'react-dom';
 import { X, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
-export function Modal({ isOpen, onClose, title, subtitle, children, footer, size = 'md' }) {
+export function Modal({ isOpen, onClose, title, subtitle, children, footer, size = 'md', side = false, className = '' }) {
   if (!isOpen) return null;
 
   const maxWidths = { sm: '400px', md: '520px', lg: '700px', xl: '900px' };
 
   return createPortal(
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: maxWidths[size] }}>
+    <div className={`modal-overlay${side ? ' modal-overlay-side' : ''}`} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className={`modal${side ? ' modal-side' : ''}${className ? ` ${className}` : ''}`} style={{ maxWidth: maxWidths[size] }}>
         <div className="modal-header">
           <div>
             <h2>{title}</h2>

@@ -3,12 +3,13 @@ import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Components';
-import { FolderKanban, Plus, Search, Pencil, Trash2, MapPin, Calendar } from 'lucide-react';
+import { FolderKanban, Plus, Search, Pencil, Trash2, MapPin, Calendar, CheckCircle } from 'lucide-react';
 import { getWorkEntryHours } from '../utils/workHours';
 import DatePicker from '../components/ui/DatePicker';
 
 const EMPTY_FORM = { companyId: '', name: '', location: '', startDate: '', endDate: '', status: 'Active' };
 const STATUS_OPTIONS = ['Active', 'Completed', 'On Hold'];
+const stockholmToday = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm' }).format(new Date());
 
 function ProjectField({ field, label, type = 'text', placeholder, required, form, setForm, errors }) {
   return (
@@ -38,6 +39,7 @@ export default function Projects() {
   const [form,           setForm]           = useState(EMPTY_FORM);
   const [errors,         setErrors]         = useState({});
   const [submitError,    setSubmitError]    = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const hasLoaded = useRef(false);
 
   useEffect(() => {
@@ -47,29 +49,36 @@ export default function Projects() {
   }, []);
 
   const filtered = projects.filter(p => {
+    const effectiveStatus = p.endDate < stockholmToday() ? 'Completed' : p.status;
     const q = search.toLowerCase();
     const matchSearch  = p.name.toLowerCase().includes(q) || p.number?.toLowerCase().includes(q) || p.location?.toLowerCase().includes(q);
     const matchCompany = !filterCompany || p.companyId === filterCompany;
-    const matchStatus  = !filterStatus  || p.status === filterStatus;
+    const matchStatus  = !filterStatus  || effectiveStatus === filterStatus;
     return matchSearch && matchCompany && matchStatus;
   });
 
-  const openAdd = () => { setEditItem(null); setForm(EMPTY_FORM); setErrors({}); setSubmitError(''); setModalOpen(true); };
+  const openAdd = () => { setEditItem(null); setForm(EMPTY_FORM); setErrors({}); setSubmitError(''); setSuccessMessage(''); setModalOpen(true); };
   const openEdit = (item) => {
     setEditItem(item);
-    setForm({ companyId: item.companyId, name: item.name, location: item.location, startDate: item.startDate, endDate: item.endDate, status: item.status });
+    setForm({ companyId: item.companyId, name: item.name, location: item.location, startDate: item.startDate, endDate: item.endDate, status: item.endDate < stockholmToday() ? 'Completed' : item.status });
     setErrors({});
     setSubmitError('');
+    setSuccessMessage('');
     setModalOpen(true);
   };
 
   const validate = () => {
     const e = {};
+    const name = form.name.trim();
+    const location = form.location.trim();
     if (!form.companyId)      e.companyId = t('proj_err_company');
-    if (!form.name.trim())    e.name      = t('proj_err_name');
+    if (!name)                e.name      = t('proj_err_name');
+    else if (name.length < 2 || name.length > 120) e.name = t('proj_err_name_length');
+    if (location.length > 200) e.location = t('proj_err_location_length');
     if (!form.startDate)      e.startDate = t('proj_err_start');
     if (!form.endDate)        e.endDate   = t('proj_err_end');
     if (form.startDate && form.endDate && form.endDate < form.startDate) e.endDate = t('proj_err_dates');
+    if (form.status && !STATUS_OPTIONS.includes(form.status)) e.status = t('proj_err_status');
     return e;
   };
 
@@ -77,9 +86,14 @@ export default function Projects() {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     try {
-      if (editItem) await updateProject(editItem.id, form);
-      else await addProject(form);
+      const projectData = {
+        ...form,
+        status: form.endDate < stockholmToday() ? 'Completed' : form.status,
+      };
+      if (editItem) await updateProject(editItem.id, projectData);
+      else await addProject(projectData);
       setModalOpen(false);
+      setSuccessMessage(t(editItem ? 'proj_update_success' : 'proj_insert_success'));
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : String(error));
     }
@@ -105,7 +119,7 @@ export default function Projects() {
       <div className="page-header">
         <div className="page-header-info">
           <h2>{t('proj_title')}</h2>
-          <p>{projects.length} {t('lbl_total')} · {projects.filter(p => p.status === 'Active').length} {t('lbl_active').toLowerCase()}</p>
+          <p>{projects.length} {t('lbl_total')} · {projects.filter(p => (p.endDate < stockholmToday() ? 'Completed' : p.status) === 'Active').length} {t('lbl_active').toLowerCase()}</p>
         </div>
         <button id="add-project-btn" className="btn btn-primary" onClick={openAdd}>
           <Plus size={16} /> {t('btn_add_project')}
@@ -170,7 +184,7 @@ export default function Projects() {
                       <div style={{ fontWeight: 700 }}>{getTotalHrs(p.id)}h</div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{getEntryCount(p.id)} {t('lbl_entries')}</div>
                     </td>
-                    <td><Badge status={p.status} /></td>
+                    <td><Badge status={p.endDate < stockholmToday() ? 'Completed' : p.status} /></td>
                     <td>
                       <div className="table-actions">
                         <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_edit')} onClick={() => openEdit(p)}><Pencil size={15} /></button>
@@ -229,6 +243,19 @@ export default function Projects() {
       </Modal>
 
       <ConfirmDeleteModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} itemName={deleteTarget?.name} />
+
+      <Modal
+        isOpen={!!successMessage}
+        onClose={() => setSuccessMessage('')}
+        title={t('proj_success_title')}
+        size="sm"
+        footer={<button className="btn btn-primary" onClick={() => setSuccessMessage('')}>{t('btn_ok')}</button>}
+      >
+        <div className="success-dialog">
+          <CheckCircle size={28} />
+          <p>{successMessage}</p>
+        </div>
+      </Modal>
     </div>
   );
 }

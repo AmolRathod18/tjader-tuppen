@@ -34,7 +34,6 @@ export default function Dashboard() {
   const today = todayStr();
   const todayLabel = new Date(`${today}T00:00:00`).toLocaleDateString(t('ui_locale'));
   const activeProjects  = projects.filter(p => p.status === 'Active').length;
-  const activeEmployees = employees.filter(e => e.status === 'Active').length;
   const hourTotals = workEntries.reduce((sum, entry) => {
     const hours = getWorkEntryBreakdown(entry);
     return {
@@ -62,7 +61,6 @@ export default function Dashboard() {
         <StatCard label={t('dash_total_projects')} value={projects.length} subtext={t('dash_total', [projects.length])} colorClass="purple" icon={FolderKanban} />
         <StatCard label={t('dash_active_projects')} value={activeProjects} subtext={t('dash_out_of_total', [projects.length])} colorClass="green" icon={FolderKanban} />
         <StatCard label={t('dash_total_employees')} value={employees.length} subtext={t('dash_total', [employees.length])} colorClass="orange" icon={Users} />
-        <StatCard label={t('dash_active_employees')} value={activeEmployees} subtext={t('dash_out_of_total', [employees.length])} colorClass="indigo" icon={Users} />
       </div>
 
       {/* ── Today's Work Entries ── */}

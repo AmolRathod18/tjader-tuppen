@@ -1,16 +1,69 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
-import { ConfirmDeleteModal } from '../components/ui/Modal';
+import { ConfirmDeleteModal, Modal } from '../components/ui/Modal';
 import DatePicker from '../components/ui/DatePicker';
 import {
   ClipboardList, Plus, Search, Pencil, Trash2,
   Filter, ArrowLeft, CheckCircle,
-  AlarmClock, FileText, Calendar,
+  AlarmClock, FileText, Calendar, Eye,
 } from 'lucide-react';
-import { calculateShiftHours, getWorkEntryBreakdown, getWorkEntryHours, getWeeklyHours } from '../utils/workHours';
+import { calculateShiftHours, getWorkEntryBreakdown, getWorkEntryHours } from '../utils/workHours';
 
-const todayDate = () => new Date().toISOString().split('T')[0];
+const STOCKHOLM_TIME_ZONE = 'Europe/Stockholm';
+
+const todayDate = () => new Intl.DateTimeFormat('sv-SE', {
+  timeZone: STOCKHOLM_TIME_ZONE,
+}).format(new Date());
+
+function TimeSelect({ value, onChange, defaultMeridiem = 'AM' }) {
+  const [rawHours, rawMinutes] = (value || '').split(':');
+  const numericHours = Number(rawHours);
+  const hasValue = Number.isInteger(numericHours) && numericHours >= 0 && numericHours <= 23;
+  const [selection, setSelection] = useState({
+    hour: hasValue ? String(numericHours % 12 || 12) : '',
+    minute: hasValue ? rawMinutes : '',
+    meridiem: hasValue && numericHours >= 12 ? 'PM' : defaultMeridiem,
+  });
+
+  const updateTime = (part, nextValue) => {
+    const nextSelection = { ...selection, [part]: nextValue };
+    setSelection(nextSelection);
+    const { hour: nextHour, minute: nextMinute, meridiem: nextMeridiem } = nextSelection;
+    if (!nextHour || !nextMinute) {
+      onChange('');
+      return;
+    }
+
+    const hour24 = nextMeridiem === 'PM'
+      ? (Number(nextHour) === 12 ? 12 : Number(nextHour) + 12)
+      : (Number(nextHour) === 12 ? 0 : Number(nextHour));
+    onChange(`${String(hour24).padStart(2, '0')}:${nextMinute}`);
+  };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+      <select value={selection.hour} aria-label="Hour" onChange={event => updateTime('hour', event.target.value)}>
+        <option value="">Hour</option>
+        {Array.from({ length: 12 }, (_, index) => {
+          const option = String(index + 1);
+          return <option key={option} value={option}>{option}</option>;
+        })}
+      </select>
+      <select value={selection.minute} aria-label="Minute" onChange={event => updateTime('minute', event.target.value)}>
+        <option value="">Min</option>
+        {Array.from({ length: 60 }, (_, index) => {
+          const option = String(index).padStart(2, '0');
+          return <option key={option} value={option}>{option}</option>;
+        })}
+      </select>
+      <select value={selection.meridiem} aria-label="AM or PM" onChange={event => updateTime('meridiem', event.target.value)}>
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  );
+}
 
 const EMPTY = {
   date: '', employeeId: '', companyId: '', projectId: '',
@@ -49,26 +102,19 @@ function SectionLabel({ icon: Icon, label }) {
    FORM VIEW  (full-page, standalone)
 ───────────────────────────────────────────── */
 function FormView({ form, errors, submitError, setField, onSave, onCancel, editItem,
-  companies, formProjects, activeEmployees, getCompanyById, workEntries, t }) {
+  companies, formProjects, activeEmployees, getCompanyById, t }) {
 
-  const isWeekend = form.date && [0, 6].includes(new Date(`${form.date}T00:00:00`).getDay());
   const shiftHours = calculateShiftHours(form.startTime, form.endTime);
-  const automaticNormalHours = !isWeekend && shiftHours !== null ? Math.min(shiftHours, 8) : 0;
-  const enteredNormalOvertime = !isWeekend ? Number(form.normalOvertime || 0) : 0;
-  const enteredWeekendOvertime = Number(form.weekendOvertime || 0);
-  const weeklyEntries = [
-    ...workEntries.filter(entry => entry.id !== editItem?.id),
-    {
-      employeeId: form.employeeId,
-      date: form.date,
-      startTime: form.startTime,
-      endTime: form.endTime,
-      normalHours: automaticNormalHours,
-      normalOvertime: enteredNormalOvertime,
-      weekendOvertime: enteredWeekendOvertime,
-    },
-  ];
-  const weeklyHours = getWeeklyHours(weeklyEntries, form.employeeId, form.date);
+  const automaticNormalHours = shiftHours !== null ? shiftHours : 0;
+  const [isNormalHoursEditing, setIsNormalHoursEditing] = useState(false);
+  const displayedNormalHours = isNormalHoursEditing
+    ? (form.normalHours === '' ? automaticNormalHours.toFixed(2) : form.normalHours)
+    : (shiftHours === null ? '' : automaticNormalHours.toFixed(2));
+
+  const setTimeField = (field, value) => {
+    setField(field, value);
+    if (!isNormalHoursEditing) setField('normalHours', '');
+  };
 
   const fs = (f) => errors[f] ? { borderColor: 'var(--color-danger)' } : {};
 
@@ -168,26 +214,54 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
 
             <div className="form-group">
               <label>{t('we_start_time')}</label>
-              <input type="time" value={form.startTime}
-                onChange={e => setField('startTime', e.target.value)} />
+              <TimeSelect value={form.startTime}
+                onChange={value => setTimeField('startTime', value)} />
             </div>
 
             <div className="form-group">
               <label>{t('we_end_time')}</label>
-              <input type="time" value={form.endTime}
-                onChange={e => setField('endTime', e.target.value)} />
+              <TimeSelect value={form.endTime} defaultMeridiem="PM"
+                onChange={value => setTimeField('endTime', value)} />
             </div>
 
             <div className="form-group">
-              <label>{t('we_normal_hours')}</label>
-              <input type="text" value={shiftHours === null ? '' : automaticNormalHours.toFixed(2)} readOnly
-                aria-readonly="true" style={{ background: 'var(--color-bg)', cursor: 'default', ...fs('normalHours') }} />
+              <div className="work-hours-label-row">
+                <label>{t('we_normal_hours')}</label>
+                <button
+                  type="button"
+                  className="work-hours-edit-button"
+                  onClick={() => {
+                    if (isNormalHoursEditing) setField('normalHours', '');
+                    else if (form.normalHours === '') setField('normalHours', automaticNormalHours.toFixed(2));
+                    setIsNormalHoursEditing(editing => !editing);
+                  }}
+                >
+                  <Pencil size={12} />
+                  {isNormalHoursEditing ? t('we_use_calculated_hours') : t('we_edit_normal_hours')}
+                </button>
+              </div>
+              <input
+                type={isNormalHoursEditing ? 'number' : 'text'}
+                min="0"
+                max="24"
+                step="0.01"
+                value={displayedNormalHours}
+                readOnly={!isNormalHoursEditing}
+                onChange={event => setField('normalHours', event.target.value)}
+                aria-readonly={!isNormalHoursEditing}
+                style={{ background: 'var(--color-bg)', cursor: isNormalHoursEditing ? 'text' : 'default', ...fs('normalHours') }}
+              />
+              <FieldError message={errors.normalHours} />
+              {shiftHours > 8 && (
+                <small className="work-hours-warning" role="alert">{t('we_hours_exceed_warning')}</small>
+              )}
             </div>
 
             <div className="form-group">
               <label>{t('we_normal_overtime')}</label>
-              <input type="number" min="0" max="24" step="0.25" value={isWeekend ? 0 : form.normalOvertime}
-                onChange={e => setField('normalOvertime', e.target.value)} disabled={isWeekend} />
+              <input type="number" min="0" max="24" step="0.25" value={form.normalOvertime}
+                onChange={e => setField('normalOvertime', e.target.value)} />
+              <FieldError message={errors.normalOvertime} />
             </div>
 
             <div className="form-group">
@@ -196,12 +270,7 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
                 onChange={e => setField('weekendOvertime', e.target.value)}
                 style={fs('weekendOvertime')} />
               <small style={{ color: 'var(--color-text-muted)' }}>{t('we_weekend_overtime_hint')}</small>
-            </div>
-
-            <div className="form-group">
-              <label>{t('we_weekly_hours')}</label>
-              <input type="text" value={`${weeklyHours.toFixed(2)} ${t('lbl_hours').toLowerCase()}`} readOnly
-                aria-readonly="true" style={{ background: 'var(--color-bg)', cursor: 'default' }} />
+              <FieldError message={errors.weekendOvertime} />
             </div>
           </div>
 
@@ -261,12 +330,11 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
 /* ─────────────────────────────────────────────
    LIST VIEW  (table + filters)
 ───────────────────────────────────────────── */
-function ListView({ filtered, totalHours, projects, employees, companies,
+function ListView({ filtered, employeeGroups, totalHours, projects, employees, companies,
   filterProjects, search, setSearch, filterEmployee, setFilterEmployee,
   filterClient, setFilterClient, filterProject, setFilterProject,
   filterDate, setFilterDate, clearFilters, hasFilters,
-  getProjectById, getEmployeeById, getCompanyById,
-  onAdd, onEdit, onDelete, t, workEntries }) {
+  onAdd, onEmployeeSelect, t, workEntries }) {
 
   return (
     <div className="work-entry-page">
@@ -346,80 +414,48 @@ function ListView({ filtered, totalHours, projects, employees, companies,
             <thead>
               <tr>
                 <th>#</th>
-                <th>{t('lbl_date')}</th>
                 <th>{t('lbl_employee')}</th>
-                <th>{t('we_client')}</th>
-                <th>{t('lbl_project')}</th>
-                <th>{t('dash_time')}</th>
+                <th>{t('lbl_entries')}</th>
+                <th>{t('lbl_total')}</th>
                 <th>{t('we_normal_hours')}</th>
                 <th>{t('we_normal_ot_short')}</th>
                 <th>{t('we_weekend_ot_short')}</th>
-                <th>{t('we_weekly_hours')}</th>
-                <th>{t('we_description')}</th>
-                <th>{t('we_remarks')}</th>
+                <th>{t('lbl_date')}</th>
                 <th>{t('lbl_actions')}</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((w, i) => {
-                const project  = getProjectById(w.projectId);
-                const employee = getEmployeeById(w.employeeId);
-                const co       = getCompanyById(w.companyId || project?.companyId);
+              {employeeGroups.map((group, i) => {
+                const employee = group.employee;
                 return (
-                  <tr key={w.id}>
+                  <tr key={group.employeeId}>
                     <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{w.date}</div>
-                      <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-                        {new Date(w.date + 'T00:00:00').toLocaleDateString(t('ui_locale'), { weekday: 'short' })}
-                      </div>
+                      <button className="employee-entry-link" onClick={() => onEmployeeSelect(group.employeeId)}>
+                        <span style={{ fontWeight: 600 }}>{employee?.name || t('ui_unknown')}</span>
+                        <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{employee?.role || '—'}</span>
+                      </button>
                     </td>
+                    <td>{group.entries.length}</td>
+                    <td style={{ fontWeight: 700 }}>{group.totalHours.toFixed(1)}h</td>
+                    <td>{group.normalHours.toFixed(1)}h</td>
+                    <td>{group.normalOvertime.toFixed(1)}h</td>
+                    <td>{group.weekendOvertime.toFixed(1)}h</td>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{employee?.name || '—'}</div>
+                      <div style={{ fontWeight: 600 }}>{group.latestDate}</div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{employee?.role}</div>
                     </td>
-                    <td style={{ fontWeight: 500 }}>{co?.name || '—'}</td>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{project?.name || '—'}</div>
-                      <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{project?.number}</div>
-                    </td>
-                    <td style={{ fontFamily: 'monospace', fontSize: 12,
-                      color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-                      {w.startTime && w.endTime ? `${w.startTime}–${w.endTime}` : '—'}
-                    </td>
-                    <td>{getWorkEntryBreakdown(w).normalHours.toFixed(1)}h</td>
-                    <td>{getWorkEntryBreakdown(w).normalOvertime.toFixed(1)}h</td>
-                    <td>{getWorkEntryBreakdown(w).weekendOvertime.toFixed(1)}h</td>
-                    <td>{getWeeklyHours(workEntries, w.employeeId, w.date).toFixed(1)}h</td>
-                    <td style={{ maxWidth: 180 }}>
-                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {w.description || '—'}
-                      </div>
-                    </td>
-                    <td style={{ color: 'var(--color-text-muted)', maxWidth: 130 }}>
-                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {w.remarks || '—'}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="table-actions">
-                        <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_edit')}
-                          onClick={() => onEdit(w)}>
-                          <Pencil size={15} />
-                        </button>
-                        <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_delete')}
-                          onClick={() => onDelete(w)}
-                          style={{ color: 'var(--color-danger)' }}>
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
+                      <button className="btn btn-outline btn-sm" onClick={() => onEmployeeSelect(group.employeeId)}>
+                        <Eye size={14} /> {t('btn_view_all')}
+                      </button>
                     </td>
                   </tr>
                 );
               })}
 
-              {filtered.length === 0 && (
-                <tr><td colSpan={10}>
+              {employeeGroups.length === 0 && (
+                <tr><td colSpan={9}>
                   <div className="empty-state">
                     <div className="empty-state-icon"><ClipboardList size={32} /></div>
                     <h3>{t('we_no_entries')}</h3>
@@ -442,6 +478,82 @@ function ListView({ filtered, totalHours, projects, employees, companies,
   );
 }
 
+function EmployeeDetailsModal({ group, getProjectById, getCompanyById, onClose, onEdit, onDelete, t }) {
+  if (!group) return null;
+
+  return (
+    <Modal
+      isOpen
+      onClose={onClose}
+      side
+      size="lg"
+      className="employee-detail-panel"
+      title={group.employee?.name || t('ui_unknown')}
+      subtitle={`${group.employee?.role || t('ui_not_provided')} · ${group.entries.length} ${t('lbl_entries')}`}
+    >
+      <div className="employee-detail-summary">
+        <div><span>{t('lbl_total')}</span><strong>{group.totalHours.toFixed(1)}h</strong></div>
+        <div><span>{t('we_normal_hours')}</span><strong>{group.normalHours.toFixed(1)}h</strong></div>
+        <div><span>{t('we_normal_ot_short')}</span><strong>{group.normalOvertime.toFixed(1)}h</strong></div>
+        <div><span>{t('we_weekend_ot_short')}</span><strong>{group.weekendOvertime.toFixed(1)}h</strong></div>
+      </div>
+      <div className="table-wrapper employee-detail-table">
+        <table>
+          <thead>
+            <tr>
+              <th>{t('lbl_date')}</th>
+              <th>{t('lbl_project')}</th>
+              <th>{t('dash_time')}</th>
+              <th>{t('lbl_total')}</th>
+              <th>{t('we_normal_hours')}</th>
+              <th>{t('we_normal_ot_short')}</th>
+              <th>{t('we_weekend_ot_short')}</th>
+              <th>{t('lbl_actions')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {group.entries.map(entry => {
+              const project = getProjectById(entry.projectId);
+              const company = getCompanyById(entry.companyId || project?.companyId);
+              const breakdown = getWorkEntryBreakdown(entry);
+              return (
+                <tr key={entry.id}>
+                  <td data-label={t('lbl_date')}>{entry.date}</td>
+                  <td data-label={t('lbl_project')}>
+                    <strong>{project?.name || '—'}</strong>
+                    <small>{company?.name || '—'}</small>
+                  </td>
+                  <td data-label={t('dash_time')} style={{ whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
+                    {entry.startTime && entry.endTime ? `${entry.startTime}–${entry.endTime}` : '—'}
+                  </td>
+                  <td data-label={t('lbl_total')}><strong>{getWorkEntryHours(entry).toFixed(1)}h</strong></td>
+                  <td data-label={t('we_normal_hours')}>{breakdown.normalHours.toFixed(1)}h</td>
+                  <td data-label={t('we_normal_ot_short')}>{breakdown.normalOvertime.toFixed(1)}h</td>
+                  <td data-label={t('we_weekend_ot_short')}>{breakdown.weekendOvertime.toFixed(1)}h</td>
+                  <td data-label={t('lbl_actions')}>
+                    <div className="table-actions">
+                      <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_edit')}
+                        onClick={() => onEdit(entry)}>
+                        <Pencil size={15} />
+                      </button>
+                      <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_delete')}
+                        onClick={() => onDelete(entry)} style={{ color: 'var(--color-danger)' }}>
+                        <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {group.entries.length === 0 && <tr><td colSpan={7}>{t('we_no_entries')}</td></tr>}
+            </tbody>
+          </table>
+      </div>
+    </Modal>
+  );
+}
+
 /* ─────────────────────────────────────────────
    ROOT COMPONENT
 ───────────────────────────────────────────── */
@@ -457,9 +569,11 @@ export default function WorkEntry() {
   const [view,           setView]          = useState('list'); // 'list' | 'form'
   const [editItem,       setEditItem]      = useState(null);
   const [deleteTarget,   setDeleteTarget]  = useState(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
   const [form,           setForm]          = useState(EMPTY);
   const [errors,         setErrors]        = useState({});
   const [submitError,    setSubmitError]   = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const hasLoaded = useRef(false);
 
   useEffect(() => {
@@ -510,6 +624,32 @@ export default function WorkEntry() {
 
   const totalHours = filtered.reduce((s, w) => s + getWorkEntryHours(w), 0);
   const hasFilters = !!(search || filterEmployee || filterClient || filterProject || filterDate);
+  const employeeGroups = Object.values(filtered.reduce((groups, entry) => {
+    const employeeId = entry.employeeId || 'unknown';
+    const group = groups[employeeId] || {
+      employeeId,
+      employee: getEmployeeById(entry.employeeId),
+      entries: [],
+      totalHours: 0,
+      normalHours: 0,
+      normalOvertime: 0,
+      weekendOvertime: 0,
+      latestDate: entry.date,
+    };
+    const breakdown = getWorkEntryBreakdown(entry);
+    group.entries.push(entry);
+    group.totalHours += getWorkEntryHours(entry);
+    group.normalHours += breakdown.normalHours;
+    group.normalOvertime += breakdown.normalOvertime;
+    group.weekendOvertime += breakdown.weekendOvertime;
+    if (entry.date > group.latestDate) group.latestDate = entry.date;
+    groups[employeeId] = group;
+    return groups;
+  }, {})).sort((a, b) => {
+    const dateDiff = b.latestDate.localeCompare(a.latestDate);
+    return dateDiff || (a.employee?.name || '').localeCompare(b.employee?.name || '');
+  });
+  const selectedEmployeeGroup = employeeGroups.find(group => group.employeeId === selectedEmployeeId);
 
   const setField = (field, value) => {
     setForm(f => {
@@ -524,6 +664,7 @@ export default function WorkEntry() {
     setForm({ ...EMPTY, date: todayDate() });
     setErrors({});
     setSubmitError('');
+    setSuccessMessage('');
     setView('form');
   };
 
@@ -545,30 +686,40 @@ export default function WorkEntry() {
     });
     setErrors({});
     setSubmitError('');
+    setSuccessMessage('');
     setView('form');
   };
 
   const handleSave = async () => {
     const e = {};
+    const normalHours = form.normalHours === '' ? null : Number(form.normalHours);
+    const normalOvertime = Number(form.normalOvertime || 0);
+    const weekendOvertime = Number(form.weekendOvertime || 0);
     if (!form.date)                                                         e.date        = t('we_err_date');
     if (!form.employeeId)                                                   e.employeeId  = t('we_err_employee');
     if (!form.projectId)                                                    e.projectId   = t('we_err_project_required');
     if (!form.description?.trim())                                          e.description = t('we_err_description_required');
     if (!form.startTime || !form.endTime)                                    e.hours = t('we_err_time');
+    if (form.description?.trim().length > 1000)                              e.description = t('we_err_description_length');
+    if (normalHours !== null && (!Number.isFinite(normalHours) || normalHours < 0 || normalHours > 24)) e.normalHours = t('we_err_normal_hours');
+    if (!Number.isFinite(normalOvertime) || normalOvertime < 0 || normalOvertime > 24) e.normalOvertime = t('we_err_overtime');
+    if (!Number.isFinite(weekendOvertime) || weekendOvertime < 0 || weekendOvertime > 24) e.weekendOvertime = t('we_err_overtime');
     if (Object.keys(e).length > 0) { setErrors(e); return; }
 
-    const isWeekend = [0, 6].includes(new Date(`${form.date}T00:00:00`).getDay());
     const proj = getProjectById(form.projectId);
+    const calculatedNormalHours = calculateShiftHours(form.startTime, form.endTime);
     const data = {
       ...form,
-      normalHours: undefined,
-      normalOvertime: isWeekend ? 0 : Number(form.normalOvertime || 0),
-      weekendOvertime: Number(form.weekendOvertime || 0),
+      normalHours: form.normalHours === '' ? calculatedNormalHours : normalHours,
+      normalOvertime,
+      weekendOvertime,
       companyId: form.companyId || proj?.companyId || '',
     };
     try {
       if (editItem) await updateWorkEntry(editItem.id, data);
       else await addWorkEntry(data);
+      setSubmitError('');
+      setSuccessMessage(t(editItem ? 'we_update_success' : 'we_insert_success'));
       setView('list');
       setEditItem(null);
     } catch (error) {
@@ -576,7 +727,7 @@ export default function WorkEntry() {
     }
   };
 
-  const handleCancel = () => { setView('list'); setEditItem(null); setErrors({}); };
+  const handleCancel = () => { setView('list'); setEditItem(null); setErrors({}); setSuccessMessage(''); };
   const handleDelete = async () => {
     try {
       await deleteWorkEntry(deleteTarget.id);
@@ -592,6 +743,21 @@ export default function WorkEntry() {
   };
 
   /* ── Render ── */
+  const successDialog = (
+    <Modal
+      isOpen={!!successMessage}
+      onClose={() => setSuccessMessage('')}
+      title={t('we_success_title')}
+      size="sm"
+      footer={<button className="btn btn-primary" onClick={() => setSuccessMessage('')}>{t('btn_ok')}</button>}
+    >
+      <div className="success-dialog">
+        <CheckCircle size={28} />
+        <p>{successMessage}</p>
+      </div>
+    </Modal>
+  );
+
   if (view === 'form') {
     return (
       <>
@@ -599,7 +765,7 @@ export default function WorkEntry() {
           form={form} errors={errors} submitError={submitError} setField={setField}
           onSave={handleSave} onCancel={handleCancel} editItem={editItem}
           companies={companies} formProjects={formProjects}
-          activeEmployees={activeEmployees} getCompanyById={getCompanyById} workEntries={workEntries} t={t}
+          activeEmployees={activeEmployees} getCompanyById={getCompanyById} t={t}
         />
         <ConfirmDeleteModal
           isOpen={!!deleteTarget}
@@ -607,6 +773,7 @@ export default function WorkEntry() {
           onConfirm={handleDelete}
           itemName={t('we_delete_item', [deleteTarget?.date])}
         />
+        {successDialog}
       </>
     );
   }
@@ -614,7 +781,7 @@ export default function WorkEntry() {
   return (
     <>
       <ListView
-        filtered={filtered} totalHours={totalHours}
+        filtered={filtered} employeeGroups={employeeGroups} totalHours={totalHours}
         projects={projects} employees={employees} companies={companies}
         filterProjects={filterProjects}
         search={search} setSearch={setSearch}
@@ -623,11 +790,18 @@ export default function WorkEntry() {
         filterProject={filterProject} setFilterProject={setFilterProject}
         filterDate={filterDate} setFilterDate={setFilterDate}
         clearFilters={clearFilters} hasFilters={hasFilters}
-        getProjectById={getProjectById}
-        getEmployeeById={getEmployeeById}
-        getCompanyById={getCompanyById}
-        onAdd={openAdd} onEdit={openEdit} onDelete={setDeleteTarget}
+        onAdd={openAdd}
+        onEmployeeSelect={setSelectedEmployeeId}
         t={t} workEntries={workEntries}
+      />
+      <EmployeeDetailsModal
+        group={selectedEmployeeGroup}
+        getProjectById={getProjectById}
+        getCompanyById={getCompanyById}
+        onClose={() => setSelectedEmployeeId(null)}
+        onEdit={item => { setSelectedEmployeeId(null); openEdit(item); }}
+        onDelete={item => { setSelectedEmployeeId(null); setDeleteTarget(item); }}
+        t={t}
       />
       <ConfirmDeleteModal
         isOpen={!!deleteTarget}
@@ -635,6 +809,7 @@ export default function WorkEntry() {
         onConfirm={handleDelete}
           itemName={t('we_delete_item', [deleteTarget?.date])}
       />
+          {successDialog}
     </>
   );
 }

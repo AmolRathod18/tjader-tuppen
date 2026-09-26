@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
-import { Building2, Plus, Search, Pencil, Trash2, Phone, Mail, MapPin } from 'lucide-react';
+import { Building2, Plus, Search, Pencil, Trash2, Phone, Mail, MapPin, CheckCircle } from 'lucide-react';
 
 const EMPTY_FORM = { name: '', contact: '', email: '', phone: '', address: '' };
 
@@ -28,6 +28,7 @@ export default function Companies() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const hasLoaded = useRef(false);
 
   useEffect(() => {
@@ -42,14 +43,22 @@ export default function Companies() {
     c.address?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const openAdd = () => { setEditItem(null); setForm(EMPTY_FORM); setErrors({}); setSubmitError(''); setModalOpen(true); };
-  const openEdit = (item) => { setEditItem(item); setForm({ name: item.name, contact: item.contact, email: item.email, phone: item.phone, address: item.address }); setErrors({}); setSubmitError(''); setModalOpen(true); };
+  const openAdd = () => { setEditItem(null); setForm(EMPTY_FORM); setErrors({}); setSubmitError(''); setSuccessMessage(''); setModalOpen(true); };
+  const openEdit = (item) => { setEditItem(item); setForm({ name: item.name, contact: item.contact, email: item.email, phone: item.phone, address: item.address }); setErrors({}); setSubmitError(''); setSuccessMessage(''); setModalOpen(true); };
 
   const validate = () => {
     const e = {};
-    if (!form.name.trim()) e.name = t('co_err_name');
-    if (!form.contact.trim()) e.contact = t('co_err_contact');
-    if (form.email && !/\S+@\S+\.\S+/.test(form.email)) e.email = t('co_err_email');
+    const name = form.name.trim();
+    const contact = form.contact.trim();
+    const email = form.email.trim();
+    const phone = form.phone.trim();
+    if (!name) e.name = t('co_err_name');
+    else if (name.length < 2 || name.length > 100) e.name = t('co_err_name_length');
+    if (!contact) e.contact = t('co_err_contact');
+    else if (contact.length < 2 || contact.length > 100) e.contact = t('co_err_contact_length');
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = t('co_err_email');
+    if (phone && !/^\+?[0-9 ()-]{7,20}$/.test(phone)) e.phone = t('co_err_phone');
+    if (form.address.trim().length > 200) e.address = t('co_err_address_length');
     return e;
   };
 
@@ -60,6 +69,7 @@ export default function Companies() {
       if (editItem) await updateCompany(editItem.id, form);
       else await addCompany(form);
       setModalOpen(false);
+      setSuccessMessage(t(editItem ? 'co_update_success' : 'co_insert_success'));
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : String(error));
     }
@@ -222,6 +232,19 @@ export default function Companies() {
         onConfirm={handleDelete}
         itemName={deleteTarget?.name}
       />
+
+      <Modal
+        isOpen={!!successMessage}
+        onClose={() => setSuccessMessage('')}
+        title={t('co_success_title')}
+        size="sm"
+        footer={<button className="btn btn-primary" onClick={() => setSuccessMessage('')}>{t('btn_ok')}</button>}
+      >
+        <div className="success-dialog">
+          <CheckCircle size={28} />
+          <p>{successMessage}</p>
+        </div>
+      </Modal>
     </div>
   );
 }

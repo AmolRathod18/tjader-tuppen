@@ -13,14 +13,32 @@ export default function Settings() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setState({ loading: true, error: '', success: '' });
+    const username = form.username.trim();
+    const email = form.email.trim();
+    if (username.length < 3 || username.length > 50) {
+      setState({ loading: false, error: t('settings_username_invalid'), success: '' });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setState({ loading: false, error: t('settings_email_invalid'), success: '' });
+      return;
+    }
+    if (!form.current_password) {
+      setState({ loading: false, error: t('settings_current_password_required'), success: '' });
+      return;
+    }
+    if (form.password && form.password.length < 8) {
+      setState({ loading: false, error: t('settings_password_short'), success: '' });
+      return;
+    }
     if (form.password && form.password !== form.confirm_password) {
       setState({ loading: false, error: t('settings_password_mismatch'), success: '' });
       return;
     }
     try {
       const updated = await updateAdmin({
-        username: form.username,
-        email: form.email,
+        username,
+        email,
         current_password: form.current_password,
         ...(form.password ? { password: form.password } : {}),
       });

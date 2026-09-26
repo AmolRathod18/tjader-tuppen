@@ -1230,6 +1230,42 @@ export default function Reports() {
         ))}
       </div>
 
+      {/* ── Summary Stats ── */}
+      <div className="stat-grid report-stat-grid" style={{ marginBottom: 20 }}>
+        <div className="stat-card blue">
+          <div className="stat-icon blue"><Clock size={20} /></div>
+          <div className="stat-info">
+            <p>{t('rep_normal_hours')}</p>
+            <h3>{reportTotals.normal.toFixed(1)}h</h3>
+            <span>{t('rep_for_period')}</span>
+          </div>
+        </div>
+        <div className="stat-card green">
+          <div className="stat-icon green"><FileText size={20} /></div>
+          <div className="stat-info">
+            <p>{t('rep_total_entries')}</p>
+            <h3>{filtered.length}</h3>
+            <span>{t('rep_entries_found')}</span>
+          </div>
+        </div>
+        <div className="stat-card purple">
+          <div className="stat-icon purple"><Users size={20} /></div>
+          <div className="stat-info">
+            <p>{t('rep_employees_count')}</p>
+            <h3>{[...new Set(filtered.map(w => w.employeeId))].length}</h3>
+            <span>{t('rep_in_report')}</span>
+          </div>
+        </div>
+        <div className="stat-card orange">
+          <div className="stat-icon orange"><FolderKanban size={20} /></div>
+          <div className="stat-info">
+            <p>{t('rep_projects_count')}</p>
+            <h3>{[...new Set(filtered.map(w => w.projectId))].length}</h3>
+            <span>{t('rep_covered')}</span>
+          </div>
+        </div>
+      </div>
+
       {/* ── Filters Card ── */}
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
@@ -1321,42 +1357,6 @@ export default function Reports() {
                 </button>
               </div>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Summary Stats ── */}
-      <div className="stat-grid report-stat-grid" style={{ marginBottom: 20 }}>
-        <div className="stat-card blue">
-          <div className="stat-icon blue"><Clock size={20} /></div>
-          <div className="stat-info">
-            <p>{t('rep_normal_hours')}</p>
-            <h3>{reportTotals.normal.toFixed(1)}h</h3>
-            <span>{t('rep_for_period')}</span>
-          </div>
-        </div>
-        <div className="stat-card green">
-          <div className="stat-icon green"><FileText size={20} /></div>
-          <div className="stat-info">
-            <p>{t('rep_total_entries')}</p>
-            <h3>{filtered.length}</h3>
-            <span>{t('rep_entries_found')}</span>
-          </div>
-        </div>
-        <div className="stat-card purple">
-          <div className="stat-icon purple"><Users size={20} /></div>
-          <div className="stat-info">
-            <p>{t('rep_employees_count')}</p>
-            <h3>{[...new Set(filtered.map(w => w.employeeId))].length}</h3>
-            <span>{t('rep_in_report')}</span>
-          </div>
-        </div>
-        <div className="stat-card orange">
-          <div className="stat-icon orange"><FolderKanban size={20} /></div>
-          <div className="stat-info">
-            <p>{t('rep_projects_count')}</p>
-            <h3>{[...new Set(filtered.map(w => w.projectId))].length}</h3>
-            <span>{t('rep_covered')}</span>
           </div>
         </div>
       </div>

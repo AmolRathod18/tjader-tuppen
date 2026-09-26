@@ -5,20 +5,21 @@ import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Components';
 import {
   Users, Plus, Search, Pencil, Trash2, Phone, Mail, Eye,
-  Award, BriefcaseBusiness, MapPin, FileText,
+  Award, BriefcaseBusiness, MapPin, FileText, CheckCircle,
 } from 'lucide-react';
 import { getWorkEntryBreakdown, getWorkEntryHours } from '../utils/workHours';
 import DatePicker from '../components/ui/DatePicker';
 
 const EMPTY_FORM = {
-  name: '', empId: '', role: '', phone: '', email: '', status: 'Active', photo: '',
-  experience: '', skills: '', workType: '', certifications: '', joiningDate: '', notes: '',
+  name: '', empId: '', role: '', phone: '', email: '', status: 'Active',
+  customRole: '', experience: '', skills: '', workType: '', certifications: '', joiningDate: '', notes: '',
 };
 const ROLES = [
-  ['Senior Welder', 'role_senior_welder'], ['Pipe Welder', 'role_pipe_welder'],
-  ['MIG/MAG Welder', 'role_mig_mag_welder'], ['TIG Welder', 'role_tig_welder'],
-  ['Welding Inspector', 'role_welding_inspector'], ['Foreman', 'role_foreman'],
-  ['Helper', 'role_helper'], ['Other', 'role_other'],
+  ['Pipe Welder', 'role_pipe_welder'],
+  ['Industrial Welder', 'role_industrial_welder'], ['Welder', 'role_welder'],
+  ['Gas Welding', 'role_gas_welding'], ['Junior Welder', 'role_junior_welder'],
+  ['SR Welder', 'role_sr_welder'],
+  ['Other', 'role_other'],
 ];
 const STATUS_OPTIONS = ['Active', 'Inactive'];
 
@@ -41,7 +42,7 @@ function EmployeeField({ field, label, type = 'text', placeholder, required, for
 export default function Employees() {
   const {
     employees, addEmployee, updateEmployee, deleteEmployee,
-    workEntries, projects, companies, loadEmployees, loadWorkEntries,
+    workEntries, projects, companies, loadEmployees, loadWorkEntries, loadProjects, loadCompanies,
   } = useApp();
   const { t } = useLanguage();
 
@@ -54,12 +55,13 @@ export default function Employees() {
   const [form,          setForm]          = useState(EMPTY_FORM);
   const [errors,        setErrors]        = useState({});
   const [submitError,   setSubmitError]   = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const hasLoaded = useRef(false);
 
   useEffect(() => {
     if (hasLoaded.current) return;
     hasLoaded.current = true;
-    Promise.all([loadEmployees(), loadWorkEntries()]).catch(error => setSubmitError(error.message));
+    Promise.all([loadEmployees(), loadWorkEntries(), loadProjects(), loadCompanies()]).catch(error => setSubmitError(error.message));
   }, []);
 
   const filtered = employees.filter(e => {
@@ -69,26 +71,37 @@ export default function Employees() {
     return matchSearch && matchStatus;
   });
 
-  const openAdd  = () => { setEditItem(null); setForm(EMPTY_FORM); setErrors({}); setSubmitError(''); setModalOpen(true); };
+  const openAdd  = () => { setEditItem(null); setForm(EMPTY_FORM); setErrors({}); setSubmitError(''); setSuccessMessage(''); setModalOpen(true); };
   const openEdit = (item) => {
     setEditItem(item);
     setForm({
-      name: item.name, empId: item.empId, role: item.role || '',
+      name: item.name, empId: item.empId, role: ROLES.some(([role]) => role === item.role) ? item.role : (item.role ? 'Other' : ''),
       phone: item.phone || '', email: item.email || '',
-      status: item.status, photo: item.photo || item.photoUrl || '',
+      status: item.status,
+      customRole: ROLES.some(([role]) => role === item.role) ? '' : (item.role || ''),
       experience: item.experience || '', skills: Array.isArray(item.skills) ? item.skills.join(', ') : (item.skills || ''),
       workType: item.workType || '', certifications: item.certifications || '',
       joiningDate: item.joiningDate || item.createdAt || '', notes: item.notes || '',
     });
     setErrors({});
     setSubmitError('');
+    setSuccessMessage('');
     setModalOpen(true);
   };
 
   const validate = () => {
     const e = {};
-    if (!form.name.trim())  e.name  = t('emp_err_name');
-    if (form.email && !/\S+@\S+\.\S+/.test(form.email)) e.email = t('emp_err_email');
+    const name = form.name.trim();
+    const email = form.email.trim();
+    const phone = form.phone.trim();
+    if (!name) e.name = t('emp_err_name');
+    else if (name.length < 2 || name.length > 100) e.name = t('emp_err_name_length');
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = t('emp_err_email');
+    if (phone && !/^\+?[0-9 ()-]{7,20}$/.test(phone)) e.phone = t('emp_err_phone');
+    if (form.status && !STATUS_OPTIONS.includes(form.status)) e.status = t('emp_err_status');
+    if (form.role === 'Other' && (form.customRole.trim().length < 2 || form.customRole.trim().length > 80)) e.customRole = t('emp_err_custom_role');
+    if (form.experience && (!/^\d+(\.\d+)?$/.test(form.experience.trim()) || Number(form.experience) < 0)) e.experience = t('emp_err_experience');
+    if (form.joiningDate && !/^\d{4}-\d{2}-\d{2}$/.test(form.joiningDate)) e.joiningDate = t('emp_err_joining_date');
     return e;
   };
 
@@ -96,13 +109,19 @@ export default function Employees() {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     try {
-      if (editItem) await updateEmployee(editItem.id, form);
+      const employeeData = {
+        ...form,
+        role: form.role === 'Other' ? form.customRole.trim() : form.role,
+      };
+      delete employeeData.customRole;
+      if (editItem) await updateEmployee(editItem.id, employeeData);
       else {
-        const employeePayload = { ...form };
+        const employeePayload = { ...employeeData };
         delete employeePayload.empId;
         await addEmployee(employeePayload);
       }
       setModalOpen(false);
+      setSuccessMessage(t(editItem ? 'emp_update_success' : 'emp_insert_success'));
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : String(error));
     }
@@ -123,6 +142,14 @@ export default function Employees() {
   const getInitials  = (name) => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   const avatarColors = ['#B88A3B', '#527A5A', '#80683D', '#D97706', '#4B7A7A', '#B94A3D'];
   const formatDate = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateString(t('ui_locale'), { day: 'numeric', month: 'short', year: 'numeric' }) : t('ui_not_provided');
+  const formatTime = (value) => {
+    if (!value) return '—';
+    const [rawHours, rawMinutes] = value.split(':');
+    const hours = Number(rawHours);
+    if (!Number.isInteger(hours) || !rawMinutes) return value;
+    const meridiem = hours >= 12 ? 'PM' : 'AM';
+    return `${hours % 12 || 12}:${rawMinutes} ${meridiem}`;
+  };
   const profileValue = (value) => value || t('ui_not_provided');
   const getSkills = (employee) => Array.isArray(employee?.skills) ? employee.skills : (employee?.skills ? employee.skills.split(',').map(skill => skill.trim()).filter(Boolean) : []);
 
@@ -236,6 +263,7 @@ export default function Employees() {
         title={t('emp_profile_title')}
         subtitle={profileEmployee ? `${profileEmployee.name} · ${profileEmployee.empId}` : ''}
         size="xl"
+        className="employee-profile-modal"
         footer={<>
           <button className="btn btn-ghost" onClick={() => setProfileEmployee(null)}>{t('emp_close_profile')}</button>
           <button className="btn btn-primary" onClick={() => { const employee = profileEmployee; setProfileEmployee(null); openEdit(employee); }}><Pencil size={14} /> {t('emp_edit_profile')}</button>
@@ -292,29 +320,59 @@ export default function Employees() {
                 <div><h4>{t('emp_work_history')}</h4><p>{t('emp_work_history_sub')}</p></div>
                 <span>{t('emp_entries_count', [profileEntries.length])}</span>
               </div>
+
               {profileEntries.length === 0 ? (
                 <div className="employee-history-empty">{t('emp_no_work_history')}</div>
               ) : (
-                <div className="employee-history-list">
-                  {profileEntries.map((entry, index) => {
-                    const project = projects.find(item => item.id === entry.projectId);
-                    const company = companies.find(item => item.id === (entry.companyId || project?.companyId));
-                    return (
-                      <article className="employee-history-item" key={entry.id}>
-                        <div className="employee-history-marker"><span>{index + 1}</span></div>
-                        <div className="employee-history-date"><strong>{formatDate(entry.date)}</strong><span>{entry.startTime || '—'} – {entry.endTime || '—'}</span></div>
-                        <div className="employee-history-content">
-                          <strong>{project?.name || t('emp_project_not_found')}</strong>
-                          <span className="employee-history-client"><BriefcaseBusiness size={12} /> {company?.name || t('emp_client_not_provided')} {project?.location && <><MapPin size={12} /> {project.location}</>}</span>
-                          <p>{entry.description || t('emp_no_work_details')}{entry.remarks && ` · ${entry.remarks}`}</p>
-                        </div>
-                        <div className="employee-history-hours">
-                          <strong>{getWorkEntryHours(entry).toFixed(1)}h</strong>
-                          <span>{t('we_normal_hours')} {getWorkEntryBreakdown(entry).normalHours.toFixed(1)}h · {t('we_normal_overtime')} {getWorkEntryBreakdown(entry).normalOvertime.toFixed(1)}h · {t('we_weekend_overtime')} {getWorkEntryBreakdown(entry).weekendOvertime.toFixed(1)}h</span>
-                        </div>
-                      </article>
-                    );
-                  })}
+                <div className="employee-detail-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>{t('lbl_date')}</th>
+                        <th>{t('lbl_project')}</th>
+                        <th>{t('lbl_time')}</th>
+                        <th>{t('we_total_hours')}</th>
+                        <th>{t('emp_col_actions')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {profileEntries.map((entry) => {
+                        const project = projects.find(item => item.id === entry.projectId);
+                        const company = companies.find(item => item.id === (entry.companyId || project?.companyId));
+                        const totalHours = getWorkEntryHours(entry);
+                        const breakdown = getWorkEntryBreakdown(entry);
+
+                        return (
+                          <tr key={entry.id}>
+                            <td className="employee-history-date">
+                              <strong>{formatDate(entry.date)}</strong>
+                              <span>{entry.description || t('emp_no_work_details')}</span>
+                            </td>
+                            <td className="employee-history-project">
+                              <strong>{project?.name || t('emp_project_not_found')}</strong>
+                              <span>{company?.name || t('emp_client_not_provided')} {project?.location ? `• ${project.location}` : ''}</span>
+                            </td>
+                            <td className="employee-history-time">
+                              <span>{formatTime(entry.startTime)} - {formatTime(entry.endTime)}</span>
+                              <small>{breakdown.normalHours.toFixed(1)}h normal · {breakdown.normalOvertime.toFixed(1)}h OT</small>
+                            </td>
+                            <td className="employee-history-hours">
+                              <strong>{totalHours.toFixed(1)}h</strong>
+                              <span>{breakdown.weekendOvertime > 0 ? `${breakdown.weekendOvertime.toFixed(1)}h weekend` : 'Regular shift'}</span>
+                            </td>
+                            <td className="employee-history-actions">
+                              <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_edit')} onClick={() => openEdit(profileEmployee)}>
+                                <Pencil size={14} />
+                              </button>
+                              <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_delete')} onClick={() => setDeleteTarget(profileEmployee)} style={{ color: 'var(--color-danger)' }}>
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </section>
@@ -339,6 +397,17 @@ export default function Employees() {
             <option value="">{t('emp_form_role_ph')}</option>
             {ROLES.map(([value, key]) => <option key={value} value={value}>{t(key)}</option>)}
           </select>
+          {form.role === 'Other' && (
+            <div style={{ marginTop: 10 }}>
+              <input
+                value={form.customRole}
+                placeholder={t('emp_custom_role_ph')}
+                onChange={e => setForm(f => ({ ...f, customRole: e.target.value }))}
+                style={errors.customRole ? { borderColor: 'var(--color-danger)' } : {}}
+              />
+              {errors.customRole && <p style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 4 }}>{errors.customRole}</p>}
+            </div>
+          )}
         </div>
         <div className="form-row">
           <EmployeeField form={form} setForm={setForm} errors={errors} field="phone" label={t('emp_form_phone')} placeholder={t('emp_form_phone_ph')} />
@@ -351,8 +420,7 @@ export default function Employees() {
           </select>
         </div>
         <div className="profile-form-divider">{t('emp_profile_details')}</div>
-        <div className="form-row">
-          <EmployeeField form={form} setForm={setForm} errors={errors} field="photo" label={t('emp_photo_url')} placeholder="https://..." />
+        <div className="form-group">
           <EmployeeField form={form} setForm={setForm} errors={errors} field="joiningDate" type="date" label={t('emp_joining_date')} />
         </div>
         <div className="form-row">
@@ -374,6 +442,19 @@ export default function Employees() {
       </Modal>
 
       <ConfirmDeleteModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} itemName={deleteTarget?.name} />
+
+      <Modal
+        isOpen={!!successMessage}
+        onClose={() => setSuccessMessage('')}
+        title={t('emp_success_title')}
+        size="sm"
+        footer={<button className="btn btn-primary" onClick={() => setSuccessMessage('')}>{t('btn_ok')}</button>}
+      >
+        <div className="success-dialog">
+          <CheckCircle size={28} />
+          <p>{successMessage}</p>
+        </div>
+      </Modal>
     </div>
   );
 }

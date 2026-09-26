@@ -112,6 +112,14 @@ async function loadLogoData(lang = 'en') {
   });
 }
 
+function getLogoSize(logoData, maxWidth, maxHeight) {
+  const scale = Math.min(maxWidth / logoData.width, maxHeight / logoData.height);
+  return {
+    width: logoData.width * scale,
+    height: logoData.height * scale,
+  };
+}
+
 async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditures, getProjectById, getCompanyById, getEmployeeById }) {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const PW = 210;
@@ -137,7 +145,8 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
   const drawPageHeader = (employee) => {
     pdf.setFillColor(255, 255, 255);
     pdf.rect(0, 0, PW, PH, 'F');
-    pdf.addImage(logoData.data, 'JPEG', M, 5, 82, 24);
+    const logoSize = getLogoSize(logoData, 62, 18);
+    pdf.addImage(logoData.data, 'JPEG', M, 8, logoSize.width, logoSize.height);
     pdf.setFillColor(31, 48, 65);
     pdf.roundedRect(PW - M - 51, 8, 51, 10, 2, 2, 'F');
     pdf.setFont('helvetica', 'bold');
@@ -382,7 +391,8 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
   // ── Header ──
   pdf.setFillColor(255, 255, 255);
   pdf.rect(0, 0, PW, 31, 'F');
-  pdf.addImage(logoData.data, 'JPEG', M, 5, 28, 20);
+  const logoSize = getLogoSize(logoData, 28, 16);
+  pdf.addImage(logoData.data, 'JPEG', M, 7, logoSize.width, logoSize.height);
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(22);
   pdf.setTextColor(24, 29, 33);
@@ -790,7 +800,8 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
   const drawHeader = (employee) => {
     pdf.setFillColor(255, 255, 255);
     pdf.rect(0, 0, pageWidth, pageHeight, 'F');
-    pdf.addImage(logoData.data, 'JPEG', margin, 7, 82, 24);
+    const logoSize = getLogoSize(logoData, 62, 20);
+    pdf.addImage(logoData.data, 'JPEG', margin, 8, logoSize.width, logoSize.height);
     pdf.setFillColor(31, 48, 65);
     pdf.roundedRect(pageWidth - margin - 53, 8, 53, 10, 2, 2, 'F');
     pdf.setFont('helvetica', 'bold');
@@ -861,10 +872,11 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     }), { normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: 0 });
     const totalHours = totals.normal + totals.overtime + totals.weekend;
 
+    const sectionTitleY = 68;
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(16);
     pdf.setTextColor(15, 23, 42);
-    pdf.text(`1. ${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin, 70);
+    pdf.text(`1. ${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin + 1, sectionTitleY);
 
     const columns = [
       { label: lang === 'sv' ? 'Datum' : 'Date', width: 28 },
@@ -875,7 +887,7 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       { label: lang === 'sv' ? 'Resa km' : 'Travel KM', width: 22 },
       { label: lang === 'sv' ? 'Restid' : 'Travel Hrs', width: 20 },
     ];
-    const tableTop = 76;
+    const tableTop = 81;
     const headerHeight = 14;
     const rowHeight = 13;
     let x = margin;
@@ -891,13 +903,13 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     });
     let y = tableTop + headerHeight;
     rows.forEach((row, index) => {
-      if (y + rowHeight > pageHeight - 55) {
+      if (y + rowHeight > pageHeight - 58) {
         pdf.addPage();
         drawHeader(employee);
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(16);
         pdf.setTextColor(15, 23, 42);
-        pdf.text(`1. ${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin, 70);
+        pdf.text(`1. ${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin + 1, sectionTitleY);
         pdf.setFillColor(31, 48, 65);
         pdf.rect(margin, tableTop, contentWidth, headerHeight, 'F');
         pdf.setFont('helvetica', 'bold');
@@ -936,28 +948,28 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     });
 
     pdf.setFillColor(232, 240, 247);
-    pdf.rect(margin, y, contentWidth, rowHeight, 'F');
+    pdf.rect(margin, y + 1, contentWidth, rowHeight, 'F');
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
     pdf.setTextColor(24, 29, 33);
-    pdf.text(lang === 'sv' ? 'TOTALT' : 'TOTAL', margin + 4, y + 8);
+    pdf.text(lang === 'sv' ? 'TOTALT' : 'TOTAL', margin + 4, y + 9);
     const totalValues = [totals.normal, totals.overtime, totals.weekend, totals.kilometers, totals.travelHours];
     let totalX = margin + columns[0].width + columns[1].width;
     totalValues.forEach((value, index) => {
       const column = columns[index + 2];
-      pdf.text(index === 3 ? String(Math.round(value)) : value.toFixed(2).replace(/\.00$/, ''), totalX + column.width / 2, y + 8, { align: 'center' });
+      pdf.text(index === 3 ? String(Math.round(value)) : value.toFixed(2).replace(/\.00$/, ''), totalX + column.width / 2, y + 9, { align: 'center' });
       totalX += column.width;
     });
 
-    if (y + rowHeight + 58 > pageHeight - 18) {
+    if (y + rowHeight + 62 > pageHeight - 18) {
       pdf.addPage();
       drawHeader(employee);
       y = tableTop + headerHeight;
     }
-    const totalsY = y + rowHeight + 28;
+    const totalsY = y + rowHeight + 32;
     pdf.setFontSize(16);
-    pdf.text(`2. ${periodName} ${lang === 'sv' ? 'sammanfattning' : 'Totals'}`, margin, totalsY);
-    const summaryY = totalsY + 9;
+    pdf.text(`2. ${periodName} ${lang === 'sv' ? 'sammanfattning' : 'Totals'}`, margin + 1, totalsY);
+    const summaryY = totalsY + 11;
     const summaryWidth = (contentWidth - 6) / 2;
     [{ label: lang === 'sv' ? 'Total arbetstid' : 'Total Work Hours', value: `${totalHours.toFixed(1)} h`, fill: [236, 245, 255] }, { label: lang === 'sv' ? 'Total resa' : 'Total Travel', value: `${Math.round(totals.kilometers)} km -> ${totals.travelHours.toFixed(2).replace(/\.00$/, '')} h`, fill: [237, 249, 241] }].forEach((summary, index) => {
       const summaryX = margin + index * (summaryWidth + 6);
@@ -990,6 +1002,125 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       pdf.setTextColor(15, 23, 42);
       pdf.text(summary.value, summaryX + 24, summaryY + 18);
     });
+
+    pdf.addPage();
+    drawHeader(employee);
+
+    const detailTop = 42;
+    const detailTitleY = detailTop + 25;
+    const detailTitle = lang === 'sv' ? '3. Detaljerade arbetsposter' : '3. Detailed Work Entries';
+    const detailSubtitle = lang === 'sv' ? 'Lista över alla arbetsposter med beskrivning och arbetstimmar för vald vecka.' : 'List of all work entries with description and working hours for the selected week.';
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(16);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(detailTitle, margin, detailTitleY);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(72, 81, 88);
+    pdf.text(detailSubtitle, margin, detailTitleY + 8);
+
+    const detailTableTop = detailTitleY + 18;
+    const detailColumns = [
+      { label: lang === 'sv' ? 'Datum' : 'Date', width: 28 },
+      { label: lang === 'sv' ? 'Företag / Projekt' : 'Company / Project', width: 62 },
+      { label: lang === 'sv' ? 'Arbetsbeskrivning' : 'Work Description', width: 82 },
+      { label: lang === 'sv' ? 'Timmar' : 'Hours', width: 18 },
+    ];
+    const detailHeaderHeight = 12;
+    let detailX = margin;
+    pdf.setFillColor(31, 48, 65);
+    pdf.rect(margin, detailTableTop, contentWidth, detailHeaderHeight, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(255, 255, 255);
+    detailColumns.forEach(column => {
+      pdf.text(column.label, detailX + column.width / 2, detailTableTop + 8, { align: 'center' });
+      detailX += column.width;
+    });
+
+    let detailY = detailTableTop + detailHeaderHeight;
+    const detailRows = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+    detailRows.forEach((entry, index) => {
+      const project = getProjectById(entry.projectId);
+      const company = project ? getCompanyById(project.companyId) : null;
+      const breakdown = getWorkEntryBreakdown(entry);
+      const totalEntryHours = breakdown.normalHours + breakdown.normalOvertime + breakdown.weekendOvertime;
+      const lines = [
+        reportDate(entry.date),
+        `${company?.name || '—'}\n${project?.name || '—'}`,
+        entry.description || (lang === 'sv' ? 'Ingen beskrivning' : 'No description'),
+        `${totalEntryHours.toFixed(1)}`,
+      ];
+      const rowHeight = 12 + Math.max(0, lines[2].split('\n').length - 1) * 4;
+      if (detailY + rowHeight > pageHeight - 22) {
+        pdf.addPage();
+        detailY = 20;
+        drawHeader(employee);
+      }
+      pdf.setFillColor(index % 2 === 0 ? 255 : 247, index % 2 === 0 ? 255 : 249, index % 2 === 0 ? 255 : 252);
+      pdf.rect(margin, detailY, contentWidth, rowHeight, 'F');
+      pdf.setDrawColor(220, 226, 230);
+      pdf.setLineWidth(0.2);
+      pdf.rect(margin, detailY, contentWidth, rowHeight, 'S');
+      let detailCellX = margin;
+      lines.forEach((value, columnIndex) => {
+        const isRightAligned = columnIndex === 3;
+        pdf.setFont('helvetica', columnIndex === 3 ? 'bold' : 'normal');
+        pdf.setFontSize(columnIndex === 3 ? 9 : 8.5);
+        pdf.setTextColor(24, 29, 33);
+        const splitLines = String(value).split('\n');
+        splitLines.forEach((line, lineIndex) => {
+          pdf.text(line, isRightAligned ? detailCellX + detailColumns[columnIndex].width - 3 : detailCellX + (columnIndex === 2 ? 3 : 3), detailY + 5 + lineIndex * 4, { align: isRightAligned ? 'right' : 'left' });
+        });
+        pdf.setDrawColor(220, 226, 230);
+        pdf.line(detailCellX, detailY, detailCellX, detailY + rowHeight);
+        detailCellX += detailColumns[columnIndex].width;
+      });
+      detailY += rowHeight;
+    });
+
+    pdf.setFillColor(232, 240, 247);
+    pdf.rect(margin, detailY, contentWidth, 12, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(24, 29, 33);
+    pdf.text(lang === 'sv' ? 'TOTAL' : 'TOTAL', margin + 4, detailY + 8);
+    pdf.text(`${(detailRows.reduce((sum, entry) => sum + (getWorkEntryBreakdown(entry).normalHours + getWorkEntryBreakdown(entry).normalOvertime + getWorkEntryBreakdown(entry).weekendOvertime), 0)).toFixed(1)} h`, pageWidth - margin - 3, detailY + 8, { align: 'right' });
+
+    const finalCardY = detailY + 10;
+    const finalCardHeight = 43;
+    pdf.setFillColor(247, 248, 249);
+    pdf.roundedRect(margin, finalCardY, contentWidth, finalCardHeight, 2, 2, 'F');
+
+    pdf.setFillColor(31, 48, 65);
+    pdf.roundedRect(pageWidth - margin - 54, finalCardY + 4, 54, 9, 2, 2, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text(lang === 'sv' ? 'MÅNADSRAPPORT' : 'MONTHLY REPORT', pageWidth - margin - 27, finalCardY + 9.5, { align: 'center' });
+
+    pdf.setDrawColor(211, 217, 223);
+    pdf.setLineWidth(0.25);
+    pdf.line(margin, finalCardY + 22, pageWidth - margin, finalCardY + 22);
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9.5);
+    pdf.setTextColor(24, 29, 33);
+    pdf.text(lang === 'sv' ? 'TOTAL' : 'TOTAL', margin + 5, finalCardY + 19);
+    pdf.text(`${totalHours.toFixed(1)} h`, pageWidth - margin - 4, finalCardY + 19, { align: 'right' });
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8.2);
+    pdf.setTextColor(92, 101, 109);
+    pdf.text(lang === 'sv' ? 'MEDARBETARE' : 'EMPLOYEE', margin + 5, finalCardY + 30);
+    pdf.text(lang === 'sv' ? 'MEDARBETAR-ID' : 'EMPLOYEE ID', pageWidth - margin - 24, finalCardY + 30, { align: 'right' });
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10.5);
+    pdf.setTextColor(24, 29, 33);
+    pdf.text(employee?.name || (lang === 'sv' ? 'Okänd medarbetare' : 'Unknown employee'), margin + 5, finalCardY + 37);
+    pdf.text(formatEmployeeCode(employee), pageWidth - margin - 4, finalCardY + 37, { align: 'right' });
+
     return { totalHours, totals };
   };
 
@@ -1196,7 +1327,13 @@ export default function Reports() {
         getCompanyById,
         getEmployeeById,
       });
-      window.open(pdf.output('bloburl'), '_blank');
+
+      const blob = pdf.output('blob');
+      const blobUrl = URL.createObjectURL(blob);
+      const previewWindow = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      if (previewWindow) {
+        previewWindow.document.title = title || 'Report Preview';
+      }
     } catch (error) {
       window.alert(error.message);
     }
@@ -1370,7 +1507,7 @@ export default function Reports() {
           </div>
         </div>
         <div className="table-wrapper table-report-entries">
-          <table>
+          <table className="report-entries-table">
             <thead>
               <tr>
                 <th>#</th>

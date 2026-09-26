@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { normalizeSupabaseError } from '../utils/supabaseData';
-import { LockKeyhole, AlertCircle, ArrowRight, BarChart3, CheckCircle2, Clock3, ShieldCheck, UserRound } from 'lucide-react';
+import { LockKeyhole, AlertCircle, ArrowRight, CheckCircle2, Clock3, ShieldCheck, UserRound } from 'lucide-react';
 import logo from '../assets/TJADERTUPPEN_Logo.jpeg';
+import PublicNavbar from '../components/layout/PublicNavbar';
 
 export default function Login() {
-  const { lang, setLang, t } = useLanguage();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -32,33 +33,9 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <div className="login-language-switcher" aria-label={t('ui_language_selection')}>
-        <button
-          type="button"
-          className={lang === 'en' ? 'active' : ''}
-          onClick={() => setLang('en')}
-          aria-pressed={lang === 'en'}
-        >
-          EN
-        </button>
-        <button
-          type="button"
-          className={lang === 'sv' ? 'active' : ''}
-          onClick={() => setLang('sv')}
-          aria-pressed={lang === 'sv'}
-        >
-          SV
-        </button>
-      </div>
+      <PublicNavbar />
       <div className="login-container">
         <section className="login-intro" aria-label={t('login_overview_label')}>
-          <div className="login-intro-topline">
-            <span className="login-mark">TJ</span>
-            <span>{t('login_workspace')}</span>
-            <span className="nordic-flag" aria-label={t('ui_swedish_flag')}>
-              <span />
-            </span>
-          </div>
           <div className="login-intro-copy">
             <p className="login-eyebrow">TJÄDERTUPPEN / 2026</p>
             <h1>{t('login_intro_title')}<br /><em>{t('login_intro_emphasis')}</em></h1>
@@ -68,9 +45,7 @@ export default function Login() {
             <div className="login-feature-list">
               <div><CheckCircle2 size={16} /><span>{t('login_feature_projects')}</span></div>
               <div><Clock3 size={16} /><span>{t('login_feature_time')}</span></div>
-              <div><BarChart3 size={16} /><span>{t('login_feature_reports')}</span></div>
             </div>
-            <p className="login-intro-note">{t('login_intro_note')}</p>
           </div>
         </section>
 
@@ -86,14 +61,6 @@ export default function Login() {
           <div className="login-title">
             <h1>{t('login_title_admin')}</h1>
             <p>{t('login_subtitle_admin')}</p>
-          </div>
-
-          <div className="login-demo-hint">
-            <ShieldCheck size={17} />
-            <div>
-              <p><strong>{t('login_demo_admin_label')}</strong></p>
-              <p>{t('login_demo_admin_creds')}</p>
-            </div>
           </div>
 
           {error && (

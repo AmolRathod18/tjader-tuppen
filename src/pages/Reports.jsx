@@ -12,7 +12,9 @@ import { Modal } from '../components/ui/Modal';
 import DatePicker from '../components/ui/DatePicker';
 
 // ─── helpers ────────────────────────────────────────────────
-function fmt(d) { return d.toISOString().split('T')[0]; }
+function fmt(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 function todayStr() { return new Date().toISOString().split('T')[0]; }
 
@@ -1404,7 +1406,7 @@ export default function Reports() {
       </div>
 
       {/* ── Filters Card ── */}
-      <div className="card" style={{ marginBottom: 20 }}>
+      <div className="card report-filters-card" style={{ marginBottom: 20 }}>
         <div className="card-header">
           <div><h3>{t('rep_filters')}</h3><p>{t('rep_select_scope')}</p></div>
         </div>

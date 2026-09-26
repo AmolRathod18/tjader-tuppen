@@ -37,6 +37,11 @@ export default function DatePicker({ value, onChange, id, name, required, disabl
     return () => document.removeEventListener('mousedown', close);
   }, []);
 
+  useEffect(() => {
+    const selectedDate = parseDate(value);
+    if (selectedDate) setViewDate(selectedDate);
+  }, [value]);
+
   const days = useMemo(() => {
     const first = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
     const count = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
@@ -68,9 +73,9 @@ export default function DatePicker({ value, onChange, id, name, required, disabl
       {open && (
         <div className="date-picker-popover" role="dialog" aria-label={t('ui_swedish_calendar')}>
           <div className="date-picker-heading">
-            <button type="button" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))} aria-label={t('ui_previous_month')}>‹</button>
+            <button type="button" onClick={() => setViewDate(current => new Date(current.getFullYear(), current.getMonth() - 1, 1))} aria-label={t('ui_previous_month')}>‹</button>
             <strong>{MONTHS[lang][viewDate.getMonth()]} {viewDate.getFullYear()}</strong>
-            <button type="button" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))} aria-label={t('ui_next_month')}>›</button>
+            <button type="button" onClick={() => setViewDate(current => new Date(current.getFullYear(), current.getMonth() + 1, 1))} aria-label={t('ui_next_month')}>›</button>
           </div>
           <div className="date-picker-weekdays">{WEEKDAYS[lang].map(day => <span key={day}>{day}</span>)}</div>
           <div className="date-picker-days">

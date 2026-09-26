@@ -13,6 +13,7 @@ import Reports    from './pages/Reports';
 import Expenditure from './pages/Expenditure';
 import Login      from './pages/Login';
 import Settings   from './pages/Settings';
+import Home       from './pages/Home';
 
 // Protected route wrapper
 function ProtectedRoute({ children }) {
@@ -32,6 +33,7 @@ export default function App() {
       <AppProvider>
         <BrowserRouter>
           <Routes>
+            <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/*" element={
               <ProtectedRoute>

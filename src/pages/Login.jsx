@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { normalizeSupabaseError } from '../utils/supabaseData';
-import { LockKeyhole, AlertCircle, ArrowRight, CheckCircle2, Clock3, ShieldCheck, UserRound } from 'lucide-react';
+import { LockKeyhole, AlertCircle, ArrowRight, CheckCircle2, Clock3, Eye, EyeOff, ShieldCheck, UserRound } from 'lucide-react';
 import logo from '../assets/TJADERTUPPEN_Logo.jpeg';
 import PublicNavbar from '../components/layout/PublicNavbar';
 
@@ -13,17 +13,86 @@ export default function Login() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const validateLogin = () => {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      return 'Please enter your email address.';
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(trimmedEmail)) {
+      return 'Please enter a valid email address.';
+    }
+
+    if (!password) {
+      return 'Please enter your password.';
+    }
+
+    if (password.length < 6) {
+      return 'Password must be at least 6 characters long.';
+    }
+
+    return '';
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    const validationError = validateLogin();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      const trimmedEmail = email.trim();
+      const { data: emailExists, error: emailCheckError } = await supabase.rpc('email_exists_in_auth', {
+        email_input: trimmedEmail,
+      });
+
+      if (emailCheckError) {
+        throw new Error('Unable to verify this email in Supabase Authentication.');
+      }
+
+      if (!emailExists) {
+        throw new Error('This email is not registered in Supabase Authentication.');
+      }
+
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password,
+      });
+
       if (signInError) throw normalizeSupabaseError(signInError);
+
+      const userId = signInData?.user?.id;
+      if (!userId) {
+        throw new Error('Authentication failed. Please try again.');
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('admin_profiles')
+        .select('id, role')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profileError) {
+        throw new Error('Unable to verify admin access.');
+      }
+
+      if (!profile || profile.role !== 'admin') {
+        await supabase.auth.signOut();
+        throw new Error('This account is not an authenticated admin user.');
+      }
+
       navigate('/dashboard');
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : String(submitError));
@@ -90,11 +159,11 @@ export default function Login() {
 
             <div className="form-group">
               <label htmlFor="password">{t('lbl_password')}</label>
-              <div className="input-wrapper">
+              <div className="input-wrapper password-input-wrapper">
                 <LockKeyhole size={18} className="input-icon" />
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   placeholder={t('login_ph_password')}
                   value={password}
@@ -102,6 +171,15 @@ export default function Login() {
                   required
                   disabled={loading}
                 />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  onClick={() => setShowPassword(prev => !prev)}
+                  tabIndex={0}
+                >
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
               </div>
             </div>
 

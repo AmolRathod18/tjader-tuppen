@@ -58,13 +58,11 @@ export default function Dashboard() {
     <div className="dashboard-page">
       {/* ── Stat Cards ── */}
       <div className="stat-grid">
-        <StatCard label={t('dash_clients')} value={companies.length} subtext={t('dash_registered', [companies.length])} colorClass="blue" icon={Building2} />
-        <StatCard label={t('dash_active_projects')} value={activeProjects} subtext={t('dash_total', [projects.length])} colorClass="green" icon={FolderKanban} />
-        <StatCard label={t('lbl_employee')} value={activeEmployees} subtext={t('dash_total', [employees.length])} colorClass="purple" icon={Users} />
-        <StatCard label={t('dash_today_entries')} value={todayEntries.length} subtext={todayLabel} colorClass="orange" icon={CalendarCheck} />
-        <StatCard label={t('dash_regular_hours')} value={hourTotals.normal.toFixed(1) + 'h'} subtext={`${workEntries.length} ${t('lbl_entries')}`} colorClass="blue" icon={Clock} />
-        <StatCard label={t('dash_regular_overtime')} value={hourTotals.overtime.toFixed(1) + 'h'} subtext={t('dash_manual_entered')} colorClass="orange" icon={TrendingUp} />
-        <StatCard label={t('dash_weekend_overtime')} value={hourTotals.weekend.toFixed(1) + 'h'} subtext={t('dash_saturday_sunday')} colorClass="purple" icon={CalendarCheck} />
+        <StatCard label={t('dash_total_clients')} value={companies.length} subtext={t('dash_registered', [companies.length])} colorClass="blue" icon={Building2} />
+        <StatCard label={t('dash_total_projects')} value={projects.length} subtext={t('dash_total', [projects.length])} colorClass="purple" icon={FolderKanban} />
+        <StatCard label={t('dash_active_projects')} value={activeProjects} subtext={t('dash_out_of_total', [projects.length])} colorClass="green" icon={FolderKanban} />
+        <StatCard label={t('dash_total_employees')} value={employees.length} subtext={t('dash_total', [employees.length])} colorClass="orange" icon={Users} />
+        <StatCard label={t('dash_active_employees')} value={activeEmployees} subtext={t('dash_out_of_total', [employees.length])} colorClass="indigo" icon={Users} />
       </div>
 
       {/* ── Today's Work Entries ── */}

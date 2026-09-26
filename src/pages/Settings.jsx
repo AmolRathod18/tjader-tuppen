@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CheckCircle2, KeyRound, Save, UserRound } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useApp } from '../context/AppContext';
@@ -6,8 +6,17 @@ import { useApp } from '../context/AppContext';
 export default function Settings() {
   const { t } = useLanguage();
   const { auth, updateAdmin } = useApp();
-  const [form, setForm] = useState({ username: auth.user?.username || '', email: auth.user?.email || '', current_password: '', password: '', confirm_password: '' });
+  const [form, setForm] = useState({ username: '', email: '', current_password: '', password: '', confirm_password: '' });
   const [state, setState] = useState({ loading: false, error: '', success: '' });
+
+  useEffect(() => {
+    if (!auth.user) return;
+    setForm(current => ({
+      ...current,
+      username: auth.user.username || '',
+      email: auth.user.email || '',
+    }));
+  }, [auth.user]);
 
   const setField = (field) => (event) => setForm(current => ({ ...current, [field]: event.target.value }));
   const handleSubmit = async (event) => {
@@ -23,7 +32,12 @@ export default function Settings() {
       setState({ loading: false, error: t('settings_email_invalid'), success: '' });
       return;
     }
-    if (!form.current_password) {
+
+    const passwordChanged = Boolean(form.password);
+    const emailChanged = email.toLowerCase() !== (auth.user?.email || '').toLowerCase();
+    const needsCurrentPassword = passwordChanged || emailChanged;
+
+    if (needsCurrentPassword && !form.current_password) {
       setState({ loading: false, error: t('settings_current_password_required'), success: '' });
       return;
     }
@@ -39,7 +53,7 @@ export default function Settings() {
       const updated = await updateAdmin({
         username,
         email,
-        current_password: form.current_password,
+        ...(needsCurrentPassword ? { current_password: form.current_password } : {}),
         ...(form.password ? { password: form.password } : {}),
       });
       setForm(current => ({ ...current, ...updated, current_password: '', password: '', confirm_password: '' }));

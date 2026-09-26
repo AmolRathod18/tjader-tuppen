@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { getWorkEntryHours } from '../utils/workHours';
 import { supabase } from '../lib/supabase';
 import {
@@ -14,6 +14,7 @@ import {
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
+  const initRef = useRef(false);
   const [auth, setAuthState] = useState({ isAuthenticated: false, loading: true, user: null, session: null });
   const [companies, setCompanies] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -22,24 +23,58 @@ export function AppProvider({ children }) {
   const [expenditures, setExpenditures] = useState([]);
 
   useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+
     let mounted = true;
     const applySession = async (session) => {
       if (!session?.user) {
         if (mounted) setAuthState({ isAuthenticated: false, loading: false, user: null, session: null });
         return;
       }
-      const { data, error } = await supabase
-        .from('admin_profiles')
-        .select('id, username, email, role, created_at, updated_at')
-        .eq('id', session.user.id)
-        .maybeSingle();
+
+      let profile = null;
+      let profileError = null;
+
+      try {
+        const { data, error } = await supabase
+          .from('admin_profiles')
+          .select('id, username, email, role, created_at, updated_at')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        profile = data;
+        profileError = error;
+      } catch (error) {
+        profileError = error;
+      }
+
       if (!mounted) return;
-      if (error || !data || data.role !== 'admin') {
+
+      const hasValidAdminProfile = Boolean(profile && profile.role === 'admin');
+
+      if (profile && !hasValidAdminProfile) {
         await supabase.auth.signOut();
         setAuthState({ isAuthenticated: false, loading: false, user: null, session: null });
         return;
       }
-      setAuthState({ isAuthenticated: true, loading: false, user: { ...session.user, ...mapRow(data) }, session });
+
+      if (profileError && !profile) {
+        setAuthState({
+          isAuthenticated: true,
+          loading: false,
+          user: { ...session.user },
+          session,
+        });
+        return;
+      }
+
+      setAuthState({
+        isAuthenticated: true,
+        loading: false,
+        user: { ...session.user, ...(profile ? mapRow(profile) : {}) },
+        session,
+      });
     };
     supabase.auth.getSession().then(({ data: { session } }) => applySession(session));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => applySession(session));
@@ -55,16 +90,25 @@ export function AppProvider({ children }) {
   };
 
   const updateAdmin = async (data) => {
-    const emailChanged = data.email && data.email !== auth.user.email;
-    if (data.current_password) {
+    const emailChanged = Boolean(data.email && data.email.toLowerCase() !== (auth.user?.email || '').toLowerCase());
+    const passwordChanged = Boolean(data.password);
+    const needsCurrentPassword = emailChanged || passwordChanged;
+
+    if (needsCurrentPassword && !data.current_password) {
+      throw new Error('Current password is required to update your account details.');
+    }
+
+    if (needsCurrentPassword && data.current_password) {
       const { error } = await supabase.auth.signInWithPassword({ email: auth.user.email, password: data.current_password });
       if (error) throw normalizeSupabaseError(error);
     }
+
     const { error: authError } = await supabase.auth.updateUser({
       ...(emailChanged ? { email: data.email } : {}),
-      ...(data.password ? { password: data.password } : {}),
+      ...(passwordChanged ? { password: data.password } : {}),
     });
     if (authError) throw normalizeSupabaseError(authError);
+
     const { data: profile, error: profileError } = await supabase
       .from('admin_profiles')
       .update({ username: data.username, ...(emailChanged ? { email: data.email } : {}) })
@@ -72,6 +116,7 @@ export function AppProvider({ children }) {
       .select('id, username, email, role, created_at, updated_at')
       .single();
     if (profileError) throw normalizeSupabaseError(profileError);
+
     const nextUser = { ...auth.user, ...mapRow(profile) };
     setAuthState(current => ({ ...current, user: nextUser }));
     return nextUser;

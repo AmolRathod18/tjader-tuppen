@@ -253,7 +253,10 @@ body {
   padding: 28px;
   margin-top: var(--header-height);
   min-width: 0;
+  overflow-x: visible;
   overflow-y: auto;
+  position: relative;
+  z-index: 1;
 }
 
 .site-footer {
@@ -790,6 +793,12 @@ body {
 .work-entry-page .card {
   min-width: 0;
   max-width: 100%;
+  position: relative;
+}
+
+.work-entry-page .card {
+  overflow: visible;
+  z-index: 2;
 }
 
 .work-entry-page .table-work-entries {
@@ -1189,7 +1198,7 @@ input, select, textarea {
   outline: none;
 }
 
-.date-picker { position: relative; width: 100%; }
+.date-picker { position: relative; width: 100%; z-index: 20; }
 .date-picker-trigger {
   width: 100%;
   min-height: 40px;
@@ -1212,7 +1221,7 @@ input, select, textarea {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  z-index: 250;
+  z-index: 9999;
   width: 280px;
   padding: 12px;
   border: 1px solid var(--color-border);
@@ -3518,7 +3527,8 @@ select {
 .report-filters-card {
   overflow: visible;
   position: relative;
-  z-index: 2;
+  z-index: 10;
+  isolation: isolate;
 }
 
 .report-entries-card .card-header > div:first-child {

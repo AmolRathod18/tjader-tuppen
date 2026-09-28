@@ -6,7 +6,7 @@ import { ConfirmDeleteModal, Modal } from '../components/ui/Modal';
 import DatePicker from '../components/ui/DatePicker';
 import {
   ClipboardList, Plus, Search, Pencil, Trash2,
-  Filter, ArrowLeft, CheckCircle,
+  Filter, ArrowLeft, CheckCircle, AlertTriangle,
   AlarmClock, FileText, Calendar, Eye,
 } from 'lucide-react';
 import { calculateShiftHours, getWorkEntryBreakdown, getWorkEntryHours } from '../utils/workHours';
@@ -16,6 +16,14 @@ const STOCKHOLM_TIME_ZONE = 'Europe/Stockholm';
 const todayDate = () => new Intl.DateTimeFormat('sv-SE', {
   timeZone: STOCKHOLM_TIME_ZONE,
 }).format(new Date());
+
+const addDaysToDate = (dateString, days) => {
+  if (!dateString) return '';
+  const date = new Date(`${dateString}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return '';
+  date.setDate(date.getDate() + days);
+  return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 10);
+};
 
 function TimeSelect({ value, onChange }) {
   const [rawHours, rawMinutes] = (value || '').split(':');
@@ -108,7 +116,7 @@ function SectionLabel({ icon: Icon, label }) {
    FORM VIEW  (full-page, standalone)
 ───────────────────────────────────────────── */
 function FormView({ form, errors, submitError, setField, onSave, onCancel, editItem,
-  companies, formProjects, activeEmployees, getCompanyById, t }) {
+  companies, formProjects, activeEmployees, getCompanyById, recommendation, onApplyRecommendation, t }) {
 
   const shiftHours = calculateShiftHours(form.startTime, form.endTime);
   const automaticNormalHours = shiftHours !== null ? shiftHours : 0;
@@ -157,6 +165,47 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
       {/* Form card */}
       <div className="card">
         {submitError && <div className="form-submit-error" role="alert">{submitError}</div>}
+        {recommendation && recommendation.length > 0 && (
+          <div style={{
+            margin: '18px 24px 0',
+            padding: '12px 16px',
+            border: '1px solid rgba(215, 147, 61, 0.4)',
+            borderRadius: 12,
+            background: 'rgba(215, 147, 61, 0.08)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                  {t('we_recommendation')}
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4 }}>
+                  {t('we_recommendation_default')}
+                </div>
+              </div>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => onApplyRecommendation(recommendation[0])}>
+                {t('we_use_recommendation')}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+              {recommendation.map(item => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => onApplyRecommendation(item)}
+                    style={{
+                      borderColor: 'rgba(215, 147, 61, 0.5)',
+                      background: 'rgba(255,255,255,0.25)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {item.date} · {item.description || 'Entry'}
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
         <div style={{ padding: '4px 24px 24px' }}>
 
           {/* ── Section 1: Work Details ── */}
@@ -582,7 +631,31 @@ export default function WorkEntry() {
   const [errors,         setErrors]        = useState({});
   const [submitError,    setSubmitError]   = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [overlapAlert,   setOverlapAlert]  = useState('');
+  const [recommendation, setRecommendation] = useState([]);
   const hasLoaded = useRef(false);
+
+  const recommendationEntry = React.useMemo(() => {
+    if (!workEntries.length) return null;
+    return [...workEntries].filter(entry => entry.date !== todayDate())
+      .sort((a, b) => {
+        const dateDiff = (b.date || '').localeCompare(a.date || '');
+        if (dateDiff !== 0) return dateDiff;
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+      })[0] || null;
+  }, [workEntries]);
+
+  const previousRecommendationEntries = React.useMemo(() => {
+    if (!workEntries.length) return [];
+    return [...workEntries]
+      .filter(entry => entry.date !== todayDate())
+      .sort((a, b) => {
+        const dateDiff = (b.date || '').localeCompare(a.date || '');
+        if (dateDiff !== 0) return dateDiff;
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+      })
+      .slice(0, 5);
+  }, [workEntries]);
 
   useEffect(() => {
     if (hasLoaded.current) return;
@@ -606,7 +679,7 @@ export default function WorkEntry() {
   const [filterEmployee, setFilterEmployee] = useState('');
   const [filterClient,   setFilterClient]  = useState('');
   const [filterProject,  setFilterProject] = useState('');
-  const [filterDate,     setFilterDate]    = useState('');
+  const [filterDate,     setFilterDate]    = useState(todayDate());
 
   const formProjects = form.companyId
     ? projects.filter(p => p.companyId === form.companyId)
@@ -641,7 +714,7 @@ export default function WorkEntry() {
     });
 
   const totalHours = filtered.reduce((s, w) => s + getWorkEntryHours(w), 0);
-  const hasFilters = !!(search || filterEmployee || filterClient || filterProject || filterDate);
+  const hasFilters = !!(search || filterEmployee || filterClient || filterProject || (filterDate && filterDate !== todayDate()));
   const employeeGroups = Object.values(filtered.reduce((groups, entry) => {
     const employeeId = entry.employeeId || 'unknown';
     const group = groups[employeeId] || {
@@ -677,9 +750,50 @@ export default function WorkEntry() {
     });
   };
 
+  const applyRecommendation = (entry = recommendationEntry) => {
+    if (!entry) return;
+
+    const project = getProjectById(entry.projectId);
+    setForm({
+      ...EMPTY,
+      date: todayDate(),
+      employeeId: entry.employeeId || '',
+      companyId: entry.companyId || project?.companyId || '',
+      projectId: entry.projectId || '',
+      startTime: entry.startTime || '',
+      endTime: entry.endTime || '',
+      normalHours: entry.normalHours ?? '',
+      normalOvertime: entry.normalOvertime ?? '',
+      weekendOvertime: entry.weekendOvertime ?? '',
+      description: entry.description || '',
+      remarks: entry.remarks ?? entry.notes ?? '',
+    });
+    setRecommendation([]);
+    setErrors({});
+    setSubmitError('');
+  };
+
   const openAdd = () => {
     setEditItem(null);
-    setForm({ ...EMPTY, date: todayDate() });
+    const suggestedDate = recommendationEntry
+      ? addDaysToDate(recommendationEntry.date, 1) || todayDate()
+      : todayDate();
+    const suggestedProject = recommendationEntry ? getProjectById(recommendationEntry.projectId) : null;
+    setForm({
+      ...EMPTY,
+      date: suggestedDate,
+      employeeId: recommendationEntry?.employeeId || '',
+      companyId: recommendationEntry?.companyId || suggestedProject?.companyId || '',
+      projectId: recommendationEntry?.projectId || '',
+      startTime: recommendationEntry?.startTime || '',
+      endTime: recommendationEntry?.endTime || '',
+      normalHours: recommendationEntry?.normalHours ?? '',
+      normalOvertime: recommendationEntry?.normalOvertime ?? '',
+      weekendOvertime: recommendationEntry?.weekendOvertime ?? '',
+      description: recommendationEntry?.description || '',
+      remarks: recommendationEntry?.remarks ?? recommendationEntry?.notes ?? '',
+    });
+    setRecommendation(previousRecommendationEntries);
     setErrors({});
     setSubmitError('');
     setSuccessMessage('');
@@ -688,6 +802,7 @@ export default function WorkEntry() {
 
   const openEdit = (item) => {
     const proj = getProjectById(item.projectId);
+    setRecommendation([]);
     setEditItem(item);
     setForm({
       date:        item.date        || '',
@@ -738,6 +853,7 @@ export default function WorkEntry() {
       else await addWorkEntry(data);
       setSubmitError('');
       setSuccessMessage(t(editItem ? 'we_update_success' : 'we_insert_success'));
+      setRecommendation([]);
       setView('list');
       setEditItem(null);
 
@@ -745,11 +861,16 @@ export default function WorkEntry() {
         navigate(location.state.returnTo || '/reports', { replace: true });
       }
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : String(error));
+      const message = error instanceof Error ? error.message : String(error);
+      setSubmitError(message);
+      if (message.toLowerCase().includes('overlap')) {
+        setOverlapAlert(message);
+      }
     }
   };
 
   const handleCancel = () => {
+    setRecommendation([]);
     setView('list');
     setEditItem(null);
     setErrors({});
@@ -770,7 +891,7 @@ export default function WorkEntry() {
 
   const clearFilters = () => {
     setSearch(''); setFilterEmployee(''); setFilterClient('');
-    setFilterProject(''); setFilterDate('');
+    setFilterProject(''); setFilterDate(todayDate());
   };
 
   /* ── Render ── */
@@ -789,6 +910,21 @@ export default function WorkEntry() {
     </Modal>
   );
 
+  const overlapDialog = (
+    <Modal
+      isOpen={!!overlapAlert}
+      onClose={() => setOverlapAlert('')}
+      title="Overlap warning"
+      size="sm"
+      footer={<button className="btn btn-primary" onClick={() => setOverlapAlert('')}>OK</button>}
+    >
+      <div className="success-dialog" style={{ textAlign: 'center', padding: '8px 0' }}>
+        <AlertTriangle size={28} color="var(--color-danger)" />
+        <p style={{ marginTop: 12, color: 'var(--color-text-primary)' }}>{overlapAlert}</p>
+      </div>
+    </Modal>
+  );
+
   if (view === 'form') {
     return (
       <>
@@ -796,7 +932,10 @@ export default function WorkEntry() {
           form={form} errors={errors} submitError={submitError} setField={setField}
           onSave={handleSave} onCancel={handleCancel} editItem={editItem}
           companies={companies} formProjects={formProjects}
-          activeEmployees={activeEmployees} getCompanyById={getCompanyById} t={t}
+          activeEmployees={activeEmployees} getCompanyById={getCompanyById}
+          recommendation={recommendation}
+          onApplyRecommendation={applyRecommendation}
+          t={t}
         />
         <ConfirmDeleteModal
           isOpen={!!deleteTarget}
@@ -805,6 +944,7 @@ export default function WorkEntry() {
           itemName={t('we_delete_item', [deleteTarget?.date])}
         />
         {successDialog}
+        {overlapDialog}
       </>
     );
   }
@@ -841,6 +981,7 @@ export default function WorkEntry() {
           itemName={t('we_delete_item', [deleteTarget?.date])}
       />
           {successDialog}
+          {overlapDialog}
     </>
   );
 }

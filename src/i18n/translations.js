@@ -402,6 +402,9 @@ const translations = {
     we_total_entries: 'Total Entries',
     we_avg_hours: 'Avg Hours/Entry',
     we_summary: 'Summary',
+    we_recommendation: 'Recommended from previous entries',
+    we_recommendation_default: 'Previous entries',
+    we_use_recommendation: 'Use latest',
 
     // ── Assignments ────────────────────────────────────────
     asgn_title: 'Project Assignments',
@@ -1183,6 +1186,9 @@ const translations = {
     we_total_entries: 'Totala poster',
     we_avg_hours: 'Genomsn. timmar/post',
     we_summary: 'Sammanfattning',
+    we_recommendation: 'Rekommenderat från tidigare poster',
+    we_recommendation_default: 'Tidigare poster',
+    we_use_recommendation: 'Använd senaste',
 
     // ── Assignments ────────────────────────────────────────
     asgn_title: 'Projektuppdrag',

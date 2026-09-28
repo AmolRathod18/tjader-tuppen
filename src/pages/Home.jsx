@@ -1,7 +1,7 @@
 import React from 'react';
 import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, CheckCircle2, ClipboardCheck, Clock3, MapPin, UsersRound } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import logo from '../assets/TJADERTUPPEN_Logo.jpeg';
+import hero from '../assets/hero.png';
 import PublicNavbar from '../components/layout/PublicNavbar';
 
 const workflow = [
@@ -16,6 +16,7 @@ export default function Home() {
       <PublicNavbar />
 
       <section className="home-hero">
+        <img src={hero} alt="Tjädertuppen hero visual" className="home-hero-image" />
         <div className="home-hero-copy">
           <p className="home-kicker"><span /> Field operations / Tjädertuppen</p>
           <h1>Work moves.<br /><em>You stay ahead.</em></h1>

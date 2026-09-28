@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { ConfirmDeleteModal, Modal } from '../components/ui/Modal';
@@ -16,50 +17,55 @@ const todayDate = () => new Intl.DateTimeFormat('sv-SE', {
   timeZone: STOCKHOLM_TIME_ZONE,
 }).format(new Date());
 
-function TimeSelect({ value, onChange, defaultMeridiem = 'AM' }) {
+function TimeSelect({ value, onChange }) {
   const [rawHours, rawMinutes] = (value || '').split(':');
   const numericHours = Number(rawHours);
   const hasValue = Number.isInteger(numericHours) && numericHours >= 0 && numericHours <= 23;
+
   const [selection, setSelection] = useState({
-    hour: hasValue ? String(numericHours % 12 || 12) : '',
-    minute: hasValue ? rawMinutes : '',
-    meridiem: hasValue && numericHours >= 12 ? 'PM' : defaultMeridiem,
+    hour: hasValue ? String(numericHours).padStart(2, '0') : '',
+    minute: hasValue ? String(rawMinutes || '').padStart(2, '0') : '',
   });
+
+  useEffect(() => {
+    const [nextRawHours, nextRawMinutes] = (value || '').split(':');
+    const nextNumericHours = Number(nextRawHours);
+    const nextHasValue = Number.isInteger(nextNumericHours) && nextNumericHours >= 0 && nextNumericHours <= 23;
+
+    setSelection({
+      hour: nextHasValue ? String(nextNumericHours).padStart(2, '0') : '',
+      minute: nextHasValue ? String(nextRawMinutes || '').padStart(2, '0') : '',
+    });
+  }, [value]);
 
   const updateTime = (part, nextValue) => {
     const nextSelection = { ...selection, [part]: nextValue };
     setSelection(nextSelection);
-    const { hour: nextHour, minute: nextMinute, meridiem: nextMeridiem } = nextSelection;
+    const { hour: nextHour, minute: nextMinute } = nextSelection;
+
     if (!nextHour || !nextMinute) {
       onChange('');
       return;
     }
 
-    const hour24 = nextMeridiem === 'PM'
-      ? (Number(nextHour) === 12 ? 12 : Number(nextHour) + 12)
-      : (Number(nextHour) === 12 ? 0 : Number(nextHour));
-    onChange(`${String(hour24).padStart(2, '0')}:${nextMinute}`);
+    onChange(`${String(nextHour).padStart(2, '0')}:${String(nextMinute).padStart(2, '0')}`);
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
       <select value={selection.hour} aria-label="Hour" onChange={event => updateTime('hour', event.target.value)}>
         <option value="">Hour</option>
-        {Array.from({ length: 12 }, (_, index) => {
-          const option = String(index + 1);
+        {Array.from({ length: 24 }, (_, index) => {
+          const option = String(index).padStart(2, '0');
           return <option key={option} value={option}>{option}</option>;
         })}
       </select>
       <select value={selection.minute} aria-label="Minute" onChange={event => updateTime('minute', event.target.value)}>
         <option value="">Min</option>
         {Array.from({ length: 60 }, (_, index) => {
-          const option = String(index).padStart(2, '0');
+            const option = String(index).padStart(2, '0');
           return <option key={option} value={option}>{option}</option>;
         })}
-      </select>
-      <select value={selection.meridiem} aria-label="AM or PM" onChange={event => updateTime('meridiem', event.target.value)}>
-        <option value="AM">AM</option>
-        <option value="PM">PM</option>
       </select>
     </div>
   );
@@ -220,7 +226,7 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
 
             <div className="form-group">
               <label>{t('we_end_time')}</label>
-              <TimeSelect value={form.endTime} defaultMeridiem="PM"
+              <TimeSelect value={form.endTime}
                 onChange={value => setTimeField('endTime', value)} />
             </div>
 
@@ -565,6 +571,8 @@ export default function WorkEntry() {
     getProjectById, getEmployeeById, getCompanyById,
   } = useApp();
   const { t } = useLanguage();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [view,           setView]          = useState('list'); // 'list' | 'form'
   const [editItem,       setEditItem]      = useState(null);
@@ -582,6 +590,16 @@ export default function WorkEntry() {
     Promise.all([loadCompanies(), loadProjects(), loadEmployees(), loadWorkEntries()])
       .catch(error => setSubmitError(error.message));
   }, []);
+
+  const editEntryId = new URLSearchParams(location.search).get('edit');
+
+  useEffect(() => {
+    if (!editEntryId) return;
+    const editEntry = workEntries.find(item => item.id === editEntryId);
+    if (!editEntry) return;
+    if (view === 'form' && editItem?.id === editEntry.id) return;
+    openEdit(editEntry);
+  }, [editEntryId, workEntries, view, editItem]);
 
   // List filters
   const [search,         setSearch]        = useState('');
@@ -722,12 +740,25 @@ export default function WorkEntry() {
       setSuccessMessage(t(editItem ? 'we_update_success' : 'we_insert_success'));
       setView('list');
       setEditItem(null);
+
+      if (location.state?.editWorkEntry || location.state?.returnTo) {
+        navigate(location.state.returnTo || '/reports', { replace: true });
+      }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : String(error));
     }
   };
 
-  const handleCancel = () => { setView('list'); setEditItem(null); setErrors({}); setSuccessMessage(''); };
+  const handleCancel = () => {
+    setView('list');
+    setEditItem(null);
+    setErrors({});
+    setSuccessMessage('');
+
+    if (location.state?.editWorkEntry || location.state?.returnTo) {
+      navigate(location.state.returnTo || '/reports', { replace: true });
+    }
+  };
   const handleDelete = async () => {
     try {
       await deleteWorkEntry(deleteTarget.id);

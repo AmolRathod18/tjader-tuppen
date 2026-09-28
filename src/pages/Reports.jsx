@@ -1,13 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import {
   BarChart3, Download, Calendar, FileText,
-  ChevronLeft, ChevronRight, Filter, Clock, Users, FolderKanban
+  ChevronLeft, ChevronRight, Filter, Clock, Users, FolderKanban,
+  Pencil
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import logoUrl from '../assets/TJADERTUPPEN_Logo.jpeg';
-import { getWorkEntryBreakdown, getWeeklyHours } from '../utils/workHours';
+import { calculateShiftHours, getWorkEntryBreakdown, getWeeklyHours } from '../utils/workHours';
 import { Modal } from '../components/ui/Modal';
 import DatePicker from '../components/ui/DatePicker';
 
@@ -1148,8 +1150,10 @@ export default function Reports() {
     companies, projects, employees, workEntries, expenditures,
     getProjectById, getEmployeeById, getCompanyById,
     loadCompanies, loadProjects, loadEmployees, loadWorkEntries, loadExpenditures,
+    updateWorkEntry,
   } = useApp();
   const { lang, t } = useLanguage();
+  const navigate = useNavigate();
   const hasLoaded = useRef(false);
 
   useEffect(() => {
@@ -1178,6 +1182,13 @@ export default function Reports() {
   const [fromDate, setFromDate] = useState('');
   const [toDate,   setToDate]   = useState('');
   const [reportMessage, setReportMessage] = useState('');
+  const [editingEntryId, setEditingEntryId] = useState(null);
+  const [editForm, setEditForm] = useState({
+    date: '', employeeId: '', companyId: '', projectId: '',
+    startTime: '', endTime: '', normalHours: '', normalOvertime: '', weekendOvertime: '',
+    description: '', remarks: '',
+  });
+  const [editError, setEditError] = useState('');
 
   // Derived week dates
   const wsDate = new Date(weekStart + 'T00:00:00');
@@ -1340,6 +1351,73 @@ export default function Reports() {
       window.alert(error.message);
     }
   };
+
+  const handleEditReportEntry = (entry) => {
+    const proj = getProjectById(entry.projectId);
+    setEditingEntryId(entry.id);
+    setEditForm({
+      date: entry.date || '',
+      employeeId: entry.employeeId || '',
+      companyId: entry.companyId || proj?.companyId || '',
+      projectId: entry.projectId || '',
+      startTime: entry.startTime || '',
+      endTime: entry.endTime || '',
+      normalHours: entry.normalHours ?? (getWorkEntryBreakdown(entry).normalHours || ''),
+      normalOvertime: entry.normalOvertime ?? '',
+      weekendOvertime: entry.weekendOvertime ?? (getWorkEntryBreakdown(entry).weekendOvertime || ''),
+      description: entry.description || '',
+      remarks: entry.remarks ?? entry.notes ?? '',
+    });
+    setEditError('');
+  };
+
+  const saveReportEdit = async () => {
+    if (!editingEntryId) return;
+
+    const errors = {};
+    const normalHours = editForm.normalHours === '' ? null : Number(editForm.normalHours);
+    const normalOvertime = Number(editForm.normalOvertime || 0);
+    const weekendOvertime = Number(editForm.weekendOvertime || 0);
+
+    if (!editForm.date) errors.date = 'Date is required';
+    if (!editForm.employeeId) errors.employeeId = 'Employee is required';
+    if (!editForm.projectId) errors.projectId = 'Project is required';
+    if (!editForm.description?.trim()) errors.description = 'Description is required';
+    if (!editForm.startTime || !editForm.endTime) errors.hours = 'Start and end time are required';
+    if (normalHours !== null && (!Number.isFinite(normalHours) || normalHours < 0 || normalHours > 24)) errors.normalHours = 'Normal hours are invalid';
+    if (!Number.isFinite(normalOvertime) || normalOvertime < 0 || normalOvertime > 24) errors.normalOvertime = 'Normal overtime is invalid';
+    if (!Number.isFinite(weekendOvertime) || weekendOvertime < 0 || weekendOvertime > 24) errors.weekendOvertime = 'Weekend overtime is invalid';
+
+    if (Object.keys(errors).length > 0) {
+      setEditError(Object.values(errors)[0]);
+      return;
+    }
+
+    const proj = getProjectById(editForm.projectId);
+    const calculatedNormalHours = calculateShiftHours(editForm.startTime, editForm.endTime);
+    try {
+      await updateWorkEntry(editingEntryId, {
+        ...editForm,
+        normalHours: editForm.normalHours === '' ? calculatedNormalHours : normalHours,
+        normalOvertime,
+        weekendOvertime,
+        companyId: editForm.companyId || proj?.companyId || '',
+      });
+      setEditingEntryId(null);
+      setEditError('');
+    } catch (error) {
+      setEditError(error instanceof Error ? error.message : 'Unable to update this row');
+    }
+  };
+
+  const cancelRowEdit = () => {
+    setEditingEntryId(null);
+    setEditError('');
+  };
+
+  const editFormProjects = editForm.companyId
+    ? projects.filter(p => p.companyId === editForm.companyId)
+    : projects;
 
   const LabelStyle = { fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 };
 
@@ -1522,6 +1600,7 @@ export default function Reports() {
                 <th>{t('we_weekend_overtime')}</th>
                 <th>{t('we_weekly_hours')}</th>
                 <th>{t('we_description')}</th>
+                <th>{t('lbl_actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -1529,6 +1608,45 @@ export default function Reports() {
                 const proj = getProjectById(w.projectId);
                 const emp  = getEmployeeById(w.employeeId);
                 const co   = getCompanyById(w.companyId || proj?.companyId);
+
+                if (editingEntryId === w.id) {
+                  return (
+                    <tr key={w.id} className="report-inline-edit-row">
+                      <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
+                      <td><input className="report-inline-edit-input" type="date" value={editForm.date} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} /></td>
+                      <td>
+                        <select className="report-inline-edit-input" value={editForm.employeeId} onChange={e => setEditForm(f => ({ ...f, employeeId: e.target.value }))}>
+                          <option value="">{t('rep_all_employees')}</option>
+                          {employees.map(employee => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
+                        </select>
+                      </td>
+                      <td>
+                        <select className="report-inline-edit-input" value={editForm.companyId} onChange={e => setEditForm(f => ({ ...f, companyId: e.target.value, projectId: '' }))}>
+                          <option value="">{t('we_all_clients')}</option>
+                          {companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
+                        </select>
+                      </td>
+                      <td>
+                        <select className="report-inline-edit-input" value={editForm.projectId} onChange={e => setEditForm(f => ({ ...f, projectId: e.target.value }))}>
+                          <option value="">{t('rep_all_projects')}</option>
+                          {editFormProjects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}
+                        </select>
+                      </td>
+                      <td><input className="report-inline-edit-input" type="number" step="0.1" value={editForm.normalHours} onChange={e => setEditForm(f => ({ ...f, normalHours: e.target.value }))} /></td>
+                      <td><input className="report-inline-edit-input" type="number" step="0.1" value={editForm.normalOvertime} onChange={e => setEditForm(f => ({ ...f, normalOvertime: e.target.value }))} /></td>
+                      <td><input className="report-inline-edit-input" type="number" step="0.1" value={editForm.weekendOvertime} onChange={e => setEditForm(f => ({ ...f, weekendOvertime: e.target.value }))} /></td>
+                      <td>{getWeeklyHours(workEntries, w.employeeId, w.date).toFixed(1)}h</td>
+                      <td><input className="report-inline-edit-input" type="text" value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} /></td>
+                      <td className="report-inline-edit-cell">
+                        <div className="report-inline-edit-actions">
+                          <button className="btn btn-primary btn-sm" onClick={saveReportEdit}>Save</button>
+                          <button className="btn btn-ghost btn-sm" onClick={cancelRowEdit}>Cancel</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+
                 return (
                   <tr key={w.id}>
                     <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
@@ -1540,12 +1658,10 @@ export default function Reports() {
                     </td>
                     <td>
                       <div style={{ fontWeight: 600 }}>{emp?.name || '—'}</div>
-                      <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{emp?.empId}</div>
                     </td>
                     <td style={{ fontWeight: 500 }}>{co?.name || '—'}</td>
                     <td>
                       <div style={{ fontWeight: 600 }}>{proj?.name || '—'}</div>
-                      <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{proj?.number}</div>
                     </td>
                     <td>
                       <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{getWorkEntryBreakdown(w).normalHours.toFixed(1)}h</span>
@@ -1558,11 +1674,21 @@ export default function Reports() {
                         {w.description || '—'}
                       </div>
                     </td>
+                    <td className="report-row-action-cell">
+                      <button
+                        className="btn btn-ghost btn-icon btn-sm report-row-action-btn"
+                        title={t('ui_edit')}
+                        onClick={() => handleEditReportEntry(w)}
+                        aria-label={t('ui_edit')}
+                      >
+                        <Pencil size={15} />
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={10}>
+                <tr><td colSpan={11}>
                   <div className="empty-state">
                     <div className="empty-state-icon"><BarChart3 size={32} /></div>
                     <h3>{t('rep_no_entries')}</h3>
@@ -1593,6 +1719,7 @@ export default function Reports() {
           <Download size={15} /> {t('rep_download')}
         </button>
       </div>
+
       <Modal
         isOpen={!!reportMessage}
         onClose={() => setReportMessage('')}

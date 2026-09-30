@@ -49,10 +49,10 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
       </div>
 
       {/* Admin badge */}
-      <div style={{ margin: '6px 12px 4px', padding: '6px 12px', borderRadius: 8, background: 'rgba(199,157,79,0.14)', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#C79D4F', flexShrink: 0 }} />
+      <div className="sidebar-role">
+        <span className="sidebar-role-dot" />
         <span className="sidebar-flag" aria-hidden="true"><span /></span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: '#D9B873', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <span className="sidebar-role-label">
           {t('ui_administrator')}
         </span>
       </div>
@@ -72,7 +72,7 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
       {/* User info & Logout */}
       <div className="sidebar-footer">
         <div className="sidebar-user">
-          <div className="sidebar-avatar" style={{ background: 'linear-gradient(135deg,#C79D4F,#8E682C)' }}>
+          <div className="sidebar-avatar">
             {adminInitials}
           </div>
           <div className="sidebar-user-info">

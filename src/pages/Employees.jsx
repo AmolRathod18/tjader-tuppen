@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Modal, ConfirmDeleteModal } from '../components/ui/Modal';
@@ -42,9 +43,12 @@ function EmployeeField({ field, label, type = 'text', placeholder, required, for
 export default function Employees() {
   const {
     employees, addEmployee, updateEmployee, deleteEmployee,
-    workEntries, projects, companies, loadEmployees, loadWorkEntries, loadProjects, loadCompanies,
+    workEntries, projects, companies, deleteWorkEntry,
+    loadEmployees, loadWorkEntries, loadProjects, loadCompanies,
   } = useApp();
   const { t } = useLanguage();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [search,        setSearch]        = useState('');
   const [filterStatus,  setFilterStatus]  = useState('');
@@ -52,6 +56,8 @@ export default function Employees() {
   const [editItem,      setEditItem]      = useState(null);
   const [deleteTarget,  setDeleteTarget]  = useState(null);
   const [profileEmployee, setProfileEmployee] = useState(null);
+  const [entryDeleteTarget, setEntryDeleteTarget] = useState(null);
+  const [entryDeleteError, setEntryDeleteError] = useState('');
   const [form,          setForm]          = useState(EMPTY_FORM);
   const [errors,        setErrors]        = useState({});
   const [submitError,   setSubmitError]   = useState('');
@@ -63,6 +69,15 @@ export default function Employees() {
     hasLoaded.current = true;
     Promise.all([loadEmployees(), loadWorkEntries(), loadProjects(), loadCompanies()]).catch(error => setSubmitError(error.message));
   }, []);
+
+  const restoreEmployeeProfileId = location.state?.restoreEmployeeProfile;
+  useEffect(() => {
+    if (!restoreEmployeeProfileId) return;
+    const employee = employees.find(item => item.id === restoreEmployeeProfileId);
+    if (!employee) return;
+    setProfileEmployee(employee);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [restoreEmployeeProfileId, employees, navigate, location.pathname]);
 
   const filtered = employees.filter(e => {
     const q = search.toLowerCase();
@@ -128,6 +143,26 @@ export default function Employees() {
   };
 
   const handleDelete = () => { deleteEmployee(deleteTarget.id); setDeleteTarget(null); };
+
+  const handleEditWorkEntry = (entry) => {
+    const employeeId = profileEmployee.id;
+    setProfileEmployee(null);
+    navigate(`/work-entry?edit=${encodeURIComponent(entry.id)}`, {
+      state: { returnTo: '/employees', returnEmployeeProfileId: employeeId },
+    });
+  };
+
+  const handleDeleteWorkEntry = async () => {
+    if (!entryDeleteTarget) return;
+    try {
+      await deleteWorkEntry(entryDeleteTarget.id);
+      setEntryDeleteTarget(null);
+      setEntryDeleteError('');
+    } catch (error) {
+      setEntryDeleteTarget(null);
+      setEntryDeleteError(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   const profileEntries = useMemo(() => {
     if (!profileEmployee) return [];
@@ -320,6 +355,7 @@ export default function Employees() {
                 <div><h4>{t('emp_work_history')}</h4><p>{t('emp_work_history_sub')}</p></div>
                 <span>{t('emp_entries_count', [profileEntries.length])}</span>
               </div>
+              {entryDeleteError && <p className="employee-history-error" role="alert">{entryDeleteError}</p>}
 
               {profileEntries.length === 0 ? (
                 <div className="employee-history-empty">{t('emp_no_work_history')}</div>
@@ -361,10 +397,10 @@ export default function Employees() {
                               <span>{breakdown.weekendOvertime > 0 ? `${breakdown.weekendOvertime.toFixed(1)}h weekend` : 'Regular shift'}</span>
                             </td>
                             <td className="employee-history-actions">
-                              <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_edit')} onClick={() => openEdit(profileEmployee)}>
+                              <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_edit')} aria-label={t('ui_edit')} onClick={() => handleEditWorkEntry(entry)}>
                                 <Pencil size={14} />
                               </button>
-                              <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_delete')} onClick={() => setDeleteTarget(profileEmployee)} style={{ color: 'var(--color-danger)' }}>
+                              <button className="btn btn-ghost btn-icon btn-sm" title={t('ui_delete')} aria-label={t('ui_delete')} onClick={() => { setEntryDeleteError(''); setEntryDeleteTarget(entry); }} style={{ color: 'var(--color-danger)' }}>
                                 <Trash2 size={14} />
                               </button>
                             </td>
@@ -442,6 +478,12 @@ export default function Employees() {
       </Modal>
 
       <ConfirmDeleteModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} itemName={deleteTarget?.name} />
+      <ConfirmDeleteModal
+        isOpen={!!entryDeleteTarget}
+        onClose={() => setEntryDeleteTarget(null)}
+        onConfirm={handleDeleteWorkEntry}
+        itemName={entryDeleteTarget ? t('we_delete_item', [formatDate(entryDeleteTarget.date)]) : ''}
+      />
 
       <Modal
         isOpen={!!successMessage}

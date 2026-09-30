@@ -1,14 +1,24 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { getWorkEntryBreakdown, getWorkEntryHours } from '../utils/workHours';
 import { useLanguage } from '../context/LanguageContext';
 import { StatCard } from '../components/ui/Components';
 import { Badge } from '../components/ui/Components';
+import { getDatabaseUsedBytes } from '../utils/supabaseData';
 import {
   Building2, FolderKanban, Users,
-  Clock, TrendingUp, Plus, CalendarCheck,
+  Clock, TrendingUp, Plus, CalendarCheck, Database,
 } from 'lucide-react';
+
+const DATABASE_QUOTA_BYTES = Number(import.meta.env.VITE_SUPABASE_DATABASE_QUOTA_BYTES) || 500_000_000;
+
+function formatDatabaseBytes(bytes) {
+  if (bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1000)), units.length - 1);
+  return `${(bytes / (1000 ** unitIndex)).toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
 
 function todayStr() {
   return new Date().toISOString().split('T')[0];
@@ -23,17 +33,27 @@ export default function Dashboard() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const hasLoaded = useRef(false);
+  const [databaseUsage, setDatabaseUsage] = useState({ usedBytes: null, error: false });
 
   useEffect(() => {
     if (hasLoaded.current) return;
     hasLoaded.current = true;
     Promise.all([loadCompanies(), loadProjects(), loadEmployees(), loadWorkEntries()])
       .catch(error => console.error('Unable to load dashboard data:', error));
+    getDatabaseUsedBytes()
+      .then(usedBytes => setDatabaseUsage({ usedBytes, error: false }))
+      .catch(error => {
+        console.error('Unable to load Supabase database usage:', error);
+        setDatabaseUsage({ usedBytes: null, error: true });
+      });
   }, []);
 
   const today = todayStr();
   const todayLabel = new Date(`${today}T00:00:00`).toLocaleDateString(t('ui_locale'));
   const activeProjects  = projects.filter(p => p.status === 'Active').length;
+  const databaseAvailableBytes = databaseUsage.usedBytes === null
+    ? null
+    : Math.max(0, DATABASE_QUOTA_BYTES - databaseUsage.usedBytes);
   const hourTotals = workEntries.reduce((sum, entry) => {
     const hours = getWorkEntryBreakdown(entry);
     return {
@@ -61,6 +81,19 @@ export default function Dashboard() {
         <StatCard label={t('dash_total_projects')} value={projects.length} subtext={t('dash_total', [projects.length])} colorClass="purple" icon={FolderKanban} />
         <StatCard label={t('dash_active_projects')} value={activeProjects} subtext={t('dash_out_of_total', [projects.length])} colorClass="green" icon={FolderKanban} />
         <StatCard label={t('dash_total_employees')} value={employees.length} subtext={t('dash_total', [employees.length])} colorClass="orange" icon={Users} />
+        <StatCard
+          label={t('dash_database_available')}
+          value={databaseAvailableBytes === null
+            ? '—'
+            : `${Math.round((databaseAvailableBytes / DATABASE_QUOTA_BYTES) * 100)}%`}
+          subtext={databaseUsage.error
+            ? t('dash_database_unavailable')
+            : databaseUsage.usedBytes === null
+              ? t('dash_database_loading')
+              : t('dash_database_usage_detail', [formatDatabaseBytes(databaseUsage.usedBytes), formatDatabaseBytes(DATABASE_QUOTA_BYTES)])}
+          colorClass="indigo"
+          icon={Database}
+        />
       </div>
 
       {/* ── Today's Work Entries ── */}

@@ -19,10 +19,14 @@ order by tablename, policyname;
 --
 -- Anonymous session: every statement below must fail with a permission/RLS error.
 -- select * from public.companies;
+-- select public.get_storage_used_bytes();
+-- select public.get_database_used_bytes();
 -- insert into public.companies (name, contact) values ('RLS test', 'RLS test');
 -- update public.companies set name = 'blocked' where false;
 -- delete from public.companies where false;
 --
 -- Authenticated non-admin session: select/insert/update/delete must fail.
+-- Calling public.get_storage_used_bytes() must fail.
+-- Calling public.get_database_used_bytes() must fail.
 -- Authenticated admin session: the same operations must succeed, while this must fail:
 -- update public.admin_profiles set role = 'user' where id = auth.uid();

@@ -7,11 +7,12 @@ backend and Render deployment files have been removed; the frontend does not use
 a custom backend.
 
 1. Create a Supabase project and open the SQL editor.
-2. Apply [`supabase/migrations/0001_initial_schema.sql`](./supabase/migrations/0001_initial_schema.sql), then
-   [`supabase/migrations/0002_security_and_work_entry_rpc.sql`](./supabase/migrations/0002_security_and_work_entry_rpc.sql).
-3. In Authentication, create the first user with an email and password. Do not
+2. Apply the Supabase migrations in order, from `0001` through `0009`.
+3. Apply [`supabase/migrations/0010_database_usage_rpc.sql`](./supabase/migrations/0010_database_usage_rpc.sql)
+   to enable the dashboard PostgreSQL database usage card.
+4. In Authentication, create the first user with an email and password. Do not
    use the old `admins.password_hash` table for authentication.
-4. Insert the matching profile as the first administrator:
+5. Insert the matching profile as the first administrator:
 
 ```sql
 insert into public.admin_profiles (id, username, email, role)
@@ -32,7 +33,11 @@ Copy [`.env.example`](./.env.example) to `.env.local` and set:
 ```text
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-or-publishable-key
+VITE_SUPABASE_DATABASE_QUOTA_BYTES=500000000
 ```
+
+The database quota defaults to 500,000,000 bytes (500 MB). Set this public,
+non-secret value to the project's actual database allowance if its plan differs.
 
 Only the anon/publishable key belongs in Vite variables. Never put a service-role
 key, secret key, JWT secret, password, or password hash in frontend code or any
@@ -43,7 +48,8 @@ npm install
 npm run dev
 ```
 
-For Vercel, set the same two variables for Production, Preview, and Development.
+For Vercel, set the Supabase URL and key for Production, Preview, and Development.
+Set `VITE_SUPABASE_DATABASE_QUOTA_BYTES` there as well if the quota differs from 500 MB.
 The rewrite in [`vercel.json`](./vercel.json) keeps React Router routes working on
 refresh.
 

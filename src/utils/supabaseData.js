@@ -31,6 +31,12 @@ export async function selectRows(table) {
   return data.map(mapRow);
 }
 
+export async function getDatabaseUsedBytes() {
+  const { data, error } = await supabase.rpc('get_database_used_bytes');
+  if (error) throw normalizeSupabaseError(error);
+  return Number(data || 0);
+}
+
 export async function insertRow(table, payload) {
   const { data, error } = await supabase.from(table).insert(mapPayload(payload)).select().single();
   if (error) throw normalizeSupabaseError(error);

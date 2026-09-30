@@ -672,6 +672,7 @@ export default function WorkEntry() {
     if (!editEntry) return;
     if (view === 'form' && editItem?.id === editEntry.id) return;
     openEdit(editEntry);
+    navigate(location.pathname, { replace: true, state: location.state });
   }, [editEntryId, workEntries, view, editItem]);
 
   // List filters
@@ -854,10 +855,13 @@ export default function WorkEntry() {
       setSubmitError('');
       setSuccessMessage(t(editItem ? 'we_update_success' : 'we_insert_success'));
       setRecommendation([]);
+      if (editEntryId) {
+        navigate(location.pathname, { replace: true, state: location.state });
+      }
       setView('list');
       setEditItem(null);
 
-      if (location.state?.editWorkEntry || location.state?.returnTo) {
+      if ((location.state?.editWorkEntry || location.state?.returnTo) && !location.state?.returnEmployeeProfileId) {
         navigate(location.state.returnTo || '/reports', { replace: true });
       }
     } catch (error) {
@@ -869,6 +873,18 @@ export default function WorkEntry() {
     }
   };
 
+  const closeSuccessDialog = () => {
+    setSuccessMessage('');
+    if (location.state?.returnEmployeeProfileId) {
+      navigate(location.state.returnTo || '/employees', {
+        replace: true,
+        state: { restoreEmployeeProfile: location.state.returnEmployeeProfileId },
+      });
+    } else if (location.state?.editWorkEntry || location.state?.returnTo) {
+      navigate(location.state.returnTo || '/reports', { replace: true });
+    }
+  };
+
   const handleCancel = () => {
     setRecommendation([]);
     setView('list');
@@ -876,7 +892,12 @@ export default function WorkEntry() {
     setErrors({});
     setSuccessMessage('');
 
-    if (location.state?.editWorkEntry || location.state?.returnTo) {
+    if (location.state?.returnEmployeeProfileId) {
+      navigate(location.state.returnTo || '/employees', {
+        replace: true,
+        state: { restoreEmployeeProfile: location.state.returnEmployeeProfileId },
+      });
+    } else if (location.state?.editWorkEntry || location.state?.returnTo) {
       navigate(location.state.returnTo || '/reports', { replace: true });
     }
   };
@@ -898,10 +919,10 @@ export default function WorkEntry() {
   const successDialog = (
     <Modal
       isOpen={!!successMessage}
-      onClose={() => setSuccessMessage('')}
+      onClose={closeSuccessDialog}
       title={t('we_success_title')}
       size="sm"
-      footer={<button className="btn btn-primary" onClick={() => setSuccessMessage('')}>{t('btn_ok')}</button>}
+      footer={<button className="btn btn-primary" onClick={closeSuccessDialog}>{t('btn_ok')}</button>}
     >
       <div className="success-dialog">
         <CheckCircle size={28} />

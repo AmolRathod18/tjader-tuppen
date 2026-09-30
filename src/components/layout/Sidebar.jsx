@@ -14,8 +14,8 @@ const NAV_ITEMS = [
   { to: '/projects',    icon: FolderKanban,     labelKey: 'nav_projects'    },
   { to: '/employees',   icon: Users,            labelKey: 'nav_employees'   },
   { to: '/work-entry',  icon: ClipboardList,    labelKey: 'nav_work_entry'  },
-  { to: '/reports',     icon: BarChart3,        labelKey: 'nav_reports'     },
   { to: '/expenditure', icon: Car,              labelKey: 'nav_expenditure' },
+  { to: '/reports',     icon: BarChart3,        labelKey: 'nav_reports'     },
   { to: '/settings', icon: Settings, labelKey: 'nav_settings' },
 ];
 

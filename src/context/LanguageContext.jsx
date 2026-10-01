@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import translations from '../i18n/translations';
+import translatePublic from '../i18n/publicTranslations';
 
 const LanguageContext = createContext(null);
 
@@ -35,8 +36,10 @@ export function LanguageProvider({ children }) {
     return String(value).replace(/\{(\d+)\}/g, (_, index) => values[Number(index)] ?? '');
   };
 
+  const tp = (text) => translatePublic(lang, text);
+
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
+    <LanguageContext.Provider value={{ lang, setLang, t, tp }}>
       {children}
     </LanguageContext.Provider>
   );

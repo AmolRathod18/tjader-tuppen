@@ -5,17 +5,20 @@ import { useLanguage } from '../../context/LanguageContext';
 import logo from '../../assets/TJADERTUPPEN_Logo.jpeg';
 
 export default function PublicNavbar() {
-  const { lang, setLang, t } = useLanguage();
+  const { lang, setLang, t, tp } = useLanguage();
   const location = useLocation();
   const isLogin = location.pathname === '/login';
+  const isPublicPage = ['/', '/about', '/services', '/projects', '/contact'].includes(location.pathname)
+    || location.pathname.startsWith('/services/')
+    || location.pathname.startsWith('/projects/');
 
   return (
-    <nav className="public-nav" aria-label="Public navigation">
+    <nav className="public-nav" aria-label={tp('Public navigation')}>
       <Link to="/" className="public-nav-brand">
         <span className="public-nav-mark"><img src={logo} alt="" /></span>
         <span>
           <strong>TJÄDERTUPPEN</strong>
-          <small>{location.pathname === '/login' || location.pathname === '/' || ['/about', '/services', '/projects', '/contact'].includes(location.pathname) ? 'Svets & Konsult' : 'Management System'}</small>
+          <small>{isLogin || isPublicPage ? 'Svets & Konsult' : tp('Management System')}</small>
         </span>
       </Link>
       <div className="public-nav-actions">
@@ -31,7 +34,7 @@ export default function PublicNavbar() {
           <span className="public-nav-cta-icon">
             {isLogin ? <House size={15} /> : <LockKeyhole size={15} />}
           </span>
-          <span className="public-nav-cta-text">{isLogin ? 'Back to home' : 'Admin login'}</span>
+          <span className="public-nav-cta-text">{tp(isLogin ? 'Back to home' : 'Admin login')}</span>
           <ArrowUpRight size={15} className="public-nav-cta-arrow" />
         </Link>
       </div>

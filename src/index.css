@@ -4428,23 +4428,78 @@ textarea:focus-visible { outline: 2px solid #91B800; outline-offset: 2px; }
 .login-submit:hover { border-color: #eaff4c; background: #eaff4c; color: #171a18; }
 .login-footer { border-top-color: rgba(32,36,33,.16); }
 
+.login-page {
+  isolation: isolate;
+  background:
+    linear-gradient(110deg, rgba(17,21,18,.48), rgba(17,23,18,.22)),
+    url('/images/company/swedish-countryside-tree.svg') 38% 48% / cover no-repeat,
+    #171a18;
+}
+
+.login-page::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: radial-gradient(ellipse at 78% 42%, transparent 0%, rgba(13,17,14,.025) 56%, rgba(13,17,14,.2) 100%);
+  content: '';
+  pointer-events: none;
+}
+
+.login-page > .public-nav,
+.login-page > .login-container {
+  position: relative;
+  z-index: 1;
+}
+
+.login-page > .public-nav {
+  padding-inline: 8px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+
+.login-container {
+  border-color: rgba(255,255,255,.2);
+  border-radius: 8px;
+  box-shadow: 0 34px 90px rgba(0,0,0,.42), 0 0 0 6px rgba(255,255,255,.018);
+}
+
+.login-intro {
+  border-right: 1px solid rgba(255,255,255,.16);
+}
+
+.login-card {
+  padding: 42px 48px 28px;
+}
+
 @media (max-width: 760px) {
   .login-page {
     min-height: 100vh;
     padding: 10px 12px 20px;
-    background: #171a18;
+    background:
+      linear-gradient(110deg, rgba(17,21,18,.52), rgba(17,23,18,.3)),
+      url('/images/company/swedish-countryside-tree.svg') 82% center / cover no-repeat,
+      #171a18;
   }
 
   .login-page > .public-nav {
     width: min(100% - 22px, 560px);
     min-height: 62px;
     margin: 0 auto 18px;
+    padding-inline: 0;
   }
 
   .login-page > .login-container {
     width: 100%;
     max-width: 520px;
     margin-inline: auto;
-    border-radius: 3px;
+    border-radius: 8px;
+  }
+
+  .login-intro {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255,255,255,.16);
+  }
+
+  .login-card {
+    padding: 30px 28px 24px;
   }
 }

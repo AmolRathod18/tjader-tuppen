@@ -15,7 +15,7 @@ export const landingMedia = {
     '/images/company/field-service-site-overview.jpeg',
     '/images/company/on-site-trailer-repair.jpeg',
     '/images/company/industrial-welding-equipment.jpeg',
-    '/images/company/welder-at-industrial-machine.jpeg',
+    '/images/company/welder-at-industrial-machine.png',
   ],
   gallery: [
     '/images/company/tjader-welding.png',

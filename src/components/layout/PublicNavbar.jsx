@@ -13,7 +13,10 @@ export default function PublicNavbar() {
     <nav className="public-nav" aria-label="Public navigation">
       <Link to="/" className="public-nav-brand">
         <span className="public-nav-mark"><img src={logo} alt="" /></span>
-        <span><strong>TJÄDERTUPPEN</strong><small>Management System</small></span>
+        <span>
+          <strong>TJÄDERTUPPEN</strong>
+          <small>{location.pathname === '/login' || location.pathname === '/' || ['/about', '/services', '/projects', '/contact'].includes(location.pathname) ? 'Svets & Konsult' : 'Management System'}</small>
+        </span>
       </Link>
       <div className="public-nav-actions">
         <div className="public-nav-languages" aria-label={t('ui_language_selection')}>

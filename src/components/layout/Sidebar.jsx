@@ -11,7 +11,7 @@ import logo from '../../assets/TJADERTUPPEN_Logo.jpeg';
 const NAV_ITEMS = [
   { to: '/dashboard',   icon: LayoutDashboard, labelKey: 'nav_dashboard'   },
   { to: '/companies',   icon: Building2,        labelKey: 'nav_companies'   },
-  { to: '/projects',    icon: FolderKanban,     labelKey: 'nav_projects'    },
+  { to: '/admin/projects', icon: FolderKanban,  labelKey: 'nav_projects'    },
   { to: '/employees',   icon: Users,            labelKey: 'nav_employees'   },
   { to: '/work-entry',  icon: ClipboardList,    labelKey: 'nav_work_entry'  },
   { to: '/expenditure', icon: Car,              labelKey: 'nav_expenditure' },

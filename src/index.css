@@ -4334,3 +4334,117 @@ textarea:focus-visible { outline: 2px solid #91B800; outline-offset: 2px; }
   }
 }
 
+/* ===== PUBLIC LOGIN INDUSTRIAL BRAND ===== */
+.login-page {
+  justify-content: flex-start;
+  background: #171a18;
+  color: #202421;
+}
+
+.login-page > .public-nav {
+  width: min(1220px, calc(100% - 80px));
+  min-height: 78px;
+  margin: 0 auto 25px;
+}
+
+.login-page .public-nav-brand { color: #fff; }
+.login-page .public-nav-brand small { color: rgba(255, 255, 255, .62); }
+.login-page .public-nav-mark { border-color: rgba(255,255,255,.28); background: #fff; box-shadow: none; }
+.login-page .public-nav-languages { border-color: rgba(255,255,255,.25); background: rgba(255,255,255,.09); box-shadow: none; }
+.login-page .public-nav-languages button { color: rgba(255,255,255,.75); }
+.login-page .public-nav-languages button.active { background: #d6f000; color: #171a18; box-shadow: none; }
+.login-page .public-nav-cta { border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.08); color: #fff; box-shadow: none; }
+.login-page .public-nav-cta:hover { border-color: #d6f000; background: #d6f000; color: #171a18; }
+
+.login-container {
+  max-width: 1120px;
+  min-height: 570px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 3px;
+  background: #202421;
+  box-shadow: 0 26px 70px rgba(0,0,0,.3);
+}
+
+.login-intro {
+  isolation: isolate;
+  padding: 45px 50px 38px;
+  background: #242926;
+}
+
+.login-intro-photo {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 43%;
+}
+
+.login-intro::after {
+  z-index: -1;
+  width: auto;
+  height: auto;
+  inset: 0;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(90deg, rgba(16,18,17,.9), rgba(16,18,17,.52)), linear-gradient(0deg, rgba(16,18,17,.72), transparent 56%);
+  box-shadow: none;
+}
+
+.login-intro::before {
+  top: auto;
+  right: 33px;
+  bottom: 34px;
+  width: 76px;
+  height: 76px;
+  border-color: rgba(214,240,0,.55);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 12px rgba(214,240,0,.05);
+}
+
+.login-eyebrow { color: #d6f000; }
+.login-intro-copy h1 { color: #fff; }
+.login-intro-copy h1 em { color: #d6f000; }
+.login-intro-description { color: rgba(255,255,255,.75); }
+.login-feature-list { border-top-color: rgba(255,255,255,.28); }
+.login-feature-list div { color: rgba(255,255,255,.82); }
+.login-feature-list svg { color: #d6f000; }
+
+.login-card { background: #f4f3ee; }
+.login-brand-logo { border: 1px solid rgba(23,26,24,.14); border-radius: 3px; box-shadow: none; }
+.login-logo { border-bottom-color: rgba(32,36,33,.15); }
+.login-logo-text h2, .login-title h1 { color: #202421; }
+.login-logo-text span, .login-title p, .login-footer p { color: #68706a; }
+.login-form label { color: #414943; }
+.input-icon { color: #6d765f; }
+.password-toggle-btn:hover { background: rgba(32,36,33,.08); color: #171a18; }
+.login-form input { border-color: #c8cbc3; border-radius: 3px; background: #fff; box-shadow: none; }
+.login-form input:focus { border-color: #99ad00; background: #fff; box-shadow: 0 0 0 3px rgba(214,240,0,.22); }
+.login-form input::placeholder { color: #899088; }
+.auth-link { color: #4e5c22; }
+.auth-link:hover { color: #252d12; }
+.login-submit { border-color: #d6f000; border-radius: 2px; background: #d6f000; color: #171a18; box-shadow: none; }
+.login-submit:hover { border-color: #eaff4c; background: #eaff4c; color: #171a18; }
+.login-footer { border-top-color: rgba(32,36,33,.16); }
+
+@media (max-width: 760px) {
+  .login-page {
+    min-height: 100vh;
+    padding: 10px 12px 20px;
+    background: #171a18;
+  }
+
+  .login-page > .public-nav {
+    width: min(100% - 22px, 560px);
+    min-height: 62px;
+    margin: 0 auto 18px;
+  }
+
+  .login-page > .login-container {
+    width: 100%;
+    max-width: 520px;
+    margin-inline: auto;
+    border-radius: 3px;
+  }
+}

@@ -16,6 +16,8 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Settings   from './pages/Settings';
 import Home       from './pages/Home';
+import PublicSiteLayout from './components/layout/PublicSiteLayout';
+import { AboutPage, ContactPage, ProjectsPage, ServicesPage } from './pages/PublicPages';
 
 // Protected route wrapper
 function ProtectedRoute({ children }) {
@@ -36,6 +38,12 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route element={<PublicSiteLayout />}>
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/services" element={<ServicesPage />} />
+              <Route path="/projects" element={<ProjectsPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+            </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
@@ -45,7 +53,7 @@ export default function App() {
                   <Routes>
                     <Route path="/dashboard"  element={<Dashboard />} />
                     <Route path="/companies"  element={<Companies />} />
-                    <Route path="/projects"   element={<Projects />} />
+                    <Route path="/admin/projects" element={<Projects />} />
                     <Route path="/employees"  element={<Employees />} />
                     <Route path="/work-entry" element={<WorkEntry />} />
                     <Route path="/reports"    element={<Reports />} />

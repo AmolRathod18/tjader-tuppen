@@ -205,7 +205,7 @@ export default function Dashboard() {
             <h3>{t('dash_projects_title')}</h3>
             <p>{t('dash_projects_sub')}</p>
           </div>
-          <button className="btn btn-primary btn-sm" onClick={() => navigate('/projects')}>
+          <button className="btn btn-primary btn-sm" onClick={() => navigate('/admin/projects')}>
             <Plus size={14} /> {t('btn_add_project')}
           </button>
         </div>

@@ -6,6 +6,7 @@ import { normalizeSupabaseError } from '../utils/supabaseData';
 import { LockKeyhole, AlertCircle, ArrowRight, CheckCircle2, Clock3, Eye, EyeOff, ShieldCheck, UserRound } from 'lucide-react';
 import logo from '../assets/TJADERTUPPEN_Logo.jpeg';
 import PublicNavbar from '../components/layout/PublicNavbar';
+import { landingMedia } from '../config/landingMedia';
 
 export default function Login() {
   const { t } = useLanguage();
@@ -105,7 +106,13 @@ export default function Login() {
       <PublicNavbar />
       <div className="login-container">
         <section className="login-intro" aria-label={t('login_overview_label')}>
-          <div className="login-intro-copy">
+        <img
+          className="login-intro-photo"
+          src={landingMedia.company.worker}
+          alt=""
+          aria-hidden="true"
+        />
+        <div className="login-intro-copy">
             <p className="login-eyebrow">TJÄDERTUPPEN / 2026</p>
             <h1>{t('login_intro_title')}<br /><em>{t('login_intro_emphasis')}</em></h1>
             <p className="login-intro-description">{t('login_intro_description')}</p>

@@ -6,7 +6,7 @@ import { useLanguage } from '../../context/LanguageContext';
 const PAGE_KEYS = {
   '/dashboard':  { title: 'page_dashboard',   subtitle: 'page_dashboard_sub'   },
   '/companies':  { title: 'page_companies',   subtitle: 'page_companies_sub'   },
-  '/projects':   { title: 'page_projects',    subtitle: 'page_projects_sub'    },
+  '/admin/projects': { title: 'page_projects', subtitle: 'page_projects_sub' },
   '/employees':  { title: 'page_employees',   subtitle: 'page_employees_sub'   },
   '/work-entry': { title: 'page_work_entry',  subtitle: 'page_work_entry_sub'  },
   '/reports':    { title: 'page_reports',     subtitle: 'page_reports_sub'     },

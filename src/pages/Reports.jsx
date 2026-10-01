@@ -10,15 +10,14 @@ import {
 import jsPDF from 'jspdf';
 import logoUrl from '../assets/TJADERTUPPEN_Logo.jpeg';
 import { calculateShiftHours, getWorkEntryBreakdown, getWeeklyHours } from '../utils/workHours';
+import { addCalendarDays, formatIsoCalendarDate, formatIsoWeekPeriod, getIsoWeekInfo, getIsoWeekPeriodLabels } from '../utils/isoWeek';
 import { Modal } from '../components/ui/Modal';
 import DatePicker from '../components/ui/DatePicker';
 
 // ─── helpers ────────────────────────────────────────────────
-function fmt(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function todayStr() {
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm' }).format(new Date());
 }
-
-function todayStr() { return new Date().toISOString().split('T')[0]; }
 
 function sanitizeFilenamePart(value) {
   return String(value || 'Employee')
@@ -29,19 +28,11 @@ function sanitizeFilenamePart(value) {
     .replace(/^_+|_+$/g, '') || 'Employee';
 }
 
-function getWeekStart(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function weekLabel(weekStart, locale = 'en-GB') {
-  const end = new Date(weekStart);
-  end.setDate(end.getDate() + 6);
-  return `${weekStart.toLocaleDateString(locale, { day: '2-digit', month: 'short' })} – ${end.toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}`;
+function weekLabel(weekStart, locale = 'en-GB', lang = 'en') {
+  return formatIsoWeekPeriod(weekStart, locale, {
+    week: lang === 'sv' ? 'Vecka' : 'Week',
+    period: lang === 'sv' ? 'Period' : 'Period',
+  });
 }
 
 function displayDate(str, locale = 'en-GB') {
@@ -790,21 +781,14 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
   };
 
   const getDates = (entries, expenditures) => {
-    const values = [...entries.map(entry => entry.date), ...expenditures.map(item => item.journeyDate)].filter(Boolean);
-    if (!rangeStart || !rangeEnd) return [...new Set(values)].sort();
-    const start = new Date(`${rangeStart}T00:00:00`);
-    const end = new Date(`${rangeEnd}T00:00:00`);
-    const days = Math.round((end - start) / 86400000);
-    if (days < 0 || days > 31) return [...new Set(values)].sort();
-    const matchingValues = values.filter(value => value >= rangeStart && value <= rangeEnd);
-    if (days === 0 && matchingValues.length === 0 && values.length > 0) return [...new Set(values)].sort();
-    const dates = [];
-    for (let index = 0; index <= days; index += 1) {
-      const date = new Date(start);
-      date.setDate(start.getDate() + index);
-      dates.push(fmt(date));
-    }
-    return [...new Set([...dates, ...matchingValues])].sort();
+    const entryById = new Map(entries.map(entry => [entry.id, entry]));
+    const values = [
+      ...entries.map(entry => entry.date),
+      ...expenditures.map(item => (item.workEntryId && entryById.get(item.workEntryId)?.date) || item.journeyDate),
+    ].filter(Boolean);
+    return [...new Set(values)]
+      .filter(value => (!rangeStart || value >= rangeStart) && (!rangeEnd || value <= rangeEnd))
+      .sort();
   };
 
   const drawHeader = (employee) => {
@@ -857,9 +841,17 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     const entries = group.entries;
     const expenditures = group.expenditures;
     const dates = getDates(entries, expenditures);
+    const weekPeriods = getIsoWeekPeriodLabels(dates.length ? dates : [rangeStart], lang === 'sv' ? 'sv-SE' : 'en-GB', {
+      week: lang === 'sv' ? 'Vecka' : 'Week',
+      period: 'Period',
+    });
     const rows = dates.map(date => {
       const dateEntries = entries.filter(entry => entry.date === date);
-      const dateTravel = expenditures.filter(item => item.journeyDate === date);
+      const dateEntryIds = new Set(dateEntries.map(entry => entry.id));
+      const dateTravel = expenditures.filter(item => (
+        (item.workEntryId && dateEntryIds.has(item.workEntryId)) ||
+        (!item.workEntryId && item.journeyDate === date)
+      ));
       const hours = dateEntries.reduce((sum, entry) => {
         const breakdown = getWorkEntryBreakdown(entry);
         return {
@@ -892,6 +884,17 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     pdf.setFontSize(16);
     pdf.setTextColor(15, 23, 42);
     pdf.text(`1. ${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin + 1, sectionTitleY);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(72, 81, 88);
+    weekPeriods.forEach((weekPeriod, index) => {
+      const y = sectionTitleY + 7 + index * 7;
+      pdf.text(`${lang === 'sv' ? 'Vecka' : 'Week'} ${String(weekPeriod.week).padStart(2, '0')} (${weekPeriod.weekYear})`, margin + 1, y);
+      const locale = lang === 'sv' ? 'sv-SE' : 'en-GB';
+      const monday = formatIsoCalendarDate(weekPeriod.startDate, locale);
+      const sunday = formatIsoCalendarDate(weekPeriod.endDate, locale);
+      pdf.text(`Period: ${monday} – ${sunday}`, margin + 1, y + 3.5);
+    });
 
     const columns = [
       { label: lang === 'sv' ? 'Datum' : 'Date', width: 28 },
@@ -902,7 +905,7 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       { label: lang === 'sv' ? 'Resa km' : 'Travel KM', width: 22 },
       { label: lang === 'sv' ? 'Restid' : 'Travel Hrs', width: 20 },
     ];
-    const tableTop = 81;
+    const tableTop = Math.max(81, sectionTitleY + 12 + weekPeriods.length * 7);
     const headerHeight = 14;
     const rowHeight = 13;
     let x = margin;
@@ -925,6 +928,17 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
         pdf.setFontSize(16);
         pdf.setTextColor(15, 23, 42);
         pdf.text(`1. ${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin + 1, sectionTitleY);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(72, 81, 88);
+        weekPeriods.forEach((weekPeriod, weekIndex) => {
+          const weekY = sectionTitleY + 7 + weekIndex * 7;
+          pdf.text(`${lang === 'sv' ? 'Vecka' : 'Week'} ${String(weekPeriod.week).padStart(2, '0')} (${weekPeriod.weekYear})`, margin + 1, weekY);
+          const locale = lang === 'sv' ? 'sv-SE' : 'en-GB';
+          const monday = formatIsoCalendarDate(weekPeriod.startDate, locale);
+          const sunday = formatIsoCalendarDate(weekPeriod.endDate, locale);
+          pdf.text(`Period: ${monday} – ${sunday}`, margin + 1, weekY + 3.5);
+        });
         pdf.setFillColor(31, 48, 65);
         pdf.rect(margin, tableTop, contentWidth, headerHeight, 'F');
         pdf.setFont('helvetica', 'bold');
@@ -1183,11 +1197,10 @@ export default function Reports() {
   const [dailyDate, setDailyDate] = useState(todayStr());
 
   // Weekly
-  const [weekStart, setWeekStart] = useState(() => fmt(getWeekStart(new Date())));
+  const [weekStart, setWeekStart] = useState(() => getIsoWeekInfo(todayStr()).startDate);
 
   // Monthly
-  const today = new Date();
-  const [monthYear, setMonthYear] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`);
+  const [monthYear, setMonthYear] = useState(() => todayStr().slice(0, 7));
 
   // Custom
   const [fromDate, setFromDate] = useState('');
@@ -1202,15 +1215,13 @@ export default function Reports() {
   const [editError, setEditError] = useState('');
 
   // Derived week dates
-  const wsDate = new Date(weekStart + 'T00:00:00');
-  const weDate = new Date(wsDate);
-  weDate.setDate(weDate.getDate() + 6);
-  const weFmt = fmt(weDate);
+  const weFmt = addCalendarDays(weekStart, 6);
 
   // Month date range
   const [mYear, mMonth] = monthYear.split('-').map(Number);
   const monthFrom = `${monthYear}-01`;
-  const monthTo   = fmt(new Date(mYear, mMonth, 0)); // last day of month
+  const monthLastDay = new Date(Date.UTC(mYear, mMonth, 0)).getUTCDate();
+  const monthTo   = `${monthYear}-${String(monthLastDay).padStart(2, '0')}`;
 
   // Active date range based on tab
   const dateFrom = tab === 'daily'   ? dailyDate
@@ -1248,8 +1259,8 @@ export default function Reports() {
 
   const reportExpenditures = expenditures.filter(item => (
     (!filterEmployee || item.employeeId === filterEmployee) &&
-    (!dateFrom || item.journeyDate >= dateFrom) &&
-    (!dateTo || item.journeyDate <= dateTo) &&
+    (!dateFrom || ((item.workEntryId ? workEntries.find(entry => entry.id === item.workEntryId)?.date : item.journeyDate) || '') >= dateFrom) &&
+    (!dateTo || ((item.workEntryId ? workEntries.find(entry => entry.id === item.workEntryId)?.date : item.journeyDate) || '') <= dateTo) &&
     (!filterProject || item.projectId === filterProject) &&
     (!filterClient || getProjectById(item.projectId)?.companyId === filterClient)
   ));
@@ -1268,10 +1279,10 @@ export default function Reports() {
     ? `${selectedEmployee.name} · ${t('rep_entries_count', [filtered.length])} · ${totalHours.toFixed(1)}h`
     : `${t('rep_all_employees')} · ${t('rep_entries_count', [filtered.length])} · ${totalHours.toFixed(1)}h ${t('rep_combined')}`;
 
-  const prevWeek = () => { const d = new Date(weekStart + 'T00:00:00'); d.setDate(d.getDate() - 7); setWeekStart(fmt(d)); };
-  const nextWeek = () => { const d = new Date(weekStart + 'T00:00:00'); d.setDate(d.getDate() + 7); setWeekStart(fmt(d)); };
-  const prevDay  = () => { const d = new Date(dailyDate + 'T00:00:00'); d.setDate(d.getDate() - 1); setDailyDate(fmt(d)); };
-  const nextDay  = () => { const d = new Date(dailyDate + 'T00:00:00'); d.setDate(d.getDate() + 1); setDailyDate(fmt(d)); };
+  const prevWeek = () => setWeekStart(addCalendarDays(weekStart, -7));
+  const nextWeek = () => setWeekStart(addCalendarDays(weekStart, 7));
+  const prevDay  = () => setDailyDate(addCalendarDays(dailyDate, -1));
+  const nextDay  = () => setDailyDate(addCalendarDays(dailyDate, 1));
   const prevMonth = () => {
     const d = new Date(mYear, mMonth - 2, 1);
     setMonthYear(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
@@ -1284,7 +1295,13 @@ export default function Reports() {
   const getReportTitle = () => {
     const locale = lang === 'sv' ? 'sv-SE' : 'en-GB';
     if (tab === 'daily') return { title: lang === 'sv' ? 'DAGLIG ARBETSRAPPORT' : 'DAILY WORK REPORT', subtitle: displayDate(dailyDate, locale) };
-    if (tab === 'weekly') return { title: lang === 'sv' ? 'VECKORAPPORT' : 'WEEKLY WORK REPORT', subtitle: weekLabel(wsDate, locale) };
+    if (tab === 'weekly') {
+      const week = getIsoWeekInfo(weekStart);
+      return {
+        title: lang === 'sv' ? 'VECKORAPPORT' : 'WEEKLY WORK REPORT',
+        subtitle: `${lang === 'sv' ? 'Vecka' : 'Week'} ${String(week.week).padStart(2, '0')} · ${week.weekYear}`,
+      };
+    }
     if (tab === 'monthly') return { title: lang === 'sv' ? 'MÅNADSRAPPORT' : 'MONTHLY WORK REPORT', subtitle: new Date(mYear, mMonth - 1, 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' }) };
     return { title: lang === 'sv' ? 'ARBETSRAPPORT' : 'WORK REPORT', subtitle: `${fromDate || '—'} ${lang === 'sv' ? 'till' : 'to'} ${toDate || '—'}` };
   };
@@ -1323,9 +1340,11 @@ export default function Reports() {
         getEmployeeById,
       });
       const safeTitle = title.replace(/\s+/g, '_');
-      const filename = selectedEmployee
-        ? `${sanitizeFilenamePart(selectedEmployee.name)}_${safeTitle}_${todayStr()}.pdf`
-        : `TJADERTUPPEN_${safeTitle}_All_Employees_${todayStr()}.pdf`;
+      const filename = tab === 'weekly'
+        ? `${sanitizeFilenamePart(selectedEmployee?.name || 'All_Employees')}_WEEKLY-${String(getIsoWeekInfo(weekStart).week).padStart(2, '0')}_WORK_REPORT_${todayStr()}.pdf`
+        : selectedEmployee
+          ? `${sanitizeFilenamePart(selectedEmployee.name)}_${safeTitle}_${todayStr()}.pdf`
+          : `TJADERTUPPEN_${safeTitle}_All_Employees_${todayStr()}.pdf`;
       pdf.save(filename);
     } catch (error) {
       window.alert(error.message);
@@ -1519,8 +1538,8 @@ export default function Reports() {
                 <label style={LabelStyle}>{t('rep_week')}</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button className="btn btn-ghost btn-icon" onClick={prevWeek}><ChevronLeft size={18} /></button>
-                  <div style={{ background: 'var(--color-bg)', border: '1.5px solid var(--color-border)', borderRadius: 8, padding: '8px 16px', fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap' }}>
-                    {weekLabel(wsDate, t('ui_locale'))}
+                  <div style={{ background: 'var(--color-bg)', border: '1.5px solid var(--color-border)', borderRadius: 8, padding: '8px 16px', fontWeight: 600, fontSize: 13, maxWidth: 300, textAlign: 'center' }}>
+                    {weekLabel(weekStart, t('ui_locale'), lang)}
                   </div>
                   <button className="btn btn-ghost btn-icon" onClick={nextWeek}><ChevronRight size={18} /></button>
                 </div>

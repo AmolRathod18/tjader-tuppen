@@ -31,12 +31,11 @@ export async function selectRows(table) {
   return data.map(mapRow);
 }
 
-export async function selectPreviousWorkEntries(employeeId, excludeDate) {
+export async function selectPreviousWorkEntries(employeeId) {
   const { data, error } = await supabase
     .from('work_entries')
     .select('*')
     .eq('employee_id', employeeId)
-    .neq('date', excludeDate)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(1);

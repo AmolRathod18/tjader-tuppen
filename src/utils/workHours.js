@@ -1,3 +1,5 @@
+import { addCalendarDays, getIsoWeekInfo } from './isoWeek';
+
 export function calculateShiftHours(startTime, endTime) {
   if (!startTime || !endTime) return null;
 
@@ -47,13 +49,10 @@ export function getWorkEntryBreakdown(entry) {
 }
 
 export function getWeeklyHours(entries, employeeId, date) {
-  const selected = new Date(`${date}T00:00:00`);
-  const mondayOffset = selected.getDay() === 0 ? -6 : 1 - selected.getDay();
-  selected.setDate(selected.getDate() + mondayOffset);
-  const start = selected.toISOString().slice(0, 10);
-  const endDate = new Date(selected);
-  endDate.setDate(endDate.getDate() + 6);
-  const end = endDate.toISOString().slice(0, 10);
+  const week = getIsoWeekInfo(date);
+  if (!week) return 0;
+  const start = week.startDate;
+  const end = addCalendarDays(start, 6);
   return entries
     .filter(entry => (!employeeId || entry.employeeId === employeeId) && entry.date >= start && entry.date <= end)
     .reduce((sum, entry) => sum + getWorkEntryHours(entry), 0);

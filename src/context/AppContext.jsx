@@ -172,10 +172,34 @@ export function AppProvider({ children }) {
   };
   const addWorkEntry = data => callWorkEntry('create_work_entry', { entry_payload: mapPayload(data) }, setWorkEntries);
   const updateWorkEntry = (id, data) => callWorkEntry('update_work_entry', { entry_id: id, entry_payload: mapPayload(data) }, setWorkEntries, id);
+  const callWorkEntryWithExpenditure = async (name, args, entryId) => {
+    const { data, error } = await supabase.rpc(name, args);
+    if (error) throw normalizeSupabaseError(error);
+
+    const workEntry = mapRow(data.work_entry);
+    const expenditure = data.expenditure ? mapRow(data.expenditure) : null;
+    if (entryId) setWorkEntries(items => items.map(item => item.id === entryId ? workEntry : item));
+    else setWorkEntries(items => [...items, workEntry]);
+    setExpenditures(items => {
+      const current = entryId ? items.filter(item => item.workEntryId !== entryId) : items;
+      return expenditure ? [...current, expenditure] : current;
+    });
+    return workEntry;
+  };
+  const addWorkEntryWithExpenditure = (data, travelData) => callWorkEntryWithExpenditure(
+    'create_work_entry_with_expenditure',
+    { entry_payload: mapPayload(data), expenditure_payload: travelData ? mapPayload(travelData) : null },
+  );
+  const updateWorkEntryWithExpenditure = (id, data, travelData) => callWorkEntryWithExpenditure(
+    'update_work_entry_with_expenditure',
+    { entry_id: id, entry_payload: mapPayload(data), expenditure_payload: travelData ? mapPayload(travelData) : null },
+    id,
+  );
   const deleteWorkEntry = async id => {
     const { error } = await supabase.from('work_entries').delete().eq('id', id);
     if (error) throw normalizeSupabaseError(error);
     setWorkEntries(items => items.filter(item => item.id !== id));
+    setExpenditures(items => items.filter(item => item.workEntryId !== id));
   };
   const addExpenditure = data => mutate('expenditures', 'POST', data, setExpenditures);
   const updateExpenditure = (id, data) => mutate('expenditures', 'PATCH', data, setExpenditures, id);
@@ -187,6 +211,7 @@ export function AppProvider({ children }) {
     projects, addProject, updateProject, deleteProject,
     employees, addEmployee, updateEmployee, deleteEmployee,
     workEntries, addWorkEntry, updateWorkEntry, deleteWorkEntry,
+    addWorkEntryWithExpenditure, updateWorkEntryWithExpenditure,
     expenditures, addExpenditure, updateExpenditure, deleteExpenditure,
     getCompanyById: id => companies.find(item => item.id === id),
     getProjectById: id => projects.find(item => item.id === id),
@@ -205,4 +230,3 @@ export function useApp() {
   if (!context) throw new Error('useApp must be used within AppProvider');
   return context;
 }
-

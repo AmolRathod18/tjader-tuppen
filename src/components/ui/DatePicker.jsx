@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 
-const WEEKDAYS = { en: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'], sv: ['Sö', 'Må', 'Ti', 'On', 'To', 'Fr', 'Lö'] };
+const WEEKDAYS = { en: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'], sv: ['Må', 'Ti', 'On', 'To', 'Fr', 'Lö', 'Sö'] };
 const MONTHS = {
   en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
   sv: ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'],
@@ -45,7 +45,7 @@ export default function DatePicker({ value, onChange, id, name, required, disabl
   const days = useMemo(() => {
     const first = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
     const count = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
-    const leading = first.getDay();
+    const leading = (first.getDay() + 6) % 7;
     return [...Array(leading).fill(null), ...Array.from({ length: count }, (_, index) => new Date(viewDate.getFullYear(), viewDate.getMonth(), index + 1))];
   }, [viewDate]);
 

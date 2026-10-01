@@ -8,7 +8,7 @@ import { selectPreviousWorkEntries } from '../utils/supabaseData';
 import {
   ClipboardList, Plus, Search, Pencil, Trash2,
   Filter, ArrowLeft, CheckCircle, AlertTriangle,
-  AlarmClock, FileText, Calendar, Eye,
+  AlarmClock, FileText, Calendar, Eye, Car,
 } from 'lucide-react';
 import { calculateShiftHours, getWorkEntryBreakdown, getWorkEntryHours } from '../utils/workHours';
 
@@ -77,6 +77,7 @@ const EMPTY = {
   startTime: '', endTime: '', hours: '',
   normalHours: '', normalOvertime: '', weekendOvertime: '',
   description: '', remarks: '',
+  travelStartPlace: '', travelEndPlace: '', travelKilometers: '', travelHours: '', travelRemarks: '',
 };
 
 function FieldError({ message }) {
@@ -111,7 +112,7 @@ function SectionLabel({ icon: Icon, label }) {
 function FormView({ form, errors, submitError, setField, onSave, onCancel, editItem,
   companies, formProjects, activeEmployees, getCompanyById, recommendation, onApplyRecommendation,
   onDismissRecommendation, recommendationEmployeeName, recommendationProject,
-  recommendationCompany, recommendationHours, t }) {
+  recommendationCompany, recommendationHours, recommendationTravel, t }) {
 
   const shiftHours = calculateShiftHours(form.startTime, form.endTime);
   const automaticNormalHours = shiftHours !== null ? shiftHours : 0;
@@ -314,6 +315,66 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
             </div>
           </div>
 
+          <SectionLabel icon={Car} label={t('we_expenditure_details')} />
+          <div className="work-entry-form-grid work-entry-form-grid--two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+            <div className="form-group">
+              <label>{t('exp_start_place')}</label>
+              <input
+                value={form.travelStartPlace}
+                onChange={e => setField('travelStartPlace', e.target.value)}
+                maxLength={120}
+                placeholder={t('exp_start_place_ph')}
+              />
+              <FieldError message={errors.travelStartPlace} />
+            </div>
+            <div className="form-group">
+              <label>{t('exp_end_place')}</label>
+              <input
+                value={form.travelEndPlace}
+                onChange={e => setField('travelEndPlace', e.target.value)}
+                maxLength={120}
+                placeholder={t('exp_end_place_ph')}
+              />
+              <FieldError message={errors.travelEndPlace} />
+            </div>
+            <div className="form-group">
+              <label>{t('exp_kilometers_travelled')}</label>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                value={form.travelKilometers}
+                onChange={e => setField('travelKilometers', e.target.value)}
+                placeholder={t('exp_kilometers_ph')}
+              />
+              <FieldError message={errors.travelKilometers} />
+            </div>
+            <div className="form-group">
+              <label>{t('exp_hours')}</label>
+              <input
+                type="number"
+                min="0.01"
+                step="any"
+                inputMode="decimal"
+                value={form.travelHours}
+                onChange={e => setField('travelHours', e.target.value)}
+                placeholder={t('exp_hours_ph')}
+              />
+              <FieldError message={errors.travelHours} />
+            </div>
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label>{t('exp_remarks')}</label>
+              <textarea
+                value={form.travelRemarks}
+                onChange={e => setField('travelRemarks', e.target.value)}
+                maxLength={500}
+                placeholder={t('exp_optional_notes')}
+              />
+              <FieldError message={errors.travelRemarks} />
+            </div>
+          </div>
+
         </div>
 
         {/* Sticky bottom action bar */}
@@ -356,6 +417,18 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
             <strong>{t('we_work_details')}:</strong>
             <p style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap' }}>{recommendation[0]?.description || t('we_no_description')}</p>
           </div>
+          {recommendationTravel && (
+            <>
+              <div><strong>{t('exp_start_place')}:</strong> {recommendationTravel.startPlace || '—'}</div>
+              <div><strong>{t('exp_end_place')}:</strong> {recommendationTravel.endPlace || '—'}</div>
+              <div><strong>{t('exp_kilometers_travelled')}:</strong> {recommendationTravel.kilometers ?? '—'} km</div>
+              <div><strong>{t('exp_hours')}:</strong> {recommendationTravel.hours ?? '—'} h</div>
+              <div>
+                <strong>{t('exp_remarks')}:</strong>
+                <p style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap' }}>{recommendationTravel.remarks || '—'}</p>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
     </div>
@@ -594,9 +667,9 @@ function EmployeeDetailsModal({ group, getProjectById, getCompanyById, onClose, 
 ───────────────────────────────────────────── */
 export default function WorkEntry() {
   const {
-    workEntries, projects, employees, companies,
-    addWorkEntry, updateWorkEntry, deleteWorkEntry,
-    loadCompanies, loadProjects, loadEmployees, loadWorkEntries,
+    workEntries, expenditures, projects, employees, companies,
+    addWorkEntryWithExpenditure, updateWorkEntryWithExpenditure, deleteWorkEntry,
+    loadCompanies, loadProjects, loadEmployees, loadWorkEntries, loadExpenditures,
     getProjectById, getEmployeeById, getCompanyById,
   } = useApp();
   const { t } = useLanguage();
@@ -618,7 +691,7 @@ export default function WorkEntry() {
   useEffect(() => {
     if (hasLoaded.current) return;
     hasLoaded.current = true;
-    Promise.all([loadCompanies(), loadProjects(), loadEmployees(), loadWorkEntries()])
+    Promise.all([loadCompanies(), loadProjects(), loadEmployees(), loadWorkEntries(), loadExpenditures()])
       .catch(error => setSubmitError(error.message));
   }, []);
 
@@ -628,7 +701,7 @@ export default function WorkEntry() {
     }
 
     let cancelled = false;
-    selectPreviousWorkEntries(form.employeeId, todayDate())
+    selectPreviousWorkEntries(form.employeeId)
       .then(entries => {
         if (!cancelled) setRecommendation(entries);
       })
@@ -724,6 +797,9 @@ export default function WorkEntry() {
   const recommendationCompany = recommendationEntry
     ? getCompanyById(recommendationEntry.companyId || recommendationProject?.companyId)
     : null;
+  const recommendationTravel = recommendationEntry
+    ? expenditures.find(item => item.workEntryId === recommendationEntry.id)
+    : null;
 
   const setField = (field, value) => {
     if (field === 'employeeId') {
@@ -741,6 +817,7 @@ export default function WorkEntry() {
     if (!entry) return;
 
     const project = getProjectById(entry.projectId);
+    const travel = expenditures.find(item => item.workEntryId === entry.id);
     setForm({
       ...EMPTY,
       date: todayDate(),
@@ -754,6 +831,11 @@ export default function WorkEntry() {
       weekendOvertime: entry.weekendOvertime ?? '',
       description: entry.description || '',
       remarks: entry.remarks ?? entry.notes ?? '',
+      travelStartPlace: travel?.startPlace || '',
+      travelEndPlace: travel?.endPlace || '',
+      travelKilometers: travel?.kilometers ?? '',
+      travelHours: travel?.hours ?? '',
+      travelRemarks: travel?.remarks || '',
     });
     setRecommendation([]);
     setErrors({});
@@ -774,6 +856,7 @@ export default function WorkEntry() {
 
   const openEdit = (item) => {
     const proj = getProjectById(item.projectId);
+    const travel = expenditures.find(expenditure => expenditure.workEntryId === item.id);
     setRecommendation([]);
     setEditItem(item);
     setForm({
@@ -788,6 +871,11 @@ export default function WorkEntry() {
       weekendOvertime: item.weekendOvertime ?? (getWorkEntryBreakdown(item).weekendOvertime || ''),
       description: item.description || '',
       remarks:     item.remarks     ?? item.notes ?? '',
+      travelStartPlace: travel?.startPlace || '',
+      travelEndPlace: travel?.endPlace || '',
+      travelKilometers: travel?.kilometers ?? '',
+      travelHours: travel?.hours ?? '',
+      travelRemarks: travel?.remarks || '',
     });
     setErrors({});
     setSubmitError('');
@@ -809,6 +897,26 @@ export default function WorkEntry() {
     if (normalHours !== null && (!Number.isFinite(normalHours) || normalHours < 0 || normalHours > 24)) e.normalHours = t('we_err_normal_hours');
     if (!Number.isFinite(normalOvertime) || normalOvertime < 0 || normalOvertime > 24) e.normalOvertime = t('we_err_overtime');
     if (!Number.isFinite(weekendOvertime) || weekendOvertime < 0 || weekendOvertime > 24) e.weekendOvertime = t('we_err_overtime');
+    const hasTravelDetails = Boolean(
+      form.travelStartPlace.trim() || form.travelEndPlace.trim() ||
+      form.travelKilometers || form.travelHours || form.travelRemarks.trim()
+    );
+    if (hasTravelDetails) {
+      if (!form.travelStartPlace.trim()) e.travelStartPlace = t('exp_err_start_place');
+      if (!form.travelEndPlace.trim()) e.travelEndPlace = t('exp_err_end_place');
+      if (!form.travelKilometers || !Number.isInteger(Number(form.travelKilometers)) || Number(form.travelKilometers) <= 0) {
+        e.travelKilometers = t('exp_err_kilometers');
+      }
+      if (!form.travelHours || !Number.isFinite(Number(form.travelHours)) || Number(form.travelHours) <= 0) {
+        e.travelHours = t('exp_err_hours');
+      }
+      if (form.travelStartPlace.trim().length > 120 || form.travelEndPlace.trim().length > 120) {
+        const message = t('exp_err_place_length');
+        if (form.travelStartPlace.trim().length > 120) e.travelStartPlace = message;
+        if (form.travelEndPlace.trim().length > 120) e.travelEndPlace = message;
+      }
+      if (form.travelRemarks.trim().length > 500) e.travelRemarks = t('exp_err_remarks_length');
+    }
     if (Object.keys(e).length > 0) { setErrors(e); return; }
 
     const proj = getProjectById(form.projectId);
@@ -820,9 +928,18 @@ export default function WorkEntry() {
       weekendOvertime,
       companyId: form.companyId || proj?.companyId || '',
     };
+    const travelData = hasTravelDetails ? {
+      employeeId: form.employeeId,
+      projectId: form.projectId,
+      startPlace: form.travelStartPlace.trim(),
+      endPlace: form.travelEndPlace.trim(),
+      kilometers: Number(form.travelKilometers),
+      hours: Number(form.travelHours),
+      remarks: form.travelRemarks.trim() || null,
+    } : null;
     try {
-      if (editItem) await updateWorkEntry(editItem.id, data);
-      else await addWorkEntry(data);
+      if (editItem) await updateWorkEntryWithExpenditure(editItem.id, data, travelData);
+      else await addWorkEntryWithExpenditure(data, travelData);
       setSubmitError('');
       setSuccessMessage(t(editItem ? 'we_update_success' : 'we_insert_success'));
       setRecommendation([]);
@@ -932,6 +1049,7 @@ export default function WorkEntry() {
           recommendationProject={recommendationProject}
           recommendationCompany={recommendationCompany}
           recommendationHours={recommendationEntry ? getWorkEntryHours(recommendationEntry).toFixed(2) : ''}
+          recommendationTravel={recommendationTravel}
           t={t}
         />
         <ConfirmDeleteModal

@@ -10,7 +10,6 @@ import Projects   from './pages/Projects';
 import Employees  from './pages/Employees';
 import WorkEntry  from './pages/WorkEntry';
 import Reports    from './pages/Reports';
-import Expenditure from './pages/Expenditure';
 import Login      from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -59,7 +58,7 @@ export default function App() {
                     <Route path="/employees"  element={<Employees />} />
                     <Route path="/work-entry" element={<WorkEntry />} />
                     <Route path="/reports"    element={<Reports />} />
-                    <Route path="/expenditure" element={<Expenditure />} />
+                    <Route path="/expenditure" element={<Navigate to="/work-entry" replace />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="*"           element={<Navigate to="/dashboard" replace />} />
                   </Routes>

@@ -206,7 +206,7 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
     const byDate = new Map();
     employeeEntries.forEach(entry => {
       const hours = getWorkEntryBreakdown(entry);
-      const row = byDate.get(entry.date) || { date: entry.date, project: '', normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: 0 };
+      const row = byDate.get(entry.date) || { date: entry.date, project: '', normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: null };
       const project = getProjectById(entry.projectId);
       const company = getCompanyById(entry.companyId || project?.companyId);
       row.project = [company?.name, project?.name].filter(Boolean).join(' / ') || '—';
@@ -216,12 +216,12 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
       byDate.set(entry.date, row);
     });
     employeeExpenditures.forEach(item => {
-      const row = byDate.get(item.journeyDate) || { date: item.journeyDate, project: '', normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: 0 };
+      const row = byDate.get(item.journeyDate) || { date: item.journeyDate, project: '', normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: null };
       const project = getProjectById(item.projectId);
       const company = project ? getCompanyById(project.companyId) : null;
       if (!row.project) row.project = [company?.name, project?.name].filter(Boolean).join(' / ') || '—';
       row.kilometers += Number(item.kilometers || 0);
-      row.travelHours += Number(item.kilometers || 0) / 50;
+      if (item.hours != null) row.travelHours = (row.travelHours || 0) + Number(item.hours);
       byDate.set(item.journeyDate, row);
     });
     const rows = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
@@ -230,8 +230,9 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
       overtime: sum.overtime + row.overtime,
       weekend: sum.weekend + row.weekend,
       kilometers: sum.kilometers + row.kilometers,
-      travelHours: sum.travelHours + row.travelHours,
-    }), { normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: 0 });
+      travelHours: sum.travelHours + (row.travelHours || 0),
+      hasTravelHours: sum.hasTravelHours || row.travelHours != null,
+    }), { normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: 0, hasTravelHours: false });
 
     drawPageHeader(employee);
     pdf.setFont('helvetica', 'bold');
@@ -253,7 +254,7 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
         row.overtime.toFixed(1),
         row.weekend.toFixed(1),
         row.kilometers.toLocaleString(),
-        row.travelHours.toFixed(2).replace(/0$/, ''),
+        row.travelHours == null ? '—' : row.travelHours.toFixed(2).replace(/0$/, ''),
       ];
       let x = M;
       values.forEach((value, valueIndex) => {
@@ -273,9 +274,10 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
     pdf.setTextColor(15, 23, 42);
     pdf.text(lang === 'sv' ? 'TOTALT' : 'TOTAL', M + 4, y + 8);
     let totalX = M + columns[0] + columns[1];
-    [totals.normal, totals.overtime, totals.weekend, totals.kilometers, totals.travelHours].forEach((value, index) => {
+    [totals.normal, totals.overtime, totals.weekend, totals.kilometers, totals.hasTravelHours ? totals.travelHours : null].forEach((value, index) => {
       const columnIndex = index + 2;
-      pdf.text(index > 2 ? (index === 3 ? value.toLocaleString() : value.toFixed(2).replace(/0$/, '')) : value.toFixed(1), totalX + columns[columnIndex] / 2, y + 8, { align: 'center' });
+      const formattedValue = value == null ? '—' : index > 2 ? (index === 3 ? value.toLocaleString() : value.toFixed(2).replace(/0$/, '')) : value.toFixed(1);
+      pdf.text(formattedValue, totalX + columns[columnIndex] / 2, y + 8, { align: 'center' });
       totalX += columns[columnIndex];
     });
     y += 24;
@@ -298,7 +300,7 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
     pdf.setFontSize(17);
     pdf.setTextColor(15, 23, 42);
     pdf.text(`${(totals.normal + totals.overtime + totals.weekend).toFixed(1)} h`, M + 24, boxY + 17);
-    pdf.text(`${totals.kilometers.toLocaleString()} KM -> ${totals.travelHours.toFixed(2).replace(/0$/, '')} hr`, M + boxW + 30, boxY + 17);
+    pdf.text(`${totals.kilometers.toLocaleString()} KM / ${totals.hasTravelHours ? `${totals.travelHours.toFixed(2).replace(/0$/, '')} hr` : '—'}`, M + boxW + 30, boxY + 17);
     pdf.setDrawColor(157, 169, 178);
     pdf.line(M, PH - 18, PW - M, PH - 18);
     pdf.setFont('helvetica', 'normal');
@@ -325,7 +327,7 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
     workEntries: 'ARBETSPOSTER', legend: 'NW = Normal arbetstid  |  OT = Övertid  |  WE = Helg',
     date: 'Datum', client: 'Kund', project: 'Projekt', description: 'Beskrivning',
     total: 'Totalt', travel: 'RESOR / UTGIFTER', employeeId: 'Anställnings-ID', journey: 'Resa',
-    km: 'KM', journeys: 'Resor', unknownEmployee: 'Okänd anställd',
+    km: 'KM', hours: 'Timmar', journeys: 'Resor', unknownEmployee: 'Okänd anställd',
   } : {
     generated: 'Generated', page: 'Page', reportFor: 'REPORT FOR', reportPeriod: 'REPORT PERIOD',
     multipleEmployees: 'Multiple employees', workingHours: 'WORKING HOURS', overtimeHours: 'OVERTIME HOURS',
@@ -334,7 +336,7 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
     workEntries: 'WORK ENTRIES DETAIL', legend: 'NW = Normal working hrs  |  OT = Overtime  |  WE = Weekend',
     date: 'Date', client: 'Client', project: 'Project', description: 'Description',
     total: 'Total', travel: 'TRAVEL / EXPENDITURE DETAILS', employeeId: 'Employee ID', journey: 'Journey',
-    km: 'KM', journeys: 'Journeys', unknownEmployee: 'Unknown employee',
+    km: 'KM', hours: 'Hours', journeys: 'Journeys', unknownEmployee: 'Unknown employee',
   };
   const totals = entries.reduce((sum, entry) => {
     const hours = getWorkEntryBreakdown(entry);
@@ -677,8 +679,9 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
       { h: text.employeeId, w: 24 },
       { h: text.project, w: 20 },
       { h: text.journey, w: 34 },
-      { h: text.km, w: 20 },
-      { h: text.description, w: 60 },
+      { h: text.km, w: 18 },
+      { h: text.hours, w: 15 },
+      { h: text.description, w: 52 },
     ];
     const travelHeaderHeight = 7;
     const drawTravelHeader = (sy) => {
@@ -689,7 +692,7 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
       pdf.setTextColor(255, 255, 255);
       let cx = M;
       travelCols.forEach(column => {
-        const rightAligned = column.h === 'KM';
+        const rightAligned = column.h === text.km || column.h === text.hours;
         pdf.text(column.h, rightAligned ? cx + column.w - 2 : cx + 2, sy + 5, { align: rightAligned ? 'right' : 'left' });
         pdf.setDrawColor(128, 139, 148);
         pdf.setLineWidth(0.2);
@@ -703,6 +706,8 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
     y = drawTravelHeader(y);
 
     const totalKilometers = expenditures.reduce((sum, item) => sum + Number(item.kilometers || 0), 0);
+    const totalTravelHours = expenditures.reduce((sum, item) => sum + Number(item.hours || 0), 0);
+    const hasTravelHours = expenditures.some(item => item.hours != null);
     [...expenditures].sort((a, b) => a.journeyDate.localeCompare(b.journeyDate)).forEach((item, idx) => {
       const employee = getEmployeeById(item.employeeId);
       const project = getProjectById(item.projectId);
@@ -712,6 +717,7 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
         project?.name || '—',
         `${item.startPlace || '—'}  >  ${item.endPlace || '—'}`,
         `${Number(item.kilometers || 0).toLocaleString()} km`,
+        item.hours == null ? '—' : `${Number(item.hours).toLocaleString()} h`,
         item.remarks || '—',
       ];
       pdf.setFont('helvetica', 'normal');
@@ -731,8 +737,8 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
       pdf.rect(M, y, CW, rowH, 'S');
       let cx = M;
       lines.forEach((cellLines, cellIndex) => {
-        const rightAligned = cellIndex === 4;
-        pdf.setFont('helvetica', cellIndex === 4 ? 'bold' : 'normal');
+        const rightAligned = cellIndex === 4 || cellIndex === 5;
+        pdf.setFont('helvetica', cellIndex === 4 || cellIndex === 5 ? 'bold' : 'normal');
         pdf.setTextColor(cellIndex === 4 ? 61 : 24, cellIndex === 4 ? 75 : 29, cellIndex === 4 ? 87 : 33);
         cellLines.forEach((line, lineIndex) => {
           pdf.text(line, rightAligned ? cx + travelCols[cellIndex].w - 3 : cx + 3, y + 5.5 + lineIndex * 4.2, { align: rightAligned ? 'right' : 'left' });
@@ -756,7 +762,7 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
     pdf.setFontSize(10);
     pdf.setTextColor(24, 29, 33);
     pdf.text(`TOTAL — ${expenditures.length} ${text.journeys}`, M + 2, y + 5);
-    pdf.text(`${totalKilometers.toLocaleString()} km`, M + CW - 2, y + 5, { align: 'right' });
+    pdf.text(`${totalKilometers.toLocaleString()} km / ${hasTravelHours ? `${totalTravelHours.toLocaleString()} h` : '—'}`, M + CW - 2, y + 5, { align: 'right' });
     y += 7;
   }
 
@@ -865,15 +871,20 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       const project = dateEntries[0] ? getProjectById(dateEntries[0].projectId) : dateTravel[0] ? getProjectById(dateTravel[0].projectId) : null;
       const company = project ? getCompanyById(project.companyId) : null;
       const kilometers = dateTravel.reduce((sum, item) => sum + Number(item.kilometers || 0), 0);
-      return { date, project, company, hours, kilometers, travelHours: kilometers ? kilometers / 50 : 0 };
+      const enteredTravelHours = dateTravel.filter(item => item.hours != null);
+      const travelHours = enteredTravelHours.length
+        ? enteredTravelHours.reduce((sum, item) => sum + Number(item.hours), 0)
+        : null;
+      return { date, project, company, hours, kilometers, travelHours };
     });
     const totals = rows.reduce((sum, row) => ({
       normal: sum.normal + row.hours.normal,
       overtime: sum.overtime + row.hours.overtime,
       weekend: sum.weekend + row.hours.weekend,
       kilometers: sum.kilometers + row.kilometers,
-      travelHours: sum.travelHours + row.travelHours,
-    }), { normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: 0 });
+      travelHours: sum.travelHours + (row.travelHours || 0),
+      hasTravelHours: sum.hasTravelHours || row.travelHours != null,
+    }), { normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: 0, hasTravelHours: false });
     const totalHours = totals.normal + totals.overtime + totals.weekend;
 
     const sectionTitleY = 68;
@@ -938,7 +949,7 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
         row.hours.overtime.toFixed(1),
         row.hours.weekend.toFixed(1),
         String(Math.round(row.kilometers)),
-        row.travelHours.toFixed(2).replace(/\.00$/, ''),
+        row.travelHours == null ? '—' : row.travelHours.toFixed(2).replace(/\.00$/, ''),
       ];
       let cellX = margin;
       values.forEach((value, cellIndex) => {
@@ -957,11 +968,11 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     pdf.setFontSize(9);
     pdf.setTextColor(24, 29, 33);
     pdf.text(lang === 'sv' ? 'TOTALT' : 'TOTAL', margin + 4, y + 9);
-    const totalValues = [totals.normal, totals.overtime, totals.weekend, totals.kilometers, totals.travelHours];
+    const totalValues = [totals.normal, totals.overtime, totals.weekend, totals.kilometers, totals.hasTravelHours ? totals.travelHours : null];
     let totalX = margin + columns[0].width + columns[1].width;
     totalValues.forEach((value, index) => {
       const column = columns[index + 2];
-      pdf.text(index === 3 ? String(Math.round(value)) : value.toFixed(2).replace(/\.00$/, ''), totalX + column.width / 2, y + 9, { align: 'center' });
+      pdf.text(value == null ? '—' : index === 3 ? String(Math.round(value)) : value.toFixed(2).replace(/\.00$/, ''), totalX + column.width / 2, y + 9, { align: 'center' });
       totalX += column.width;
     });
 
@@ -975,7 +986,7 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     pdf.text(`2. ${periodName} ${lang === 'sv' ? 'sammanfattning' : 'Totals'}`, margin + 1, totalsY);
     const summaryY = totalsY + 11;
     const summaryWidth = (contentWidth - 6) / 2;
-    [{ label: lang === 'sv' ? 'Total arbetstid' : 'Total Work Hours', value: `${totalHours.toFixed(1)} h`, fill: [236, 245, 255] }, { label: lang === 'sv' ? 'Total resa' : 'Total Travel', value: `${Math.round(totals.kilometers)} km -> ${totals.travelHours.toFixed(2).replace(/\.00$/, '')} h`, fill: [237, 249, 241] }].forEach((summary, index) => {
+    [{ label: lang === 'sv' ? 'Total arbetstid' : 'Total Work Hours', value: `${totalHours.toFixed(1)} h`, fill: [236, 245, 255] }, { label: lang === 'sv' ? 'Total resa' : 'Total Travel', value: `${Math.round(totals.kilometers)} km -> ${totals.hasTravelHours ? `${totals.travelHours.toFixed(2).replace(/\.00$/, '')} h` : '—'}`, fill: [237, 249, 241] }].forEach((summary, index) => {
       const summaryX = margin + index * (summaryWidth + 6);
       pdf.setFillColor(...summary.fill);
       pdf.roundedRect(summaryX, summaryY, summaryWidth, 23, 2, 2, 'F');

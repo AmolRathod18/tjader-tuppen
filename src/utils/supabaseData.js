@@ -31,6 +31,19 @@ export async function selectRows(table) {
   return data.map(mapRow);
 }
 
+export async function selectPreviousWorkEntries(employeeId, excludeDate) {
+  const { data, error } = await supabase
+    .from('work_entries')
+    .select('*')
+    .eq('employee_id', employeeId)
+    .neq('date', excludeDate)
+    .order('date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (error) throw normalizeSupabaseError(error);
+  return data.map(mapRow);
+}
+
 export async function getDatabaseUsedBytes() {
   const { data, error } = await supabase.rpc('get_database_used_bytes');
   if (error) throw normalizeSupabaseError(error);

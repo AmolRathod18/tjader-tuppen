@@ -7,7 +7,7 @@ import DatePicker from '../components/ui/DatePicker';
 
 const EMPTY = {
   projectId: '', employeeId: '', journeyDate: new Date().toISOString().split('T')[0],
-  startPlace: '', endPlace: '', kilometers: '', remarks: '',
+  startPlace: '', endPlace: '', kilometers: '', hours: '', remarks: '',
 };
 
 function Field({ label, children, error }) {
@@ -55,7 +55,8 @@ export default function Expenditure() {
     setEditItem(item);
     setForm({
       projectId: item.projectId, employeeId: item.employeeId, journeyDate: item.journeyDate,
-      startPlace: item.startPlace, endPlace: item.endPlace, kilometers: item.kilometers, remarks: item.remarks || '',
+      startPlace: item.startPlace, endPlace: item.endPlace, kilometers: item.kilometers,
+      hours: item.hours ?? '', remarks: item.remarks || '',
     });
     setErrors({}); setSubmitError(''); setModalOpen(true);
   };
@@ -67,14 +68,16 @@ export default function Expenditure() {
     if (!form.startPlace.trim()) nextErrors.startPlace = t('exp_err_start_place');
     if (!form.endPlace.trim()) nextErrors.endPlace = t('exp_err_end_place');
     if (!form.kilometers || !Number.isInteger(Number(form.kilometers)) || Number(form.kilometers) <= 0) nextErrors.kilometers = t('exp_err_kilometers');
+    if (!form.hours || !Number.isFinite(Number(form.hours)) || Number(form.hours) <= 0) nextErrors.hours = t('exp_err_hours');
     if (form.startPlace.trim().length > 120) nextErrors.startPlace = t('exp_err_place_length');
     if (form.endPlace.trim().length > 120) nextErrors.endPlace = t('exp_err_place_length');
     if (form.remarks.trim().length > 500) nextErrors.remarks = t('exp_err_remarks_length');
     if (form.journeyDate && !/^\d{4}-\d{2}-\d{2}$/.test(form.journeyDate)) nextErrors.journeyDate = t('exp_err_date_invalid');
     if (Object.keys(nextErrors).length) { setErrors(nextErrors); return; }
     try {
-      if (editItem) await updateExpenditure(editItem.id, { ...form, kilometers: Number(form.kilometers) });
-      else await addExpenditure({ ...form, kilometers: Number(form.kilometers) });
+      const payload = { ...form, kilometers: Number(form.kilometers), hours: Number(form.hours) };
+      if (editItem) await updateExpenditure(editItem.id, payload);
+      else await addExpenditure(payload);
       setModalOpen(false);
     } catch (error) { setSubmitError(error.message); }
   };
@@ -95,7 +98,7 @@ export default function Expenditure() {
         </div>
       </div>
       <div className="table-wrapper table-expenditures">
-        <table><thead><tr><th>#</th><th>{t('lbl_date')}</th><th>{t('lbl_project')}</th><th>{t('lbl_employee')}</th><th>{t('exp_journey')}</th><th>{t('exp_kilometers')}</th><th>{t('lbl_actions')}</th></tr></thead>
+        <table><thead><tr><th>#</th><th>{t('lbl_date')}</th><th>{t('lbl_project')}</th><th>{t('lbl_employee')}</th><th>{t('exp_journey')}</th><th>{t('exp_kilometers')}</th><th>{t('exp_hours')}</th><th>{t('lbl_actions')}</th></tr></thead>
           <tbody>{filtered.map((item, index) => {
             const project = getProjectById(item.projectId);
             const employee = getEmployeeById(item.employeeId);
@@ -105,6 +108,7 @@ export default function Expenditure() {
               <td>{employee?.name || '—'}</td>
               <td><span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><MapPin size={13} />{item.startPlace} → {item.endPlace}</span></td>
               <td><strong>{Number(item.kilometers).toLocaleString()} km</strong></td>
+              <td><strong>{item.hours == null ? '—' : `${Number(item.hours).toLocaleString()} h`}</strong></td>
               <td><div className="table-actions">
                 <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openEdit(item)}><Pencil size={15} /></button>
                 <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setDeleteTarget(item)} style={{ color: 'var(--color-danger)' }}><Trash2 size={15} /></button>
@@ -127,7 +131,10 @@ export default function Expenditure() {
         <Field label={`${t('exp_start_place')} *`} error={errors.startPlace}><input placeholder={t('exp_start_place_ph')} value={form.startPlace} onChange={e => setForm(f => ({ ...f, startPlace: e.target.value }))} /></Field>
         <Field label={`${t('exp_end_place')} *`} error={errors.endPlace}><input placeholder={t('exp_end_place_ph')} value={form.endPlace} onChange={e => setForm(f => ({ ...f, endPlace: e.target.value }))} /></Field>
       </div>
-      <Field label={`${t('exp_kilometers_travelled')} *`} error={errors.kilometers}><input type="number" min="1" step="1" inputMode="numeric" placeholder={t('exp_kilometers_ph')} value={form.kilometers} onChange={e => setForm(f => ({ ...f, kilometers: e.target.value }))} /></Field>
+      <div className="form-row">
+        <Field label={`${t('exp_kilometers_travelled')} *`} error={errors.kilometers}><input type="number" min="1" step="1" inputMode="numeric" placeholder={t('exp_kilometers_ph')} value={form.kilometers} onChange={e => setForm(f => ({ ...f, kilometers: e.target.value }))} /></Field>
+        <Field label={`${t('exp_hours')} *`} error={errors.hours}><input type="number" min="0.01" step="any" inputMode="decimal" required placeholder={t('exp_hours_ph')} value={form.hours} onChange={e => setForm(f => ({ ...f, hours: e.target.value }))} /></Field>
+      </div>
       <Field label={t('exp_remarks')} error={errors.remarks}><textarea placeholder={t('exp_optional_notes')} value={form.remarks} onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))} /></Field>
     </Modal>
     <ConfirmDeleteModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={remove} itemName={t('exp_delete_item')} />

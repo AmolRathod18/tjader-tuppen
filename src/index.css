@@ -2481,6 +2481,8 @@ select {
   .table-wrapper.table-expenditures td:nth-child(5) { min-width: 240px; }
   .table-wrapper.table-expenditures th:nth-child(6),
   .table-wrapper.table-expenditures td:nth-child(6) { min-width: 130px; }
+  .table-wrapper.table-expenditures th:nth-child(7),
+  .table-wrapper.table-expenditures td:nth-child(7) { min-width: 110px; }
   .table-wrapper.table-expenditures tbody tr:not(:has(td[colspan])) td:first-child,
   .table-wrapper.table-expenditures tbody tr:not(:has(td[colspan])) td:last-child {
     display: table-cell !important;

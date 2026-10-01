@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { ConfirmDeleteModal, Modal } from '../components/ui/Modal';
 import DatePicker from '../components/ui/DatePicker';
+import { selectPreviousWorkEntries } from '../utils/supabaseData';
 import {
   ClipboardList, Plus, Search, Pencil, Trash2,
   Filter, ArrowLeft, CheckCircle, AlertTriangle,
@@ -16,14 +17,6 @@ const STOCKHOLM_TIME_ZONE = 'Europe/Stockholm';
 const todayDate = () => new Intl.DateTimeFormat('sv-SE', {
   timeZone: STOCKHOLM_TIME_ZONE,
 }).format(new Date());
-
-const addDaysToDate = (dateString, days) => {
-  if (!dateString) return '';
-  const date = new Date(`${dateString}T12:00:00`);
-  if (Number.isNaN(date.getTime())) return '';
-  date.setDate(date.getDate() + days);
-  return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 10);
-};
 
 function TimeSelect({ value, onChange }) {
   const [rawHours, rawMinutes] = (value || '').split(':');
@@ -116,7 +109,9 @@ function SectionLabel({ icon: Icon, label }) {
    FORM VIEW  (full-page, standalone)
 ───────────────────────────────────────────── */
 function FormView({ form, errors, submitError, setField, onSave, onCancel, editItem,
-  companies, formProjects, activeEmployees, getCompanyById, recommendation, onApplyRecommendation, t }) {
+  companies, formProjects, activeEmployees, getCompanyById, recommendation, onApplyRecommendation,
+  onDismissRecommendation, recommendationEmployeeName, recommendationProject,
+  recommendationCompany, recommendationHours, t }) {
 
   const shiftHours = calculateShiftHours(form.startTime, form.endTime);
   const automaticNormalHours = shiftHours !== null ? shiftHours : 0;
@@ -165,47 +160,6 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
       {/* Form card */}
       <div className="card">
         {submitError && <div className="form-submit-error" role="alert">{submitError}</div>}
-        {recommendation && recommendation.length > 0 && (
-          <div style={{
-            margin: '18px 24px 0',
-            padding: '12px 16px',
-            border: '1px solid rgba(215, 147, 61, 0.4)',
-            borderRadius: 12,
-            background: 'rgba(215, 147, 61, 0.08)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                  {t('we_recommendation')}
-                </div>
-                <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4 }}>
-                  {t('we_recommendation_default')}
-                </div>
-              </div>
-              <button type="button" className="btn btn-primary btn-sm" onClick={() => onApplyRecommendation(recommendation[0])}>
-                {t('we_use_recommendation')}
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-              {recommendation.map(item => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => onApplyRecommendation(item)}
-                    style={{
-                      borderColor: 'rgba(215, 147, 61, 0.5)',
-                      background: 'rgba(255,255,255,0.25)',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {item.date} · {item.description || 'Entry'}
-                  </button>
-                ))}
-            </div>
-          </div>
-        )}
         <div style={{ padding: '4px 24px 24px' }}>
 
           {/* ── Section 1: Work Details ── */}
@@ -378,6 +332,32 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
           </button>
         </div>
       </div>
+      <Modal
+        isOpen={Boolean(recommendation?.length)}
+        onClose={onDismissRecommendation}
+        title={t('we_previous_entry_found', [recommendationEmployeeName])}
+        subtitle={t('we_previous_entry_prompt')}
+        size="md"
+        footer={<>
+          <button type="button" className="btn btn-primary" onClick={() => onApplyRecommendation(recommendation[0])}>
+            {t('we_replicate_previous')}
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={onDismissRecommendation}>
+            {t('we_create_new_entry')}
+          </button>
+        </>}
+      >
+        <div style={{ display: 'grid', gap: 12 }}>
+          <div><strong>{t('lbl_date')}:</strong> {recommendation[0]?.date || '—'}</div>
+          <div><strong>{t('lbl_project')}:</strong> {recommendationProject?.name || '—'}</div>
+          <div><strong>{t('we_client_company')}:</strong> {recommendationCompany?.name || '—'}</div>
+          <div><strong>{t('we_total_hours')}:</strong> {recommendationHours}</div>
+          <div>
+            <strong>{t('we_work_details')}:</strong>
+            <p style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap' }}>{recommendation[0]?.description || t('we_no_description')}</p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -635,34 +615,31 @@ export default function WorkEntry() {
   const [recommendation, setRecommendation] = useState([]);
   const hasLoaded = useRef(false);
 
-  const recommendationEntry = React.useMemo(() => {
-    if (!workEntries.length) return null;
-    return [...workEntries].filter(entry => entry.date !== todayDate())
-      .sort((a, b) => {
-        const dateDiff = (b.date || '').localeCompare(a.date || '');
-        if (dateDiff !== 0) return dateDiff;
-        return (b.createdAt || '').localeCompare(a.createdAt || '');
-      })[0] || null;
-  }, [workEntries]);
-
-  const previousRecommendationEntries = React.useMemo(() => {
-    if (!workEntries.length) return [];
-    return [...workEntries]
-      .filter(entry => entry.date !== todayDate())
-      .sort((a, b) => {
-        const dateDiff = (b.date || '').localeCompare(a.date || '');
-        if (dateDiff !== 0) return dateDiff;
-        return (b.createdAt || '').localeCompare(a.createdAt || '');
-      })
-      .slice(0, 5);
-  }, [workEntries]);
-
   useEffect(() => {
     if (hasLoaded.current) return;
     hasLoaded.current = true;
     Promise.all([loadCompanies(), loadProjects(), loadEmployees(), loadWorkEntries()])
       .catch(error => setSubmitError(error.message));
   }, []);
+
+  useEffect(() => {
+    if (view !== 'form' || editItem || !form.employeeId) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    selectPreviousWorkEntries(form.employeeId, todayDate())
+      .then(entries => {
+        if (!cancelled) setRecommendation(entries);
+      })
+      .catch(error => {
+        if (!cancelled) setSubmitError(error.message);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [view, editItem, form.employeeId]);
 
   const editEntryId = new URLSearchParams(location.search).get('edit');
 
@@ -742,8 +719,17 @@ export default function WorkEntry() {
     return dateDiff || (a.employee?.name || '').localeCompare(b.employee?.name || '');
   });
   const selectedEmployeeGroup = employeeGroups.find(group => group.employeeId === selectedEmployeeId);
+  const recommendationEntry = recommendation[0] || null;
+  const recommendationProject = recommendationEntry ? getProjectById(recommendationEntry.projectId) : null;
+  const recommendationCompany = recommendationEntry
+    ? getCompanyById(recommendationEntry.companyId || recommendationProject?.companyId)
+    : null;
 
   const setField = (field, value) => {
+    if (field === 'employeeId') {
+      setRecommendation([]);
+      setSubmitError('');
+    }
     setForm(f => {
       const next = { ...f, [field]: value };
       if (field === 'companyId') next.projectId = '';
@@ -751,7 +737,7 @@ export default function WorkEntry() {
     });
   };
 
-  const applyRecommendation = (entry = recommendationEntry) => {
+  const applyRecommendation = (entry) => {
     if (!entry) return;
 
     const project = getProjectById(entry.projectId);
@@ -774,27 +760,12 @@ export default function WorkEntry() {
     setSubmitError('');
   };
 
+  const dismissRecommendation = () => setRecommendation([]);
+
   const openAdd = () => {
     setEditItem(null);
-    const suggestedDate = recommendationEntry
-      ? addDaysToDate(recommendationEntry.date, 1) || todayDate()
-      : todayDate();
-    const suggestedProject = recommendationEntry ? getProjectById(recommendationEntry.projectId) : null;
-    setForm({
-      ...EMPTY,
-      date: suggestedDate,
-      employeeId: recommendationEntry?.employeeId || '',
-      companyId: recommendationEntry?.companyId || suggestedProject?.companyId || '',
-      projectId: recommendationEntry?.projectId || '',
-      startTime: recommendationEntry?.startTime || '',
-      endTime: recommendationEntry?.endTime || '',
-      normalHours: recommendationEntry?.normalHours ?? '',
-      normalOvertime: recommendationEntry?.normalOvertime ?? '',
-      weekendOvertime: recommendationEntry?.weekendOvertime ?? '',
-      description: recommendationEntry?.description || '',
-      remarks: recommendationEntry?.remarks ?? recommendationEntry?.notes ?? '',
-    });
-    setRecommendation(previousRecommendationEntries);
+    setForm({ ...EMPTY });
+    setRecommendation([]);
     setErrors({});
     setSubmitError('');
     setSuccessMessage('');
@@ -956,6 +927,11 @@ export default function WorkEntry() {
           activeEmployees={activeEmployees} getCompanyById={getCompanyById}
           recommendation={recommendation}
           onApplyRecommendation={applyRecommendation}
+          onDismissRecommendation={dismissRecommendation}
+          recommendationEmployeeName={getEmployeeById(form.employeeId)?.name || ''}
+          recommendationProject={recommendationProject}
+          recommendationCompany={recommendationCompany}
+          recommendationHours={recommendationEntry ? getWorkEntryHours(recommendationEntry).toFixed(2) : ''}
           t={t}
         />
         <ConfirmDeleteModal

@@ -479,13 +479,13 @@
   .tj-landing .public-nav-brand { grid-column: 1; max-width: none; }
   .tj-landing .public-nav-actions { grid-column: 3; }
   .tj-menu-toggle { position: static; z-index: 2; display: grid; width: 38px; height: 38px; grid-column: 2; grid-row: 1; place-items: center; border: 1px solid var(--tj-header-control-border); border-radius: 10px; background: var(--tj-header-control); color: var(--tj-header-ink); }
-  .tj-section-nav { top: calc(100% + 7px); right: 16px; left: auto; display: none; width: min(250px, calc(100vw - 32px)); flex-direction: column; gap: 0; padding: 7px 15px; border: 1px solid var(--tj-header-border); border-radius: 12px; background: var(--tj-header-surface); box-shadow: 0 12px 30px rgba(0,0,0,.18); transform: none; }
+  .tj-section-nav { top: calc(100% + 7px); right: 16px; left: auto; display: none; width: min(250px, calc(100vw - 32px)); align-items: stretch; flex-direction: column; gap: 0; padding: 7px 15px; border: 1px solid var(--tj-header-border); border-radius: 12px; background: var(--tj-header-surface); box-shadow: 0 12px 30px rgba(0,0,0,.18); transform: none; }
   .tj-section-nav.is-open { display: flex; }
   .tj-section-nav a { padding: 12px 3px; border-bottom: 1px solid var(--tj-header-border); color: var(--tj-header-ink); }
   .tj-section-nav a:last-child { border-bottom: 0; }
   .tj-header-theme-dark .tj-section-nav a.is-active { color: var(--tj-yellow); }
   .tj-header-theme-light .tj-section-nav a.is-active { color: #65702c; }
-  .tj-nav-dropdown { width: 100%; }
+  .tj-nav-dropdown { width: 100%; align-items: stretch; flex-direction: column; }
   .tj-nav-dropdown > .tj-nav-trigger { display: flex; width: 100%; justify-content: space-between; padding: 12px 3px; border-bottom: 1px solid var(--tj-header-border); color: var(--tj-header-ink); }
   .tj-nav-dropdown-panel { position: static; display: none; width: 100%; max-height: min(48vh, 360px); overflow-y: auto; margin: 5px 0 10px; padding: 13px; border-radius: 9px; box-shadow: none; opacity: 1; pointer-events: auto; transform: none; visibility: visible; }
   .tj-nav-dropdown.is-open .tj-nav-dropdown-panel { display: block; }
@@ -503,6 +503,9 @@
 }
 
 @media (max-width: 640px) {
+  .tj-nav-dropdown-thumb, .tj-nav-dropdown-copy small { display: none; }
+  .tj-nav-dropdown-item { grid-template-columns: minmax(0, 1fr) 15px; gap: 10px; padding: 11px 6px; }
+  .tj-nav-dropdown-copy strong { overflow: visible; font-size: 11px; text-overflow: clip; white-space: normal; }
   .tj-section { width: calc(100% - 40px); }
   .tj-service-lightbox { width: 100vw; height: 100vh; height: 100dvh; }
   .tj-service-lightbox-content { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
@@ -664,13 +667,16 @@
 }
 
 @media (max-width: 640px) {
-  .tj-contact-page { min-height: 650px; }
+  .tj-contact-page { min-height: 0; align-items: stretch; flex-direction: column; }
   .tj-contact-banner-image { width: 100%; opacity: .56; object-position: center 38%; }
   .tj-contact-page::before { background: linear-gradient(90deg, rgba(23,26,24,.97), rgba(23,26,24,.72)), linear-gradient(0deg, rgba(14,17,15,.58), transparent 60%); }
-  .tj-contact-copy { width: calc(100% - 40px); margin-inline: 20px; padding-block: 55px; }
+  .tj-contact-copy { order: 1; width: calc(100% - 40px); margin-inline: 20px; padding: 55px 0 18px; }
   .tj-contact-copy h1 { font-size: clamp(54px, 14vw, 74px); }
   .tj-contact-copy > p:not(.tj-eyebrow) { max-width: 410px; font-size: 13px; }
-  .tj-contact-image-note { right: 14px; bottom: 14px; padding: 9px 12px; }
+  .tj-contact-actions { justify-content: flex-start; }
+  .tj-contact-copy-status { min-height: 0; margin-top: 0; }
+  .tj-contact-response-note { margin-top: 16px; }
+  .tj-contact-image-note { position: relative; order: 2; right: auto; bottom: auto; align-self: flex-start; margin: 0 20px 24px; padding: 9px 12px; }
   .tj-contact-image-note-icon { width: 30px; height: 30px; }
   .tj-contact-details { grid-template-columns: 1fr; gap: 8px; padding-block: 38px 58px; }
   .tj-contact-details > * { min-height: 155px; }

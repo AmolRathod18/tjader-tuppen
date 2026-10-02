@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import PublicSiteFooter from './PublicSiteFooter';
 import PublicSiteHeader from './PublicSiteHeader';
+import PublicImageViewer from './PublicImageViewer';
 
 export default function PublicSiteLayout() {
   const { pathname } = useLocation();
@@ -17,6 +18,7 @@ export default function PublicSiteLayout() {
         <Outlet />
       </main>
       <PublicSiteFooter />
+      <PublicImageViewer />
     </div>
   );
 }

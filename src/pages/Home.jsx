@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ArrowDown,
+  ArrowLeft,
   ArrowRight,
   ArrowUpRight,
   Check,
@@ -16,9 +17,11 @@ import {
   ShieldCheck,
   Truck,
   Wrench,
+  X,
 } from 'lucide-react';
 import PublicSiteFooter from '../components/layout/PublicSiteFooter';
 import PublicSiteHeader from '../components/layout/PublicSiteHeader';
+import PublicImageViewer from '../components/layout/PublicImageViewer';
 import { landingMedia } from '../config/landingMedia';
 import { useLanguage } from '../context/LanguageContext';
 import './Home.css';
@@ -76,12 +79,12 @@ const companyGallery = [
 ];
 
 const gallery = [
-  { title: 'Welding', alt: 'TJÄDERTUPPEN welder producing sparks while fabricating steel', image: landingMedia.gallery[0] },
-  { title: 'Field service vehicle', alt: 'TJÄDERTUPPEN work pickup on an industrial site', image: landingMedia.gallery[1] },
-  { title: 'Our team', alt: 'Two TJÄDERTUPPEN workers at an industrial construction site', image: landingMedia.gallery[2] },
-  { title: 'On-site repairs', alt: 'TJÄDERTUPPEN worker repairing equipment at a customer site', image: landingMedia.gallery[3] },
-  { title: 'Steel installation', alt: 'Structural steel installation by an industrial work crew', image: landingMedia.gallery[4] },
-  { title: 'Work in the field', alt: 'TJÄDERTUPPEN field service vehicle and site work in Sweden', image: landingMedia.gallery[5] },
+  { title: 'Welding inspection', alt: 'Tjädertuppen welder inspecting a finished weld', image: landingMedia.gallery[0] },
+  { title: 'Field service vehicle', alt: 'Tjädertuppen worker beside the branded field service pickup', image: landingMedia.gallery[1] },
+  { title: 'Our team', alt: 'Tjädertuppen team working on a steel installation', image: landingMedia.gallery[2] },
+  { title: 'On-site repairs', alt: 'Tjädertuppen worker repairing a trailer on site', image: landingMedia.gallery[3] },
+  { title: 'Steel installation', alt: 'Worker installing steel framework above an industrial site', image: landingMedia.gallery[4] },
+  { title: 'Work in the field', alt: 'Tjädertuppen worker overlooking an active construction site', image: landingMedia.gallery[5] },
 ];
 
 const expertise = [
@@ -121,10 +124,41 @@ function getHeroHeadlineIndex() {
 export default function Home() {
   const { tp } = useLanguage();
   const weldingVideoRef = useRef(null);
+  const serviceImageDialogRef = useRef(null);
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [videoError, setVideoError] = useState('');
   const [heroHeadlineIndex, setHeroHeadlineIndex] = useState(getHeroHeadlineIndex);
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
+  const [selectedServiceIndex, setSelectedServiceIndex] = useState(null);
   const heroHeadline = heroHeadlines[heroHeadlineIndex];
+
+  useEffect(() => {
+    const dialog = serviceImageDialogRef.current;
+    if (!dialog) return;
+
+    if (selectedServiceIndex !== null && !dialog.open) {
+      dialog.showModal();
+    } else if (selectedServiceIndex === null && dialog.open) {
+      dialog.close();
+    }
+
+    if (selectedServiceIndex === null) return;
+
+    const handleGalleryKeys = event => {
+      if (event.key === 'ArrowRight') {
+        setSelectedServiceIndex(index => (index + 1) % services.length);
+      } else if (event.key === 'ArrowLeft') {
+        setSelectedServiceIndex(index => (index - 1 + services.length) % services.length);
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        dialog.close();
+        setSelectedServiceIndex(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleGalleryKeys);
+    return () => window.removeEventListener('keydown', handleGalleryKeys);
+  }, [selectedServiceIndex]);
 
   useEffect(() => {
     const headlineInterval = window.setInterval(() => {
@@ -147,6 +181,16 @@ export default function Home() {
     return () => window.clearInterval(headlineInterval);
   }, []);
 
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+
+    const slideInterval = window.setInterval(() => {
+      setHeroSlideIndex(index => (index + 1) % landingMedia.heroBanners.length);
+    }, 6000);
+
+    return () => window.clearInterval(slideInterval);
+  }, []);
+
   const toggleVideo = async () => {
     const video = weldingVideoRef.current;
     if (!video) return;
@@ -167,9 +211,29 @@ export default function Home() {
     <main className="tj-landing">
       <PublicSiteHeader variant="hero" />
       <section className="tj-hero" id="home" data-header-theme="dark">
-        <video className="tj-hero-video" autoPlay muted loop playsInline poster={landingMedia.heroPoster} aria-hidden="true">
-          <source src={landingMedia.heroVideo} type="video/mp4" />
-        </video>
+        <div
+          className="tj-hero-slides"
+          aria-hidden="true"
+          style={{
+            width: `${landingMedia.heroBanners.length * 100}%`,
+            transform: `translateX(-${(heroSlideIndex * 100) / landingMedia.heroBanners.length}%)`,
+          }}
+        >
+          {landingMedia.heroBanners.map((image, index) => (
+            <div
+              className="tj-hero-slide"
+              key={image}
+              style={{ flexBasis: `${100 / landingMedia.heroBanners.length}%` }}
+            >
+              <img
+                src={image}
+                alt=""
+                loading={index === 0 ? 'eager' : 'lazy'}
+                fetchPriority={index === 0 ? 'high' : 'auto'}
+              />
+            </div>
+          ))}
+        </div>
         <div className="tj-hero-shade" />
 
         <div className="tj-hero-content">
@@ -233,10 +297,16 @@ export default function Home() {
         <div className="tj-service-grid">
           {services.map(({ number, title, text, icon: Icon }, index) => (
             <article className="tj-service" key={number}>
-              <div className="tj-service-image">
+              <button
+                className="tj-service-image"
+                type="button"
+                style={{ '--service-photo': `url("${landingMedia.services[index]}")` }}
+                onClick={() => setSelectedServiceIndex(index)}
+                aria-label={tp(`View ${title} image`)}
+              >
                 <img src={landingMedia.services[index]} alt="" loading="lazy" />
                 <span className="tj-service-icon"><Icon size={20} strokeWidth={1.6} /></span>
-              </div>
+              </button>
               <div className="tj-service-copy">
                 <span className="tj-service-number">{number}</span>
                 <h3>{tp(title)}</h3>
@@ -247,6 +317,83 @@ export default function Home() {
           ))}
         </div>
       </section>
+      {selectedServiceIndex !== null && (
+        <dialog
+          className="tj-service-lightbox"
+          ref={serviceImageDialogRef}
+          aria-label={tp('Service image gallery')}
+          onClose={() => setSelectedServiceIndex(null)}
+          onCancel={() => setSelectedServiceIndex(null)}
+          onClick={event => {
+            if (event.target === event.currentTarget) event.currentTarget.close();
+          }}
+        >
+          <div className="tj-service-lightbox-content">
+            <div
+              className="tj-service-lightbox-stage"
+              style={{ '--service-photo': `url("${landingMedia.services[selectedServiceIndex]}")` }}
+            >
+              <div className="tj-service-lightbox-topline">
+                <span>{tp('Tjädertuppen · Service gallery')}</span>
+                <span>{String(selectedServiceIndex + 1).padStart(2, '0')} / {String(services.length).padStart(2, '0')}</span>
+              </div>
+              <img
+                src={landingMedia.services[selectedServiceIndex]}
+                alt={tp(`${services[selectedServiceIndex].title} service`)}
+              />
+              <button
+                className="tj-service-lightbox-arrow is-previous"
+                type="button"
+                onClick={() => setSelectedServiceIndex(index => (index - 1 + services.length) % services.length)}
+                aria-label={tp('Previous service image')}
+              >
+                <ArrowLeft size={19} />
+              </button>
+              <button
+                className="tj-service-lightbox-arrow is-next"
+                type="button"
+                onClick={() => setSelectedServiceIndex(index => (index + 1) % services.length)}
+                aria-label={tp('Next service image')}
+              >
+                <ArrowRight size={19} />
+              </button>
+            </div>
+            <aside className="tj-service-lightbox-details">
+              <button
+                className="tj-service-lightbox-close"
+                type="button"
+                onClick={() => serviceImageDialogRef.current?.close()}
+                aria-label={tp('Close image gallery')}
+              >
+                <X size={19} />
+              </button>
+              <p className="tj-service-lightbox-eyebrow">{tp('What we do')} <span /> {services[selectedServiceIndex].number}</p>
+              <h2>{tp(services[selectedServiceIndex].title)}</h2>
+              <p className="tj-service-lightbox-description">{tp(services[selectedServiceIndex].text)}</p>
+              <div className="tj-service-lightbox-progress" aria-hidden="true">
+                <span style={{ width: `${((selectedServiceIndex + 1) / services.length) * 100}%` }} />
+              </div>
+              <p className="tj-service-lightbox-hint">{tp('Explore our services')}</p>
+              <div className="tj-service-lightbox-thumbnails" aria-label={tp('Choose a service image')}>
+                {services.map((service, index) => (
+                  <button
+                    className={`tj-service-lightbox-thumbnail${index === selectedServiceIndex ? ' is-active' : ''}`}
+                    type="button"
+                    key={service.number}
+                    onClick={() => setSelectedServiceIndex(index)}
+                    aria-label={tp(`Show ${service.title} image`)}
+                    aria-current={index === selectedServiceIndex ? 'true' : undefined}
+                  >
+                    <img src={landingMedia.services[index]} alt="" />
+                    <span>{tp(service.title)}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="tj-service-lightbox-key-hint">{tp('Use ← → to browse')}</p>
+            </aside>
+          </div>
+        </dialog>
+      )}
 
       <section className="tj-company-showcase" id="projects" data-header-theme="dark">
         <div className="tj-company-showcase-heading">
@@ -380,6 +527,7 @@ export default function Home() {
       </section>
 
       <PublicSiteFooter />
+      <PublicImageViewer />
     </main>
   );
 }

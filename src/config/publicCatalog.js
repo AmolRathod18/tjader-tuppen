@@ -7,15 +7,9 @@ import {
   Truck,
   Wrench,
 } from 'lucide-react';
+import { landingMedia } from './landingMedia';
 
-const serviceImages = [
-  '/images/company/tjader-welding.png',
-  '/images/company/structural-steel-installation.jpeg',
-  '/images/company/welder-at-industrial-machine.png',
-  '/images/company/on-site-trailer-repair.jpeg',
-  '/images/company/industrial-welding-equipment.jpeg',
-  '/images/company/welder-at-industrial-machine.png',
-];
+const serviceImages = landingMedia.services;
 
 export const publicServices = [
   {
@@ -42,7 +36,7 @@ export const publicServices = [
     summary: 'Mobile welding support at your facility, project or remote worksite.',
     description: 'When work cannot wait for equipment to reach a workshop, our field welding service brings skilled support and practical tools directly to your site. We assess the task, coordinate access and carry out the work with safety and uptime in mind.',
     included: ['On-site welding and repair', 'Mobile service across Sweden', 'Worksite planning and safe setup', 'Practical support for urgent jobs'],
-    images: [serviceImages[2], serviceImages[0], '/images/company/field-service-site-overview.jpeg'],
+    images: [serviceImages[2], serviceImages[0], landingMedia.gallery[5]],
     icon: Truck,
   },
   {
@@ -99,7 +93,7 @@ export const publicProjects = [
     summary: 'Hands-on welding and fabrication for active industrial sites.',
     description: 'Industrial projects often involve tight schedules, live operations and demanding site conditions. We bring practical experience, clear coordination and dependable workmanship to each stage of the job.',
     included: ['Site welding and fabrication', 'Maintenance and repair work', 'Worksite coordination', 'Safe, reliable delivery'],
-    images: [serviceImages[4], serviceImages[2], '/images/company/industrial-site-team.jpeg'],
+    images: [serviceImages[4], serviceImages[2], landingMedia.gallery[2]],
     icon: ShieldCheck,
   },
   {
@@ -117,7 +111,7 @@ export const publicProjects = [
     summary: 'Steel installation, structural fabrication and site fitting.',
     description: 'Steel structure projects depend on accurate fabrication, careful handling and a safe, coordinated installation. We support structural work from preparation and fitting through welding and final checks.',
     included: ['Structural steel fabrication', 'Site fitting and installation', 'Welding and reinforcement', 'Safe work planning and final checks'],
-    images: [serviceImages[1], serviceImages[4], '/images/company/industrial-site-team.jpeg'],
+    images: [serviceImages[1], serviceImages[4], landingMedia.gallery[4]],
     icon: Hammer,
   },
   {
@@ -126,7 +120,7 @@ export const publicProjects = [
     summary: 'Mobile welding, maintenance and repair wherever work is needed.',
     description: 'Our field service projects take practical welding and technical support directly to customer facilities and project sites across Sweden. We arrive prepared, coordinate with your team and focus on getting the work completed reliably.',
     included: ['Mobile welding and repairs', 'On-site maintenance support', 'Service vehicle and job preparation', 'Nationwide project response'],
-    images: ['/images/company/field-service-site-overview.jpeg', '/images/company/field-service-vehicle-site.jpeg', serviceImages[2]],
+    images: [serviceImages[2], landingMedia.projects[4], landingMedia.gallery[5]],
     icon: Truck,
   },
 ];

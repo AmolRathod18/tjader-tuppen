@@ -69,32 +69,32 @@ const projects = [
     title: 'Industrial equipment welding',
     category: 'Welding · On-site service',
     image: landingMedia.projects[0],
-    alt: 'Tjädertuppen worker welding industrial equipment on site',
+    alt: 'Tjädertuppen worker welding blue industrial equipment outdoors',
     className: 'tj-project-feature',
   },
   {
     title: 'Structural steel installation',
     category: 'Steelwork · Installation',
     image: landingMedia.projects[1],
-    alt: 'Tjädertuppen worker at a structural steel installation',
+    alt: 'Tjädertuppen worker assembling steel structure above a worksite',
   },
   {
     title: 'Field repairs',
     category: 'Maintenance · Field service',
     image: landingMedia.projects[2],
-    alt: 'Tjädertuppen worker repairing equipment at a customer site',
+    alt: 'Tjädertuppen worker repairing a trailer at a customer site',
   },
   {
     title: 'Welding and fabrication',
     category: 'Fabrication · Welding',
     image: landingMedia.projects[3],
-    alt: 'Tjädertuppen welder fabricating steel with sparks',
+    alt: 'Tjädertuppen welder working beneath a steel framework',
   },
   {
     title: 'Service across Sweden',
     category: 'Mobile service · Sweden',
     image: landingMedia.projects[4],
-    alt: 'Tjädertuppen field service vehicle at an industrial worksite',
+    alt: 'Tjädertuppen worker beside the branded field service pickup',
   },
 ];
 
@@ -232,9 +232,16 @@ export function ContactPage() {
       <section className="tj-contact-page" data-header-theme="dark">
         <img
           className="tj-contact-banner-image"
-          src="/images/company/tjader-vehicle.png"
-          alt={tp('Tjädertuppen branded service vehicle')}
+          src={landingMedia.company.worker}
+          alt={tp('Tjädertuppen worker on an industrial service site')}
         />
+        <div className="tj-contact-image-note">
+          <span className="tj-contact-image-note-icon"><MapPin size={17} /></span>
+          <span>
+            <strong>{tp('On-site service')}</strong>
+            <small>{tp('Across Sweden')}</small>
+          </span>
+        </div>
         <div className="tj-contact-copy">
           <p className="tj-eyebrow tj-eyebrow-light"><span /> {tp('Contact Tjädertuppen')}</p>
           <h1>{tp('Let’s get')}<br />{tp('to work.')}</h1>

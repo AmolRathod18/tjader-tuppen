@@ -13,7 +13,7 @@ const PAGE_KEYS = {
   '/settings': { title: 'page_settings', subtitle: 'page_settings_sub' },
 };
 
-export default function Header({ onMenuToggle }) {
+export default function Header({ mobileNavOpen, onMenuToggle }) {
   const { pathname } = useLocation();
   const { lang, setLang, t } = useLanguage();
   const keys = PAGE_KEYS[pathname] || { title: 'page_dashboard', subtitle: '' };
@@ -26,8 +26,15 @@ export default function Header({ onMenuToggle }) {
   return (
     <header className="header">
       <div className="header-left">
-        <button className="mobile-menu-button" onClick={onMenuToggle} aria-label={t('ui_open_navigation')}>
-          <Menu size={20} />
+        <button
+          className="mobile-menu-button"
+          type="button"
+          onClick={onMenuToggle}
+          aria-label={t(mobileNavOpen ? 'ui_close_navigation' : 'ui_open_navigation')}
+          aria-expanded={mobileNavOpen}
+          aria-controls="admin-sidebar"
+        >
+          <Menu size={20} aria-hidden="true" />
         </button>
         <h1>{t(keys.title)}</h1>
         {keys.subtitle && <p>{t(keys.subtitle)}</p>}

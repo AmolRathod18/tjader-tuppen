@@ -51,8 +51,41 @@ export default function PublicSiteHeader({ variant = 'page' }) {
         setMenuOpen(false);
       }
     };
+    const closeOnOutsidePointer = event => {
+      if (!headerRef.current?.contains(event.target)) {
+        setOpenDropdown('');
+        setMenuOpen(false);
+      }
+    };
+    const closeOnOutsideFocus = event => {
+      if (!headerRef.current?.contains(event.target)) {
+        setOpenDropdown('');
+        setMenuOpen(false);
+      }
+    };
+    const closeOnDesktopResize = () => {
+      if (window.matchMedia('(min-width: 901px)').matches) {
+        setOpenDropdown('');
+        setMenuOpen(false);
+      }
+    };
+    const closeOnHistoryNavigation = () => {
+      setOpenDropdown('');
+      setMenuOpen(false);
+    };
+
     document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
+    document.addEventListener('pointerdown', closeOnOutsidePointer);
+    document.addEventListener('focusin', closeOnOutsideFocus);
+    window.addEventListener('resize', closeOnDesktopResize);
+    window.addEventListener('popstate', closeOnHistoryNavigation);
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape);
+      document.removeEventListener('pointerdown', closeOnOutsidePointer);
+      document.removeEventListener('focusin', closeOnOutsideFocus);
+      window.removeEventListener('resize', closeOnDesktopResize);
+      window.removeEventListener('popstate', closeOnHistoryNavigation);
+    };
   }, []);
 
   return (
@@ -63,6 +96,7 @@ export default function PublicSiteHeader({ variant = 'page' }) {
       <PublicNavbar />
       <button
         className="tj-menu-toggle"
+        aria-controls="tj-main-navigation"
         type="button"
         aria-label={tp(menuOpen ? 'Close navigation' : 'Open navigation')}
         aria-expanded={menuOpen}
@@ -70,7 +104,11 @@ export default function PublicSiteHeader({ variant = 'page' }) {
       >
         {menuOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
-      <nav className={`tj-section-nav${menuOpen ? ' is-open' : ''}`} aria-label={tp('Main navigation')}>
+      <nav
+        id="tj-main-navigation"
+        className={`tj-section-nav${menuOpen ? ' is-open' : ''}`}
+        aria-label={tp('Main navigation')}
+      >
         {navigation.map(({ label, to, end, type, items }) => {
           if (type === 'dropdown') {
             const expanded = openDropdown === label;
@@ -80,6 +118,9 @@ export default function PublicSiteHeader({ variant = 'page' }) {
               <div
                 className={`tj-nav-dropdown${expanded ? ' is-open' : ''}`}
                 key={to}
+                onKeyDown={event => {
+                  if (event.key === 'Escape') setOpenDropdown('');
+                }}
                 onMouseEnter={() => {
                   if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) setOpenDropdown(label);
                 }}
@@ -89,17 +130,26 @@ export default function PublicSiteHeader({ variant = 'page' }) {
               >
                 <button
                   className={`tj-nav-trigger${expanded || routeActive ? ' is-active' : ''}`}
+                  id={`tj-${label.toLowerCase()}-navigation-trigger`}
+                  aria-controls={`tj-${label.toLowerCase()}-navigation-panel`}
                   type="button"
                   aria-haspopup="true"
                   aria-expanded={expanded}
                   onClick={() => {
                     const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-                    setOpenDropdown(current => canHover || current !== label ? label : '');
+                    setOpenDropdown(current => (
+                      canHover || current !== label ? label : ''
+                    ));
                   }}
                 >
                   {tp(label)} <ChevronDown size={14} />
                 </button>
-                <div className="tj-nav-dropdown-panel">
+                <div
+                  className="tj-nav-dropdown-panel"
+                  id={`tj-${label.toLowerCase()}-navigation-panel`}
+                  role="group"
+                  aria-labelledby={`tj-${label.toLowerCase()}-navigation-trigger`}
+                >
                   <div className="tj-nav-dropdown-heading">
                     <span className="tj-nav-dropdown-icon"><Icon size={18} /></span>
                     <div><strong>{tp(label)}</strong><small>{tp(label === 'Services' ? 'Skilled work for industry' : 'A selection of our work')}</small></div>

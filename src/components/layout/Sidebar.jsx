@@ -33,7 +33,7 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
   };
 
   return (
-    <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
+    <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`} id="admin-sidebar">
       {/* Logo */}
       <div className="sidebar-logo">
         <img

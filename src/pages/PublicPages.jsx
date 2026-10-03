@@ -120,7 +120,7 @@ export function AboutPage() {
   const { tp } = useLanguage();
 
   return (
-    <>
+    <div className="tj-about-page">
       <PublicPageHero
         eyebrow="About Tjädertuppen"
         title="Built to work."
@@ -149,11 +149,11 @@ export function AboutPage() {
         </div>
       </section>
       <section className="tj-about-band" data-header-theme="dark">
-        <img src={landingMedia.company.vehicle} alt={tp('Tjädertuppen branded service vehicle')} loading="lazy" />
+        <img src={landingMedia.company.vehicleArtwork} alt={tp('Tjädertuppen branded service vehicle')} loading="lazy" />
         <div><p className="tj-eyebrow tj-eyebrow-light"><span /> Svets &amp; Konsult</p><h2>{tp('Ready when')}<br />{tp('the work calls.')}</h2></div>
       </section>
       <PageContactPrompt />
-    </>
+    </div>
   );
 }
 

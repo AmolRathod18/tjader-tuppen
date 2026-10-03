@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AppProvider, useApp } from './context/AppContext';
 import { LanguageProvider } from './context/LanguageContext';
 import Layout from './components/layout/Layout';
+import FloatingScrollNavigation from './components/layout/FloatingScrollNavigation';
 
 import Dashboard  from './pages/Dashboard';
 import Companies  from './pages/Companies';
@@ -66,6 +67,7 @@ export default function App() {
               </ProtectedRoute>
             } />
           </Routes>
+          <FloatingScrollNavigation />
         </BrowserRouter>
       </AppProvider>
     </LanguageProvider>

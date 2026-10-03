@@ -1,6 +1,7 @@
 const companyImage = filename => `/images/company/${encodeURIComponent(filename)}`;
 const bannerImage = filename =>
   `/images/${encodeURIComponent('company banner')}/${encodeURIComponent(filename)}`;
+const brandedVehicleBanner = bannerImage('Sunset Industrial Branding with Pickup Truck.png');
 
 const images = {
   brandedWorker: companyImage('Industrial Worker with Branded Pickup.png'),
@@ -27,6 +28,7 @@ export const landingMedia = {
   company: {
     worker: images.industrialWorker,
     vehicle: '/images/company/branded-service-pickup.jpeg',
+    vehicleArtwork: brandedVehicleBanner,
     welding: images.cinematicWelding,
     contact: images.sunsetBuilder,
   },
@@ -35,7 +37,7 @@ export const landingMedia = {
   weldingVideoPoster: images.outdoorWelder,
   heroBanners: [
     bannerImage('Industrial Worker Welding Amid Sparks.png'),
-    bannerImage('Sunset Industrial Branding with Pickup Truck.png'),
+    brandedVehicleBanner,
     bannerImage('Sunset Steel Yard with High-Visibility Worker.png'),
   ],
   services: [

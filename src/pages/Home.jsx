@@ -182,8 +182,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
-
     const slideInterval = window.setInterval(() => {
       setHeroSlideIndex(index => (index + 1) % landingMedia.heroBanners.length);
     }, 6000);
@@ -228,7 +226,7 @@ export default function Home() {
               <img
                 src={image}
                 alt=""
-                loading={index === 0 ? 'eager' : 'lazy'}
+                loading="eager"
                 fetchPriority={index === 0 ? 'high' : 'auto'}
               />
             </div>

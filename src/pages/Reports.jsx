@@ -271,7 +271,30 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
       pdf.text(formattedValue, totalX + columns[columnIndex] / 2, y + 8, { align: 'center' });
       totalX += columns[columnIndex];
     });
-    y += 24;
+    y += 18;
+
+    const weekendEntries = entries.filter(entry => getWorkEntryBreakdown(entry).weekendOvertime > 0);
+    const weekendNoteText = weekendEntries.length
+      ? weekendEntries.map(entry => {
+          const dateLabel = new Date(`${entry.date}T00:00:00`).toLocaleDateString(locale, { day: '2-digit', month: 'short' });
+          const note = (entry.remarks || entry.description || '').trim();
+          return note ? `${dateLabel}: ${note}` : `${dateLabel}: ${lang === 'sv' ? 'Helgnoteringar' : 'Weekend notes'}`;
+        }).join('  •  ')
+      : (lang === 'sv' ? 'Inga helgnoteringar för denna period.' : 'No weekend notes for this period.');
+    const weekendNoteLines = pdf.splitTextToSize(weekendNoteText, CW - 20);
+    const weekendNoteBoxHeight = 16 + weekendNoteLines.length * 4.5;
+    pdf.setFillColor(245, 248, 252);
+    pdf.roundedRect(M, y, CW, weekendNoteBoxHeight, 2, 2, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(lang === 'sv' ? 'HELGNOTERINGAR' : 'WEEKEND NOTES', M + 4, y + 8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(61, 75, 87);
+    pdf.text(weekendNoteLines, M + 4, y + 15);
+    y += weekendNoteBoxHeight + 10;
+
     pdf.setDrawColor(157, 169, 178);
     pdf.line(M, y, PW - M, y);
     pdf.setFontSize(15);
@@ -990,12 +1013,30 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       totalX += column.width;
     });
 
-    if (y + rowHeight + 62 > pageHeight - 18) {
+    const workDescriptionText = entries
+      .map(entry => entry.description?.trim())
+      .filter(Boolean)
+      .join(' • ') || (lang === 'sv' ? 'Ingen arbetsbeskrivning' : 'No work description');
+    const workDescriptionLines = pdf.splitTextToSize(workDescriptionText, contentWidth - 14);
+    const workDescriptionBoxHeight = 18 + workDescriptionLines.length * 4.5;
+    const workDescriptionY = y + rowHeight + 8;
+    pdf.setFillColor(245, 248, 252);
+    pdf.roundedRect(margin, workDescriptionY, contentWidth, workDescriptionBoxHeight, 2, 2, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(lang === 'sv' ? 'HELGNOTERINGAR' : 'WEEKEND NOTES', margin + 4, workDescriptionY + 8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(61, 75, 87);
+    pdf.text(workDescriptionLines, margin + 4, workDescriptionY + 15);
+
+    let totalsY = workDescriptionY + workDescriptionBoxHeight + 14;
+    if (totalsY + 40 > pageHeight - 18) {
       pdf.addPage();
       drawHeader(employee);
-      y = tableTop + headerHeight;
+      totalsY = 58;
     }
-    const totalsY = y + rowHeight + 32;
     pdf.setFontSize(16);
     pdf.text(`2. ${periodName} ${lang === 'sv' ? 'sammanfattning' : 'Totals'}`, margin + 1, totalsY);
     const summaryY = totalsY + 11;
@@ -1051,8 +1092,7 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     const detailTableTop = detailTitleY + 18;
     const detailColumns = [
       { label: lang === 'sv' ? 'Datum' : 'Date', width: 28 },
-      { label: lang === 'sv' ? 'Företag / Projekt' : 'Company / Project', width: 62 },
-      { label: lang === 'sv' ? 'Arbetsbeskrivning' : 'Work Description', width: 82 },
+      { label: lang === 'sv' ? 'Företag / Projekt' : 'Company / Project', width: 76 },
       { label: lang === 'sv' ? 'Timmar' : 'Hours', width: 18 },
     ];
     const detailHeaderHeight = 12;
@@ -1077,10 +1117,9 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       const lines = [
         reportDate(entry.date),
         `${company?.name || '—'}\n${project?.name || '—'}`,
-        entry.description || (lang === 'sv' ? 'Ingen beskrivning' : 'No description'),
         `${totalEntryHours.toFixed(1)}`,
       ];
-      const rowHeight = 12 + Math.max(0, lines[2].split('\n').length - 1) * 4;
+      const rowHeight = 12;
       if (detailY + rowHeight > pageHeight - 22) {
         pdf.addPage();
         detailY = 20;
@@ -1093,13 +1132,13 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       pdf.rect(margin, detailY, contentWidth, rowHeight, 'S');
       let detailCellX = margin;
       lines.forEach((value, columnIndex) => {
-        const isRightAligned = columnIndex === 3;
-        pdf.setFont('helvetica', columnIndex === 3 ? 'bold' : 'normal');
-        pdf.setFontSize(columnIndex === 3 ? 9 : 8.5);
+        const isRightAligned = columnIndex === 2;
+        pdf.setFont('helvetica', columnIndex === 2 ? 'bold' : 'normal');
+        pdf.setFontSize(columnIndex === 2 ? 9 : 8.5);
         pdf.setTextColor(24, 29, 33);
         const splitLines = String(value).split('\n');
         splitLines.forEach((line, lineIndex) => {
-          pdf.text(line, isRightAligned ? detailCellX + detailColumns[columnIndex].width - 3 : detailCellX + (columnIndex === 2 ? 3 : 3), detailY + 5 + lineIndex * 4, { align: isRightAligned ? 'right' : 'left' });
+          pdf.text(line, isRightAligned ? detailCellX + detailColumns[columnIndex].width - 3 : detailCellX + 3, detailY + 5 + lineIndex * 4, { align: isRightAligned ? 'right' : 'left' });
         });
         pdf.setDrawColor(220, 226, 230);
         pdf.line(detailCellX, detailY, detailCellX, detailY + rowHeight);
@@ -1416,7 +1455,7 @@ export default function Reports() {
     if (!editForm.startTime || !editForm.endTime) errors.hours = 'Start and end time are required';
     if (normalHours !== null && (!Number.isFinite(normalHours) || normalHours < 0 || normalHours > 24)) errors.normalHours = 'Normal hours are invalid';
     if (!Number.isFinite(normalOvertime) || normalOvertime < 0 || normalOvertime > 24) errors.normalOvertime = 'Normal overtime is invalid';
-    if (!Number.isFinite(weekendOvertime) || weekendOvertime < 0 || weekendOvertime > 24) errors.weekendOvertime = 'Weekend overtime is invalid';
+    if (!Number.isFinite(weekendOvertime) || weekendOvertime < 0 || weekendOvertime > 24) errors.weekendOvertime = 'Weekend notes value is invalid';
 
     if (Object.keys(errors).length > 0) {
       setEditError(Object.values(errors)[0]);
@@ -1629,7 +1668,7 @@ export default function Reports() {
                 <th>{t('we_normal_overtime')}</th>
                 <th>{t('we_weekend_overtime')}</th>
                 <th>{t('we_weekly_hours')}</th>
-                <th>{t('we_description')}</th>
+                <th>Weekend Notes</th>
                 <th>{t('lbl_actions')}</th>
               </tr>
             </thead>
@@ -1666,7 +1705,7 @@ export default function Reports() {
                       <td><input className="report-inline-edit-input" type="number" step="0.1" value={editForm.normalOvertime} onChange={e => setEditForm(f => ({ ...f, normalOvertime: e.target.value }))} /></td>
                       <td><input className="report-inline-edit-input" type="number" step="0.1" value={editForm.weekendOvertime} onChange={e => setEditForm(f => ({ ...f, weekendOvertime: e.target.value }))} /></td>
                       <td>{getWeeklyHours(workEntries, w.employeeId, w.date).toFixed(1)}h</td>
-                      <td><input className="report-inline-edit-input" type="text" value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} /></td>
+                      <td style={{ color: 'var(--color-text-muted)' }}>—</td>
                       <td className="report-inline-edit-cell">
                         <div className="report-inline-edit-actions">
                           <button className="btn btn-primary btn-sm" onClick={saveReportEdit}>Save</button>
@@ -1676,6 +1715,15 @@ export default function Reports() {
                     </tr>
                   );
                 }
+
+                const weekendNote = (() => {
+                  const trimmedRemarks = w.remarks?.trim();
+                  const trimmedDescription = w.description?.trim();
+                  const weekendHours = getWorkEntryBreakdown(w).weekendOvertime;
+                  if (trimmedRemarks) return trimmedRemarks;
+                  if (weekendHours > 0 && trimmedDescription) return trimmedDescription;
+                  return '—';
+                })();
 
                 return (
                   <tr key={w.id}>
@@ -1699,9 +1747,9 @@ export default function Reports() {
                     <td>{getWorkEntryBreakdown(w).normalOvertime.toFixed(1)}h</td>
                     <td>{getWorkEntryBreakdown(w).weekendOvertime.toFixed(1)}h</td>
                     <td>{getWeeklyHours(workEntries, w.employeeId, w.date).toFixed(1)}h</td>
-                    <td style={{ color: 'var(--color-text-muted)', maxWidth: 140 }}>
+                    <td style={{ color: 'var(--color-text-muted)', maxWidth: 180 }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {w.description || '—'}
+                        {weekendNote}
                       </div>
                     </td>
                     <td className="report-row-action-cell">

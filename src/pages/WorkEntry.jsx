@@ -289,7 +289,7 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
           <div className="work-entry-form-grid work-entry-form-grid--two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
 
             <div className="form-group">
-              <label>{t('we_description')} *</label>
+              <label>{t('we_description')}</label>
               <textarea
                 placeholder={t('we_desc_ph')}
                 value={form.description}
@@ -891,7 +891,6 @@ export default function WorkEntry() {
     if (!form.date)                                                         e.date        = t('we_err_date');
     if (!form.employeeId)                                                   e.employeeId  = t('we_err_employee');
     if (!form.projectId)                                                    e.projectId   = t('we_err_project_required');
-    if (!form.description?.trim())                                          e.description = t('we_err_description_required');
     if (!form.startTime || !form.endTime)                                    e.hours = t('we_err_time');
     if (form.description?.trim().length > 1000)                              e.description = t('we_err_description_length');
     if (normalHours !== null && (!Number.isFinite(normalHours) || normalHours < 0 || normalHours > 24)) e.normalHours = t('we_err_normal_hours');
@@ -899,21 +898,20 @@ export default function WorkEntry() {
     if (!Number.isFinite(weekendOvertime) || weekendOvertime < 0 || weekendOvertime > 24) e.weekendOvertime = t('we_err_overtime');
     const hasTravelDetails = Boolean(
       form.travelStartPlace.trim() || form.travelEndPlace.trim() ||
-      form.travelKilometers || form.travelHours || form.travelRemarks.trim()
+      (form.travelKilometers !== '' && form.travelKilometers !== null && form.travelKilometers !== undefined) ||
+      (form.travelHours !== '' && form.travelHours !== null && form.travelHours !== undefined) ||
+      form.travelRemarks.trim()
     );
     if (hasTravelDetails) {
-      if (!form.travelStartPlace.trim()) e.travelStartPlace = t('exp_err_start_place');
-      if (!form.travelEndPlace.trim()) e.travelEndPlace = t('exp_err_end_place');
-      if (!form.travelKilometers || !Number.isInteger(Number(form.travelKilometers)) || Number(form.travelKilometers) <= 0) {
-        e.travelKilometers = t('exp_err_kilometers');
+      if (form.travelStartPlace.trim().length > 120) e.travelStartPlace = t('exp_err_place_length');
+      if (form.travelEndPlace.trim().length > 120) e.travelEndPlace = t('exp_err_place_length');
+      if (form.travelKilometers !== '' && form.travelKilometers !== null && form.travelKilometers !== undefined) {
+        const kilometers = Number(form.travelKilometers);
+        if (!Number.isInteger(kilometers) || kilometers <= 0) e.travelKilometers = t('exp_err_kilometers');
       }
-      if (!form.travelHours || !Number.isFinite(Number(form.travelHours)) || Number(form.travelHours) <= 0) {
-        e.travelHours = t('exp_err_hours');
-      }
-      if (form.travelStartPlace.trim().length > 120 || form.travelEndPlace.trim().length > 120) {
-        const message = t('exp_err_place_length');
-        if (form.travelStartPlace.trim().length > 120) e.travelStartPlace = message;
-        if (form.travelEndPlace.trim().length > 120) e.travelEndPlace = message;
+      if (form.travelHours !== '' && form.travelHours !== null && form.travelHours !== undefined) {
+        const hours = Number(form.travelHours);
+        if (!Number.isFinite(hours) || hours <= 0) e.travelHours = t('exp_err_hours');
       }
       if (form.travelRemarks.trim().length > 500) e.travelRemarks = t('exp_err_remarks_length');
     }
@@ -931,10 +929,10 @@ export default function WorkEntry() {
     const travelData = hasTravelDetails ? {
       employeeId: form.employeeId,
       projectId: form.projectId,
-      startPlace: form.travelStartPlace.trim(),
-      endPlace: form.travelEndPlace.trim(),
-      kilometers: Number(form.travelKilometers),
-      hours: Number(form.travelHours),
+      startPlace: form.travelStartPlace.trim() || null,
+      endPlace: form.travelEndPlace.trim() || null,
+      kilometers: form.travelKilometers === '' ? null : Number(form.travelKilometers),
+      hours: form.travelHours === '' ? null : Number(form.travelHours),
       remarks: form.travelRemarks.trim() || null,
     } : null;
     try {

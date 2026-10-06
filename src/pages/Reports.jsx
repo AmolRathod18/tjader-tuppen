@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import {
   BarChart3, Download, Calendar, FileText,
-  ChevronLeft, ChevronRight, Filter, Clock, Users, FolderKanban,
+  ChevronLeft, ChevronRight, ChevronDown, Filter, Clock, Users, FolderKanban,
   Pencil
 } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -43,6 +43,108 @@ function displayDate(str, locale = 'en-GB') {
 
 function reportDate(str) {
   return `${str.slice(8, 10)}/${str.slice(5, 7)}/${str.slice(0, 4)}`;
+}
+
+function EmployeeFilter({ employees, value, allEmployeesLabel, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const wrapperRef = useRef(null);
+  const listboxId = 'report-employee-options';
+  const options = [
+    { value: '', label: allEmployeesLabel },
+    ...employees.map(employee => ({ value: employee.id, label: employee.name })),
+  ];
+  const selectedIndex = Math.max(0, options.findIndex(option => option.value === value));
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const closeOnOutsidePointer = event => {
+      if (!wrapperRef.current?.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', closeOnOutsidePointer);
+    return () => document.removeEventListener('pointerdown', closeOnOutsidePointer);
+  }, [open]);
+
+  const chooseOption = index => {
+    onChange(options[index].value);
+    setActiveIndex(index);
+    setOpen(false);
+  };
+
+  const handleKeyDown = event => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const direction = event.key === 'ArrowDown' ? 1 : -1;
+      setActiveIndex(current => {
+        if (!open) return Math.min(options.length - 1, Math.max(0, selectedIndex + direction));
+        return (current + direction + options.length) % options.length;
+      });
+      setOpen(true);
+    } else if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault();
+      setActiveIndex(event.key === 'Home' ? 0 : options.length - 1);
+      setOpen(true);
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (open) chooseOption(activeIndex);
+      else {
+        setActiveIndex(selectedIndex);
+        setOpen(true);
+      }
+    } else if (event.key === 'Escape' && open) {
+      event.preventDefault();
+      setOpen(false);
+    } else if (event.key === 'Tab') {
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div className="report-employee-filter" ref={wrapperRef}>
+      <button
+        type="button"
+        className="report-employee-filter-trigger"
+        role="combobox"
+        aria-labelledby="report-employee-label"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
+        aria-activedescendant={open ? `${listboxId}-${activeIndex}` : undefined}
+        onClick={() => {
+          if (!open) setActiveIndex(selectedIndex);
+          setOpen(current => !current);
+        }}
+        onKeyDown={handleKeyDown}
+      >
+        <span>{options[selectedIndex].label}</span>
+        <ChevronDown size={16} aria-hidden="true" />
+      </button>
+      {open && (
+        <div
+          className="report-employee-filter-menu"
+          id={listboxId}
+          role="listbox"
+          aria-labelledby="report-employee-label"
+        >
+          {options.map((option, index) => (
+            <div
+              id={`${listboxId}-${index}`}
+              key={option.value || 'all'}
+              className={`report-employee-filter-option${index === activeIndex ? ' is-active' : ''}`}
+              role="option"
+              aria-selected={option.value === value}
+              onMouseEnter={() => setActiveIndex(index)}
+              onMouseDown={event => event.preventDefault()}
+              onClick={() => chooseOption(index)}
+            >
+              {option.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── PDF generator ──────────────────────────────────────────
@@ -1611,15 +1713,17 @@ export default function Reports() {
 
             {/* Common filters */}
             <div>
-              <label style={LabelStyle}>{t('lbl_employee')}</label>
-              <select value={filterEmployee} onChange={e => {
-                setFilterEmployee(e.target.value);
-                setFilterClient('');
-                setFilterProject('');
-              }} style={{ minWidth: 180 }}>
-                <option value="">{t('rep_all_employees')}</option>
-                {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-              </select>
+              <label id="report-employee-label" style={LabelStyle}>{t('lbl_employee')}</label>
+              <EmployeeFilter
+                employees={employees}
+                value={filterEmployee}
+                allEmployeesLabel={t('rep_all_employees')}
+                onChange={employeeId => {
+                  setFilterEmployee(employeeId);
+                  setFilterClient('');
+                  setFilterProject('');
+                }}
+              />
             </div>
             <div>
               <label style={LabelStyle}>{t('rep_client')}</label>

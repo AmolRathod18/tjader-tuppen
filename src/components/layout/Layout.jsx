@@ -7,6 +7,10 @@ import Footer from './Footer';
 
 export default function Layout({ children }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => window.matchMedia('(max-width: 768px)').matches
+  );
   const location = useLocation();
   const { t } = useLanguage();
 
@@ -16,32 +20,51 @@ export default function Layout({ children }) {
   }, [location.pathname]);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const updateViewport = event => {
+      setIsMobileViewport(event.matches);
+      setMobileNavOpen(false);
+      setSidebarCollapsed(false);
+    };
+    mediaQuery.addEventListener('change', updateViewport);
+    return () => mediaQuery.removeEventListener('change', updateViewport);
+  }, []);
+
+  useEffect(() => {
     const closeOnHistoryNavigation = () => setMobileNavOpen(false);
     window.addEventListener('popstate', closeOnHistoryNavigation);
     return () => window.removeEventListener('popstate', closeOnHistoryNavigation);
   }, []);
 
   useEffect(() => {
-    if (!mobileNavOpen) return undefined;
+    if (isMobileViewport) return undefined;
 
-    const closeOnEscape = event => {
-      if (event.key === 'Escape') setMobileNavOpen(false);
+    const collapseOnOutsideClick = event => {
+      if (event.target instanceof Element &&
+        !event.target.closest('#admin-sidebar, .mobile-menu-button')) {
+        setSidebarCollapsed(true);
+      }
     };
-    const closeOnDesktopResize = () => {
-      if (window.matchMedia('(min-width: 769px)').matches) setMobileNavOpen(false);
-    };
+    document.addEventListener('pointerdown', collapseOnOutsideClick);
+    return () => document.removeEventListener('pointerdown', collapseOnOutsideClick);
+  }, [isMobileViewport]);
 
-    document.addEventListener('keydown', closeOnEscape);
-    window.addEventListener('resize', closeOnDesktopResize);
-    return () => {
-      document.removeEventListener('keydown', closeOnEscape);
-      window.removeEventListener('resize', closeOnDesktopResize);
-    };
-  }, [mobileNavOpen]);
+  const handleMenuToggle = () => {
+    if (isMobileViewport) {
+      setMobileNavOpen(open => !open);
+      return;
+    }
+    setSidebarCollapsed(collapsed => !collapsed);
+  };
 
   return (
-    <div className="app-layout">
-      <Sidebar mobileOpen={mobileNavOpen} onNavigate={() => setMobileNavOpen(false)} />
+    <div className={`app-layout${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
+      <Sidebar
+        mobileOpen={mobileNavOpen}
+        collapsed={sidebarCollapsed && !isMobileViewport}
+        onExpand={() => setSidebarCollapsed(false)}
+        onNavigate={() => setMobileNavOpen(false)}
+      />
       {mobileNavOpen && (
         <button
           className="mobile-nav-backdrop"
@@ -53,7 +76,8 @@ export default function Layout({ children }) {
       <div className="main-content">
         <Header
           mobileNavOpen={mobileNavOpen}
-          onMenuToggle={() => setMobileNavOpen(open => !open)}
+          sidebarCollapsed={sidebarCollapsed}
+          onMenuToggle={handleMenuToggle}
         />
         <main className="page-content animate-in">
           {children}

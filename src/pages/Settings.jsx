@@ -68,7 +68,7 @@ export default function Settings() {
       <div className="page-heading">
         <div><span className="eyebrow">{t('settings_eyebrow')}</span><h2>{t('settings_title')}</h2><p>{t('settings_subtitle')}</p></div>
       </div>
-      <div className="card settings-card">
+      <div className="card settings-card" id="admin-profile">
         <div className="card-header"><div><h3><UserRound size={18} /> {t('settings_account')}</h3><p>{t('settings_account_sub')}</p></div></div>
         <form className="card-body settings-form" onSubmit={handleSubmit}>
           <div className="settings-grid">

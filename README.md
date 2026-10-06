@@ -10,9 +10,14 @@ a custom backend.
 2. Apply the Supabase migrations in order, from `0001` through `0009`.
 3. Apply [`supabase/migrations/0010_database_usage_rpc.sql`](./supabase/migrations/0010_database_usage_rpc.sql)
    to enable the dashboard PostgreSQL database usage card.
-4. In Authentication, create the first user with an email and password. Do not
+4. Apply the remaining migrations in order through
+   [`supabase/migrations/0014_feedback_realtime_notifications.sql`](./supabase/migrations/0014_feedback_realtime_notifications.sql).
+   The feedback migration permits public submissions and approved-feedback reads;
+   moderation remains restricted to authenticated admins by RLS. The latest
+   migration enables live feedback updates through Supabase Realtime.
+5. In Authentication, create the first user with an email and password. Do not
    use the old `admins.password_hash` table for authentication.
-5. Insert the matching profile as the first administrator:
+6. Insert the matching profile as the first administrator:
 
 ```sql
 insert into public.admin_profiles (id, username, email, role)
@@ -55,10 +60,12 @@ refresh.
 
 ## Security and business rules
 
-Every browser-accessed table has RLS enabled. Policies require an authenticated
-user whose `admin_profiles.role` is `admin`; anonymous CRUD is denied. The
-`is_admin()` function is `SECURITY DEFINER` with a fixed search path and does not
-trust client-provided role values.
+Every browser-accessed table has RLS enabled. Business data and feedback
+moderation require an authenticated user whose `admin_profiles.role` is `admin`.
+Public feedback access is limited to inserting unapproved submissions and
+reading approved feedback; anonymous users cannot read pending submissions or
+change moderation state. The `is_admin()` function is `SECURITY DEFINER` with a
+fixed search path and does not trust client-provided role values.
 
 PostgreSQL generates project numbers (`P-0001`) and employee IDs (`EMP-001`),
 checks project dates, derives a work entry's company and hours, handles overnight
@@ -78,6 +85,9 @@ sent to the browser.
 Use the Supabase SQL editor or a SQL test runner with separate sessions to verify:
 
 - `anon` cannot select, insert, update, or delete business rows.
+- `anon` can submit feedback but cannot read pending feedback or set its read or
+  approval state; public reads return approved feedback only.
+- An authenticated non-admin cannot access or moderate feedback.
 - An authenticated non-admin cannot access business rows.
 - An authenticated admin can perform intended CRUD operations.
 - An admin cannot change `admin_profiles.role` away from `admin`.

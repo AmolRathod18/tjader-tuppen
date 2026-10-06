@@ -404,6 +404,30 @@ const swedish = {
   'A selection of our work': 'Ett urval av våra arbeten',
   'Page not found': 'Sidan hittades inte',
   'This page is not available.': 'Den här sidan är inte tillgänglig.',
+  Feedback: 'Feedback',
+  'Share your feedback': 'Dela din feedback',
+  'Tell us about your experience. Feedback is reviewed before it is published.':
+    'Berätta om din upplevelse. Feedback granskas innan den publiceras.',
+  Cancel: 'Avbryt',
+  'Sending…': 'Skickar…',
+  'Send feedback': 'Skicka feedback',
+  'Your name': 'Ditt namn',
+  Rating: 'Betyg',
+  optional: 'valfritt',
+  '{0} out of 5 stars': '{0} av 5 stjärnor',
+  'Your feedback': 'Din feedback',
+  'Please enter your name and a message of up to 2000 characters.':
+    'Ange ditt namn och ett meddelande på högst 2000 tecken.',
+  'Your feedback could not be submitted. Please try again.':
+    'Din feedback kunde inte skickas. Försök igen.',
+  'Feedback storage is not set up yet. Apply the public feedback migration in Supabase.':
+    'Feedbacklagringen är inte konfigurerad. Tillämpa feedbackmigreringen i Supabase.',
+  'Feedback submission is blocked by database permissions. Reapply the public feedback migration.':
+    'Feedback skickas inte på grund av databasbehörigheter. Tillämpa feedbackmigreringen igen.',
+  'Thank you. Your feedback has been sent for review.':
+    'Tack. Din feedback har skickats för granskning.',
+  'Approved feedback could not be loaded.': 'Godkänd feedback kunde inte hämtas.',
+  'A few words from our customers': 'Några ord från våra kunder',
 };
 
 export default function translatePublic(lang, text) {

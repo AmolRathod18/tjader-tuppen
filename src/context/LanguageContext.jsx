@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import translations from '../i18n/translations';
 import translatePublic from '../i18n/publicTranslations';
 
@@ -30,13 +30,13 @@ export function LanguageProvider({ children }) {
   };
 
   /** Translate a key and replace {0}, {1}, ... placeholders. */
-  const t = (key, values = []) => {
+  const t = useCallback((key, values = []) => {
     const dict = translations[lang] || translations.en;
     const value = dict[key] ?? translations.en[key] ?? key;
     return String(value).replace(/\{(\d+)\}/g, (_, index) => values[Number(index)] ?? '');
-  };
+  }, [lang]);
 
-  const tp = (text) => translatePublic(lang, text);
+  const tp = useCallback(text => translatePublic(lang, text), [lang]);
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, t, tp }}>

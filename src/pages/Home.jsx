@@ -5,7 +5,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   Check,
-  ChevronRight,
   Cog,
   Factory,
   Flame,
@@ -22,6 +21,7 @@ import {
 import PublicSiteFooter from '../components/layout/PublicSiteFooter';
 import PublicSiteHeader from '../components/layout/PublicSiteHeader';
 import PublicImageViewer from '../components/layout/PublicImageViewer';
+import ApprovedFeedback from '../components/feedback/ApprovedFeedback';
 import { landingMedia } from '../config/landingMedia';
 import { useLanguage } from '../context/LanguageContext';
 import './Home.css';
@@ -65,26 +65,10 @@ const services = [
   },
 ];
 
-const process = [
-  { number: '01', title: 'Consultation', text: "We listen, visit the site if needed, and get to know the job." },
-  { number: '02', title: 'Planning', text: 'We agree on materials, timing and a safe way to get it done.' },
-  { number: '03', title: 'Fabrication', text: 'Skilled welding and fabrication, carried out with care.' },
-  { number: '04', title: 'Delivery', text: 'We finish reliably, check the details and hand over the work.' },
-];
-
 const companyGallery = [
   { image: landingMedia.company.welding, title: 'Industrial Welding', kind: 'tj-gallery-weld', fit: 'cover' },
   { image: landingMedia.company.vehicle, title: 'Field Service', kind: 'tj-gallery-vehicle', fit: 'contain' },
   { image: landingMedia.company.worker, title: 'Built in Sweden', kind: 'tj-gallery-worker', fit: 'cover' },
-];
-
-const gallery = [
-  { title: 'Welding inspection', alt: 'Tjädertuppen welder inspecting a finished weld', image: landingMedia.gallery[0] },
-  { title: 'Field service vehicle', alt: 'Tjädertuppen worker beside the branded field service pickup', image: landingMedia.gallery[1] },
-  { title: 'Our team', alt: 'Tjädertuppen team working on a steel installation', image: landingMedia.gallery[2] },
-  { title: 'On-site repairs', alt: 'Tjädertuppen worker repairing a trailer on site', image: landingMedia.gallery[3] },
-  { title: 'Steel installation', alt: 'Worker installing steel framework above an industrial site', image: landingMedia.gallery[4] },
-  { title: 'Work in the field', alt: 'Tjädertuppen worker overlooking an active construction site', image: landingMedia.gallery[5] },
 ];
 
 const expertise = [
@@ -245,7 +229,7 @@ export default function Home() {
             <a href="#services" className="tj-button tj-button-outline">{tp('Our Services')} <ArrowDown size={16} /></a>
           </div>
         </div>
-        <a className="tj-scroll-cue" href="#about" aria-label={tp('Scroll to discover Tjädertuppen')}>
+        <a className="tj-scroll-cue" href="#services" aria-label={tp('Scroll to discover Tjädertuppen')}>
           <span>{tp('Crafted for the real world')}</span><ArrowDown size={15} />
         </a>
         <div className="tj-hero-coordinate"><span>{tp('SWEDEN')}</span><i /> {tp('WELDING · FABRICATION · FIELD SERVICE')}</div>
@@ -260,29 +244,6 @@ export default function Home() {
           ))}
         </div>
       </div>
-
-      <section className="tj-about tj-section" id="about" data-header-theme="light">
-        <div className="tj-about-copy">
-          <p className="tj-eyebrow"><span /> {tp('Tjädertuppen Svets & Konsult')}</p>
-          <h2>{tp('Built to work.')}<br />{tp('Built to')} <em>{tp('last.')}</em></h2>
-          <p className="tj-about-lede">
-            {tp('We bring skilled workmanship and practical thinking to welding, fabrication and industrial service.')}
-          </p>
-          <p className="tj-about-body">
-            {tp('From a repair on site to a custom-built solution, we take responsibility for the details and deliver work you can depend on. Swedish quality, a reliable partner and a hands-on approach — wherever the work needs doing.')}
-          </p>
-          <a className="tj-text-link" href="#services">{tp('What we do')} <ArrowRight size={17} /></a>
-          <ul className="tj-about-values">
-            <li><Check size={15} /> {tp('Skilled workmanship')}</li>
-            <li><Check size={15} /> {tp('Reliable delivery')}</li>
-            <li><Check size={15} /> {tp('Safety in every step')}</li>
-          </ul>
-        </div>
-        <figure className="tj-about-photo">
-          <img src={landingMedia.company.worker} alt={tp("Tjädertuppen worker wearing the company's branded high-visibility jacket")} />
-          <figcaption><span>{tp('Our people. Our standard.')}</span><span>01 / {tp('SWEDEN')}</span></figcaption>
-        </figure>
-      </section>
 
       <section className="tj-services tj-section" id="services" data-header-theme="light">
         <div className="tj-section-heading">
@@ -393,42 +354,27 @@ export default function Home() {
         </dialog>
       )}
 
-      <section className="tj-company-showcase" id="projects" data-header-theme="dark">
-        <div className="tj-company-showcase-heading">
-          <div>
-            <p className="tj-eyebrow tj-eyebrow-light"><span /> {tp('Work in the real world')}</p>
-            <h2>{tp('Good work.')}<br /><em>{tp('Built to last.')}</em></h2>
-          </div>
-          <p className="tj-company-showcase-intro">{tp('A closer look at the people, equipment and craftsmanship behind every job.')}</p>
+      <section className="tj-about tj-section" id="about" data-header-theme="light">
+        <div className="tj-about-copy">
+          <p className="tj-eyebrow"><span /> {tp('Tjädertuppen Svets & Konsult')}</p>
+          <h2>{tp('Built to work.')}<br />{tp('Built to')} <em>{tp('last.')}</em></h2>
+          <p className="tj-about-lede">
+            {tp('We bring skilled workmanship and practical thinking to welding, fabrication and industrial service.')}
+          </p>
+          <p className="tj-about-body">
+            {tp('From a repair on site to a custom-built solution, we take responsibility for the details and deliver work you can depend on. Swedish quality, a reliable partner and a hands-on approach — wherever the work needs doing.')}
+          </p>
+          <a className="tj-text-link" href="#services">{tp('What we do')} <ArrowRight size={17} /></a>
+          <ul className="tj-about-values">
+            <li><Check size={15} /> {tp('Skilled workmanship')}</li>
+            <li><Check size={15} /> {tp('Reliable delivery')}</li>
+            <li><Check size={15} /> {tp('Safety in every step')}</li>
+          </ul>
         </div>
-        <div className="tj-company-gallery">
-          {companyGallery.map((item, index) => (
-            <figure className={`tj-company-image ${item.kind}`} key={item.title}>
-              <img src={item.image} alt={tp(item.title)} className={`fit-${item.fit}`} loading="lazy" />
-              <figcaption><span>0{index + 1}</span>{tp(item.title)}<ArrowUpRight size={15} /></figcaption>
-            </figure>
-          ))}
-        </div>
-        <p className="tj-company-showcase-caption">{tp('A trusted pair of hands — wherever the work takes us.')}</p>
-      </section>
-
-      <section className="tj-process" data-header-theme="dark">
-        <div className="tj-process-inner tj-section">
-          <div className="tj-process-heading">
-            <p className="tj-eyebrow tj-eyebrow-light"><span /> {tp('Straightforward from start to finish')}</p>
-            <h2>{tp('Good work starts')}<br />{tp('with a clear plan.')}</h2>
-            <p>{tp('One experienced partner, from the first conversation through to the finished job.')}</p>
-          </div>
-          <div className="tj-process-list">
-            {process.map(step => (
-              <article className="tj-process-step" key={step.number}>
-                <span>{step.number}</span>
-                <div><h3>{tp(step.title)}</h3><p>{tp(step.text)}</p></div>
-                <ChevronRight size={17} />
-              </article>
-            ))}
-          </div>
-        </div>
+        <figure className="tj-about-photo">
+          <img src={landingMedia.company.worker} alt={tp("Tjädertuppen worker wearing the company's branded high-visibility jacket")} />
+          <figcaption><span>{tp('Our people. Our standard.')}</span><span>01 / {tp('SWEDEN')}</span></figcaption>
+        </figure>
       </section>
 
       <section className="tj-why tj-section" data-header-theme="light">
@@ -447,6 +393,25 @@ export default function Home() {
             <li><Check size={17} /><span><strong>{tp('Safety and quality first')}</strong><small>{tp('Work planned carefully and delivered responsibly.')}</small></span></li>
           </ul>
         </div>
+      </section>
+
+      <section className="tj-company-showcase" id="projects" data-header-theme="dark">
+        <div className="tj-company-showcase-heading">
+          <div>
+            <p className="tj-eyebrow tj-eyebrow-light"><span /> {tp('Work in the real world')}</p>
+            <h2>{tp('Good work.')}<br /><em>{tp('Built to last.')}</em></h2>
+          </div>
+          <p className="tj-company-showcase-intro">{tp('A closer look at the people, equipment and craftsmanship behind every job.')}</p>
+        </div>
+        <div className="tj-company-gallery">
+          {companyGallery.map((item, index) => (
+            <figure className={`tj-company-image ${item.kind}`} key={item.title}>
+              <img src={item.image} alt={tp(item.title)} className={`fit-${item.fit}`} loading="lazy" />
+              <figcaption><span>0{index + 1}</span>{tp(item.title)}<ArrowUpRight size={15} /></figcaption>
+            </figure>
+          ))}
+        </div>
+        <p className="tj-company-showcase-caption">{tp('A trusted pair of hands — wherever the work takes us.')}</p>
       </section>
 
       <section className="tj-video-section" data-header-theme="dark">
@@ -487,36 +452,14 @@ export default function Home() {
         <div className="tj-stat"><strong>100<span>%</span></strong><p>{tp('Commitment to quality')}</p></div>
       </section>
 
-      <section className="tj-gallery tj-section" data-header-theme="light">
-        <div className="tj-section-heading tj-gallery-heading">
-          <div><p className="tj-eyebrow"><span /> {tp('Work in the real world')}</p><h2>{tp('Good work.')}<br /><em>{tp('Built to last.')}</em></h2></div>
-          <p>{tp('A look at the people, equipment and industrial settings behind Tjädertuppen.')}</p>
-        </div>
-        <div className="tj-gallery-grid">
-          {gallery.map((item, index) => (
-            <figure className={`tj-gallery-item tj-gallery-item-${index + 1}`} key={item.title}>
-              <img src={item.image} alt={tp(item.alt)} loading="lazy" />
-              <figcaption><span>0{index + 1}</span>{tp(item.title)}<ArrowUpRight size={16} /></figcaption>
-            </figure>
-          ))}
-        </div>
-      </section>
-
-      <section className="tj-sweden" data-header-theme="dark">
-        <div className="tj-sweden-mark" aria-hidden="true"><span /><i /></div>
-        <div className="tj-sweden-copy">
-          <p className="tj-eyebrow tj-eyebrow-light"><MapPin size={14} /> {tp('Proudly working across Sweden')}</p>
-          <h2>{tp('Industrial craftsmanship')}<br />{tp('in Sweden.')}</h2>
-          <p>{tp('Based in Sweden and ready to bring skilled welding and industrial service to your site.')}</p>
-        </div>
-        <span className="tj-sweden-coordinate">{tp('SWEDISH QUALITY · WHEREVER YOU NEED US')}</span>
-      </section>
+      <ApprovedFeedback />
 
       <section className="tj-cta" id="contact" data-header-theme="dark">
         <div className="tj-cta-copy">
           <p className="tj-eyebrow tj-eyebrow-light"><span /> {tp("Let's get to work")}</p>
           <h2>{tp('Have a project')}<br />{tp('in mind?')}</h2>
           <p>{tp("Let's discuss your welding, fabrication or industrial service requirements.")}</p>
+          <p className="tj-cta-region"><MapPin size={14} /> {tp('Based in Sweden and ready to bring skilled welding and industrial service to your site.')}</p>
         </div>
         <div className="tj-cta-contact">
           <a href="tel:+46702862773" className="tj-button tj-button-lime">{tp('Contact TJÄDERTUPPEN')} <ArrowUpRight size={17} /></a>

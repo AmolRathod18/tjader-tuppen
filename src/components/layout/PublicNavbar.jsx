@@ -3,6 +3,7 @@ import { ArrowUpRight, House, LockKeyhole } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import logo from '../../assets/TJADERTUPPEN_Logo.jpeg';
+import FeedbackWidget from '../feedback/FeedbackWidget';
 
 export default function PublicNavbar() {
   const { lang, setLang, t, tp } = useLanguage();
@@ -22,6 +23,7 @@ export default function PublicNavbar() {
         </span>
       </Link>
       <div className="public-nav-actions">
+        {isPublicPage && <FeedbackWidget />}
         <div className="public-nav-languages" aria-label={t('ui_language_selection')}>
           <button type="button" className={lang === 'en' ? 'active' : ''} onClick={() => setLang('en')} aria-pressed={lang === 'en'}>EN</button>
           <button type="button" className={lang === 'sv' ? 'active' : ''} onClick={() => setLang('sv')} aria-pressed={lang === 'sv'}>SV</button>

@@ -15,6 +15,7 @@ import Login      from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Settings   from './pages/Settings';
+import Feedback   from './pages/Feedback';
 import Home       from './pages/Home';
 import PublicSiteLayout from './components/layout/PublicSiteLayout';
 import { AboutPage, ContactPage, ProjectsPage, PublicDetailPage, ServicesPage } from './pages/PublicPages';
@@ -29,6 +30,14 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   return children;
+}
+
+function ProtectedFeedbackRoute() {
+  const { auth } = useApp();
+  if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <Feedback />;
 }
 
 export default function App() {
@@ -61,6 +70,7 @@ export default function App() {
                     <Route path="/reports"    element={<Reports />} />
                     <Route path="/expenditure" element={<Navigate to="/work-entry" replace />} />
                     <Route path="/settings" element={<Settings />} />
+                    <Route path="/feedback" element={<ProtectedFeedbackRoute />} />
                     <Route path="*"           element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </Layout>

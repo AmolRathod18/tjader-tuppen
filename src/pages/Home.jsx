@@ -81,40 +81,14 @@ const expertise = [
   'Service Across Sweden',
 ];
 
-const heroHeadlines = [
-  { firstLine: 'Precision in', secondLine: 'Every', emphasis: 'Weld.' },
-  { firstLine: 'Strength in', secondLine: 'Every', emphasis: 'Structure.' },
-  { firstLine: 'Built for', secondLine: 'Every', emphasis: 'Challenge.' },
-  { firstLine: 'Quality in', secondLine: 'Every', emphasis: 'Detail.' },
-];
-
-function getHeroHeadlineIndex() {
-  const storageKey = 'tj_home_hero_headline';
-
-  try {
-    const storedIndex = sessionStorage.getItem(storageKey);
-    const previousIndex = storedIndex === null ? -1 : Number(storedIndex);
-    const availableIndexes = heroHeadlines
-      .map((_, index) => index)
-      .filter(index => index !== previousIndex);
-    const selectedIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
-    sessionStorage.setItem(storageKey, String(selectedIndex));
-    return selectedIndex;
-  } catch {
-    return Math.floor(Math.random() * heroHeadlines.length);
-  }
-}
-
 export default function Home() {
   const { tp } = useLanguage();
   const weldingVideoRef = useRef(null);
   const serviceImageDialogRef = useRef(null);
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [videoError, setVideoError] = useState('');
-  const [heroHeadlineIndex, setHeroHeadlineIndex] = useState(getHeroHeadlineIndex);
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
   const [selectedServiceIndex, setSelectedServiceIndex] = useState(null);
-  const heroHeadline = heroHeadlines[heroHeadlineIndex];
 
   useEffect(() => {
     const dialog = serviceImageDialogRef.current;
@@ -143,27 +117,6 @@ export default function Home() {
     window.addEventListener('keydown', handleGalleryKeys);
     return () => window.removeEventListener('keydown', handleGalleryKeys);
   }, [selectedServiceIndex]);
-
-  useEffect(() => {
-    const headlineInterval = window.setInterval(() => {
-      setHeroHeadlineIndex(currentIndex => {
-        const availableIndexes = heroHeadlines
-          .map((_, index) => index)
-          .filter(index => index !== currentIndex);
-        const selectedIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
-
-        try {
-          sessionStorage.setItem('tj_home_hero_headline', String(selectedIndex));
-        } catch {
-          // Storage is optional; rotation continues for this page view.
-        }
-
-        return selectedIndex;
-      });
-    }, 4500);
-
-    return () => window.clearInterval(headlineInterval);
-  }, []);
 
   useEffect(() => {
     const slideInterval = window.setInterval(() => {
@@ -220,7 +173,7 @@ export default function Home() {
 
         <div className="tj-hero-content">
           <p className="tj-eyebrow tj-eyebrow-light"><span /> {tp('Swedish welding & industrial services')}</p>
-          <h1 key={heroHeadlineIndex} className="tj-hero-headline">{tp(heroHeadline.firstLine)}<br />{tp(heroHeadline.secondLine)} <em>{tp(heroHeadline.emphasis)}</em></h1>
+          <h1 className="tj-hero-headline">{tp('Welding & industrial services')}<br /><em>{tp('across Sweden.')}</em></h1>
           <p className="tj-hero-lede">
             {tp('Professional welding, fabrication and industrial services across Sweden.')}
           </p>

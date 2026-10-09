@@ -15,6 +15,8 @@ const swedish = {
   'Admin login': 'Administratörsinloggning',
   'Management System': 'Ledningssystem',
   'Swedish welding & industrial services': 'Svensk svetsning och industritjänster',
+  'Welding & industrial services': 'Svetsning och industritjänster',
+  'across Sweden.': 'i hela Sverige.',
   'Precision in': 'Precision i',
   'Every': 'Varje',
   'Weld.': 'Svets.',

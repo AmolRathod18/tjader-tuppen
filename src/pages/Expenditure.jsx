@@ -62,20 +62,43 @@ export default function Expenditure() {
   };
   const save = async () => {
     const nextErrors = {};
+    const hasTravelDetails = Boolean(
+      form.startPlace.trim() ||
+      form.endPlace.trim() ||
+      (form.kilometers !== '' && form.kilometers !== null && form.kilometers !== undefined) ||
+      (form.hours !== '' && form.hours !== null && form.hours !== undefined) ||
+      form.remarks.trim()
+    );
+
     if (!form.projectId) nextErrors.projectId = t('exp_err_project');
     if (!form.employeeId) nextErrors.employeeId = t('exp_err_employee');
     if (!form.journeyDate) nextErrors.journeyDate = t('exp_err_date');
-    if (!form.startPlace.trim()) nextErrors.startPlace = t('exp_err_start_place');
-    if (!form.endPlace.trim()) nextErrors.endPlace = t('exp_err_end_place');
-    if (!form.kilometers || !Number.isInteger(Number(form.kilometers)) || Number(form.kilometers) <= 0) nextErrors.kilometers = t('exp_err_kilometers');
-    if (!form.hours || !Number.isFinite(Number(form.hours)) || Number(form.hours) <= 0) nextErrors.hours = t('exp_err_hours');
-    if (form.startPlace.trim().length > 120) nextErrors.startPlace = t('exp_err_place_length');
-    if (form.endPlace.trim().length > 120) nextErrors.endPlace = t('exp_err_place_length');
+
+    if (hasTravelDetails) {
+      if (form.startPlace.trim().length > 120) nextErrors.startPlace = t('exp_err_place_length');
+      if (form.endPlace.trim().length > 120) nextErrors.endPlace = t('exp_err_place_length');
+      if (form.kilometers !== '' && form.kilometers !== null && form.kilometers !== undefined) {
+        const kilometers = Number(form.kilometers);
+        if (!Number.isInteger(kilometers) || kilometers <= 0) nextErrors.kilometers = t('exp_err_kilometers');
+      }
+      if (form.hours !== '' && form.hours !== null && form.hours !== undefined) {
+        const hours = Number(form.hours);
+        if (!Number.isFinite(hours) || hours <= 0) nextErrors.hours = t('exp_err_hours');
+      }
+    }
+
     if (form.remarks.trim().length > 500) nextErrors.remarks = t('exp_err_remarks_length');
     if (form.journeyDate && !/^\d{4}-\d{2}-\d{2}$/.test(form.journeyDate)) nextErrors.journeyDate = t('exp_err_date_invalid');
     if (Object.keys(nextErrors).length) { setErrors(nextErrors); return; }
     try {
-      const payload = { ...form, kilometers: Number(form.kilometers), hours: Number(form.hours) };
+      const payload = {
+        ...form,
+        startPlace: form.startPlace.trim() || null,
+        endPlace: form.endPlace.trim() || null,
+        kilometers: form.kilometers === '' ? null : Number(form.kilometers),
+        hours: form.hours === '' ? null : Number(form.hours),
+        remarks: form.remarks.trim() || null,
+      };
       if (editItem) await updateExpenditure(editItem.id, payload);
       else await addExpenditure(payload);
       setModalOpen(false);
@@ -128,12 +151,12 @@ export default function Expenditure() {
       </div>
       <Field label={`${t('exp_journey_date')} *`} error={errors.journeyDate}><DatePicker value={form.journeyDate} onChange={e => setForm(f => ({ ...f, journeyDate: e.target.value }))} /></Field>
       <div className="form-row">
-        <Field label={`${t('exp_start_place')} *`} error={errors.startPlace}><input placeholder={t('exp_start_place_ph')} value={form.startPlace} onChange={e => setForm(f => ({ ...f, startPlace: e.target.value }))} /></Field>
-        <Field label={`${t('exp_end_place')} *`} error={errors.endPlace}><input placeholder={t('exp_end_place_ph')} value={form.endPlace} onChange={e => setForm(f => ({ ...f, endPlace: e.target.value }))} /></Field>
+        <Field label={t('exp_start_place')} error={errors.startPlace}><input placeholder={t('exp_start_place_ph')} value={form.startPlace} onChange={e => setForm(f => ({ ...f, startPlace: e.target.value }))} /></Field>
+        <Field label={t('exp_end_place')} error={errors.endPlace}><input placeholder={t('exp_end_place_ph')} value={form.endPlace} onChange={e => setForm(f => ({ ...f, endPlace: e.target.value }))} /></Field>
       </div>
       <div className="form-row">
-        <Field label={`${t('exp_kilometers_travelled')} *`} error={errors.kilometers}><input type="number" min="1" step="1" inputMode="numeric" placeholder={t('exp_kilometers_ph')} value={form.kilometers} onChange={e => setForm(f => ({ ...f, kilometers: e.target.value }))} /></Field>
-        <Field label={`${t('exp_hours')} *`} error={errors.hours}><input type="number" min="0.01" step="any" inputMode="decimal" required placeholder={t('exp_hours_ph')} value={form.hours} onChange={e => setForm(f => ({ ...f, hours: e.target.value }))} /></Field>
+        <Field label={t('exp_kilometers_travelled')} error={errors.kilometers}><input type="number" min="1" step="1" inputMode="numeric" placeholder={t('exp_kilometers_ph')} value={form.kilometers} onChange={e => setForm(f => ({ ...f, kilometers: e.target.value }))} /></Field>
+        <Field label={t('exp_hours')} error={errors.hours}><input type="number" min="0.01" step="any" inputMode="decimal" placeholder={t('exp_hours_ph')} value={form.hours} onChange={e => setForm(f => ({ ...f, hours: e.target.value }))} /></Field>
       </div>
       <Field label={t('exp_remarks')} error={errors.remarks}><textarea placeholder={t('exp_optional_notes')} value={form.remarks} onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))} /></Field>
     </Modal>

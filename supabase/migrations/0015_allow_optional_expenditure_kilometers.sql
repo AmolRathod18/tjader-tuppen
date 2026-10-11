@@ -1,4 +1,10 @@
 alter table public.expenditures
+  alter column start_place drop not null;
+
+alter table public.expenditures
+  alter column end_place drop not null;
+
+alter table public.expenditures
   alter column kilometers drop not null;
 
 alter table public.expenditures
@@ -17,6 +23,7 @@ declare
   inserted_entry public.work_entries;
   inserted_expenditure public.expenditures;
   expenditure_result jsonb;
+  has_expenditure_data boolean;
 begin
   if not public.is_admin() then
     raise exception 'Administrator access required' using errcode = '42501';
@@ -24,7 +31,13 @@ begin
 
   inserted_entry := public.create_work_entry(entry_payload);
 
-  if expenditure_payload is not null then
+  has_expenditure_data := coalesce(nullif(btrim(expenditure_payload->>'start_place'), ''), null) is not null
+    or coalesce(nullif(btrim(expenditure_payload->>'end_place'), ''), null) is not null
+    or coalesce(nullif(expenditure_payload->>'kilometers', ''), null) is not null
+    or coalesce(nullif(expenditure_payload->>'hours', ''), null) is not null
+    or coalesce(nullif(btrim(expenditure_payload->>'remarks'), ''), null) is not null;
+
+  if expenditure_payload is not null and has_expenditure_data then
     insert into public.expenditures (
       work_entry_id, employee_id, project_id, journey_date,
       start_place, end_place, kilometers, hours, remarks
@@ -65,6 +78,7 @@ declare
   updated_entry public.work_entries;
   updated_expenditure public.expenditures;
   expenditure_result jsonb;
+  has_expenditure_data boolean;
 begin
   if not public.is_admin() then
     raise exception 'Administrator access required' using errcode = '42501';
@@ -76,32 +90,43 @@ begin
     delete from public.expenditures
     where work_entry_id = updated_entry.id;
   else
-    insert into public.expenditures (
-      work_entry_id, employee_id, project_id, journey_date,
-      start_place, end_place, kilometers, hours, remarks
-    )
-    values (
-      updated_entry.id,
-      updated_entry.employee_id,
-      updated_entry.project_id,
-      updated_entry.date,
-      nullif(btrim(expenditure_payload->>'start_place'), ''),
-      nullif(btrim(expenditure_payload->>'end_place'), ''),
-      nullif(expenditure_payload->>'kilometers', '')::integer,
-      nullif(expenditure_payload->>'hours', '')::numeric,
-      nullif(btrim(expenditure_payload->>'remarks'), '')
-    )
-    on conflict (work_entry_id) do update
-    set employee_id = excluded.employee_id,
-        project_id = excluded.project_id,
-        journey_date = excluded.journey_date,
-        start_place = excluded.start_place,
-        end_place = excluded.end_place,
-        kilometers = excluded.kilometers,
-        hours = excluded.hours,
-        remarks = excluded.remarks
-    returning * into updated_expenditure;
-    expenditure_result := to_jsonb(updated_expenditure);
+    has_expenditure_data := coalesce(nullif(btrim(expenditure_payload->>'start_place'), ''), null) is not null
+      or coalesce(nullif(btrim(expenditure_payload->>'end_place'), ''), null) is not null
+      or coalesce(nullif(expenditure_payload->>'kilometers', ''), null) is not null
+      or coalesce(nullif(expenditure_payload->>'hours', ''), null) is not null
+      or coalesce(nullif(btrim(expenditure_payload->>'remarks'), ''), null) is not null;
+
+    if has_expenditure_data then
+      insert into public.expenditures (
+        work_entry_id, employee_id, project_id, journey_date,
+        start_place, end_place, kilometers, hours, remarks
+      )
+      values (
+        updated_entry.id,
+        updated_entry.employee_id,
+        updated_entry.project_id,
+        updated_entry.date,
+        nullif(btrim(expenditure_payload->>'start_place'), ''),
+        nullif(btrim(expenditure_payload->>'end_place'), ''),
+        nullif(expenditure_payload->>'kilometers', '')::integer,
+        nullif(expenditure_payload->>'hours', '')::numeric,
+        nullif(btrim(expenditure_payload->>'remarks'), '')
+      )
+      on conflict (work_entry_id) do update
+      set employee_id = excluded.employee_id,
+          project_id = excluded.project_id,
+          journey_date = excluded.journey_date,
+          start_place = excluded.start_place,
+          end_place = excluded.end_place,
+          kilometers = excluded.kilometers,
+          hours = excluded.hours,
+          remarks = excluded.remarks
+      returning * into updated_expenditure;
+      expenditure_result := to_jsonb(updated_expenditure);
+    else
+      delete from public.expenditures
+      where work_entry_id = updated_entry.id;
+    end if;
   end if;
 
   return jsonb_build_object(

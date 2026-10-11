@@ -7,6 +7,7 @@ import { LockKeyhole, AlertCircle, ArrowRight, CheckCircle2, Clock3, Eye, EyeOff
 import logo from '../assets/TJADERTUPPEN_Logo.jpeg';
 import PublicNavbar from '../components/layout/PublicNavbar';
 import { landingMedia } from '../config/landingMedia';
+import OptimizedImage from '../components/ui/OptimizedImage';
 
 export default function Login() {
   const { t } = useLanguage();
@@ -106,11 +107,14 @@ export default function Login() {
       <PublicNavbar />
       <div className="login-container">
         <section className="login-intro" aria-label={t('login_overview_label')}>
-        <img
+        <OptimizedImage
           className="login-intro-photo"
           src={landingMedia.company.worker}
           alt=""
           aria-hidden="true"
+          loading="eager"
+          fetchPriority="high"
+          sizes="(max-width: 800px) 100vw, 50vw"
         />
         <div className="login-intro-copy">
             <p className="login-eyebrow">TJÄDERTUPPEN / 2026</p>
@@ -127,7 +131,7 @@ export default function Login() {
 
         <div className="login-card">
           <div className="login-logo">
-            <img src={logo} alt="TJÄDERTUPPEN" className="login-brand-logo" />
+            <OptimizedImage src={logo} alt="TJÄDERTUPPEN" className="login-brand-logo" loading="eager" />
             <div className="login-logo-text">
               <h2>TJÄDERTUPPEN</h2>
               <span>{t('login_system')}</span>

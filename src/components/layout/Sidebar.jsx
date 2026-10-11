@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
+import OptimizedImage from '../ui/OptimizedImage';
 import {
   LayoutDashboard, Building2, FolderKanban, Users,
   ClipboardList, BarChart3, LogOut, Settings, UserRound, MessageSquareText,
@@ -107,10 +108,11 @@ export default function Sidebar({ mobileOpen, collapsed, onExpand, onNavigate })
     >
       {/* Logo */}
       <div className="sidebar-logo">
-        <img
+        <OptimizedImage
           src={logo}
           alt="TJÄDERTUPPEN"
           className="sidebar-brand-logo"
+          loading="eager"
         />
         <div className="sidebar-logo-text">
           <h2>TJÄDERTUPPEN</h2>

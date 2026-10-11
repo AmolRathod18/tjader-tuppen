@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import OptimizedImage from '../ui/OptimizedImage';
+import { getOptimizedImageUrl } from '../../utils/imageSources';
 import './PublicImageViewer.css';
 
 function isViewableImage(image) {
@@ -54,7 +56,7 @@ export default function PublicImageViewer() {
       [...root.querySelectorAll('img')]
         .filter(isViewableImage)
         .map(image => ({
-          src: image.currentSrc || image.src,
+          src: image.dataset.originalSrc || image.currentSrc || image.src,
           alt: image.alt || tp('Tjädertuppen work photo'),
         }));
 
@@ -136,9 +138,14 @@ export default function PublicImageViewer() {
         <div className="tj-public-image-viewer-content">
           <div
             className="tj-public-image-viewer-stage"
-            style={{ '--viewer-photo': `url("${activeImage.src}")` }}
+            style={{ '--viewer-photo': `url("${getOptimizedImageUrl(activeImage.src)}")` }}
           >
-            <img src={activeImage.src} alt={activeImage.alt} />
+            <OptimizedImage
+              src={activeImage.src}
+              alt={activeImage.alt}
+              loading="eager"
+              sizes="(max-width: 760px) 100vw, 80vw"
+            />
             <button
               className="tj-public-image-viewer-navigation is-previous"
               type="button"

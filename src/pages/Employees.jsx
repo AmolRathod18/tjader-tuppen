@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { getWorkEntryBreakdown, getWorkEntryHours } from '../utils/workHours';
 import DatePicker from '../components/ui/DatePicker';
+import OptimizedImage from '../components/ui/OptimizedImage';
 
 const EMPTY_FORM = {
   name: '', empId: '', role: '', phone: '', email: '', status: 'Active',
@@ -58,6 +59,8 @@ export default function Employees() {
   const [profileEmployee, setProfileEmployee] = useState(null);
   const [entryDeleteTarget, setEntryDeleteTarget] = useState(null);
   const [entryDeleteError, setEntryDeleteError] = useState('');
+  const [clearHistoryOpen, setClearHistoryOpen] = useState(false);
+  const [clearingHistory, setClearingHistory] = useState(false);
   const [form,          setForm]          = useState(EMPTY_FORM);
   const [errors,        setErrors]        = useState({});
   const [submitError,   setSubmitError]   = useState('');
@@ -170,6 +173,28 @@ export default function Employees() {
       .filter(entry => entry.employeeId === profileEmployee.id)
       .sort((a, b) => `${b.date} ${b.startTime}`.localeCompare(`${a.date} ${a.startTime}`));
   }, [profileEmployee, workEntries]);
+
+  const handleClearWorkHistory = async () => {
+    if (!profileEmployee || profileEntries.length === 0) return;
+    setClearingHistory(true);
+    setEntryDeleteError('');
+
+    const results = await Promise.allSettled(profileEntries.map(entry => deleteWorkEntry(entry.id)));
+    const failures = results.filter(result => result.status === 'rejected');
+    setClearingHistory(false);
+    setClearHistoryOpen(false);
+
+    if (failures.length > 0) {
+      const firstError = failures[0].reason instanceof Error
+        ? failures[0].reason.message
+        : String(failures[0].reason);
+      setEntryDeleteError(t('emp_clear_history_error', [
+        results.length - failures.length,
+        failures.length,
+        firstError,
+      ]));
+    }
+  };
 
   const getWorkCount = (empId) => workEntries.filter(w => w.employeeId === empId).length;
   const getTotalHrs  = (empId) => workEntries.filter(w => w.employeeId === empId).reduce((s, w) => s + getWorkEntryHours(w), 0).toFixed(1);
@@ -309,7 +334,7 @@ export default function Employees() {
             <div className="employee-profile-hero">
               <div className="employee-profile-avatar">
                 {profileEmployee.photo || profileEmployee.photoUrl
-                  ? <img src={profileEmployee.photo || profileEmployee.photoUrl} alt={profileEmployee.name} />
+                  ? <OptimizedImage src={profileEmployee.photo || profileEmployee.photoUrl} alt={profileEmployee.name} loading="eager" />
                   : getInitials(profileEmployee.name)}
               </div>
               <div className="employee-profile-heading">
@@ -353,7 +378,20 @@ export default function Employees() {
             <section className="employee-history">
               <div className="employee-history-heading">
                 <div><h4>{t('emp_work_history')}</h4><p>{t('emp_work_history_sub')}</p></div>
-                <span>{t('emp_entries_count', [profileEntries.length])}</span>
+                <div className="employee-history-heading-actions">
+                  <span>{t('emp_entries_count', [profileEntries.length])}</span>
+                  {profileEntries.length > 0 && (
+                    <button
+                      className="btn btn-danger btn-sm"
+                      type="button"
+                      onClick={() => setClearHistoryOpen(true)}
+                      disabled={clearingHistory}
+                    >
+                      <Trash2 size={14} />
+                      {t('emp_clear_history')}
+                    </button>
+                  )}
+                </div>
               </div>
               {entryDeleteError && <p className="employee-history-error" role="alert">{entryDeleteError}</p>}
 
@@ -484,6 +522,37 @@ export default function Employees() {
         onConfirm={handleDeleteWorkEntry}
         itemName={entryDeleteTarget ? t('we_delete_item', [formatDate(entryDeleteTarget.date)]) : ''}
       />
+      <Modal
+        isOpen={clearHistoryOpen}
+        onClose={() => { if (!clearingHistory) setClearHistoryOpen(false); }}
+        title={t('emp_clear_history_title')}
+        subtitle={t('emp_clear_history_confirm', [
+          profileEmployee?.name || '',
+          profileEntries.length,
+        ])}
+        size="sm"
+        footer={<>
+          <button
+            className="btn btn-ghost"
+            type="button"
+            onClick={() => setClearHistoryOpen(false)}
+            disabled={clearingHistory}
+          >
+            {t('btn_cancel')}
+          </button>
+          <button
+            className="btn btn-danger"
+            type="button"
+            onClick={handleClearWorkHistory}
+            disabled={clearingHistory || profileEntries.length === 0}
+          >
+            <Trash2 size={14} />
+            {clearingHistory ? t('emp_clearing_history') : t('emp_clear_history')}
+          </button>
+        </>}
+      >
+        <p>{t('emp_clear_history_warning')}</p>
+      </Modal>
 
       <Modal
         isOpen={!!successMessage}

@@ -53,6 +53,13 @@ npm install
 npm run dev
 ```
 
+Image assets can be regenerated after adding or replacing files in
+`public/images` with `python -m pip install Pillow` followed by
+`npm run images:optimize`. The generator emits responsive, content-hashed WebP
+variants; browsers without WebP support continue to use the original images.
+Hashed variants are cached immutably, while source images use
+revalidation-friendly caching.
+
 For Vercel, set the Supabase URL and key for Production, Preview, and Development.
 Set `VITE_SUPABASE_DATABASE_QUOTA_BYTES` there as well if the quota differs from 500 MB.
 The rewrite in [`vercel.json`](./vercel.json) keeps React Router routes working on

@@ -1,0 +1,504 @@
+{
+  "/images/company/branded-service-pickup.jpeg": {
+    "width": 1600,
+    "height": 1111,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1200,
+      1600
+    ],
+    "sources": {
+      "160": "/images/optimized/c5e8d7c9e625/company/branded-service-pickup-c5e8d7c9e625-160.webp",
+      "320": "/images/optimized/c5e8d7c9e625/company/branded-service-pickup-c5e8d7c9e625-320.webp",
+      "480": "/images/optimized/c5e8d7c9e625/company/branded-service-pickup-c5e8d7c9e625-480.webp",
+      "800": "/images/optimized/c5e8d7c9e625/company/branded-service-pickup-c5e8d7c9e625-800.webp",
+      "1200": "/images/optimized/c5e8d7c9e625/company/branded-service-pickup-c5e8d7c9e625-1200.webp",
+      "1600": "/images/optimized/c5e8d7c9e625/company/branded-service-pickup-c5e8d7c9e625-1600.webp"
+    }
+  },
+  "/images/company/Cinematic%20Welding%20at%20Tj%C3%A4dertuppen%20Workshop.png": {
+    "width": 1086,
+    "height": 1448,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1086
+    ],
+    "sources": {
+      "160": "/images/optimized/443cdecb4e22/company/Cinematic%20Welding%20at%20Tj%C3%A4dertuppen%20Workshop-443cdecb4e22-160.webp",
+      "320": "/images/optimized/443cdecb4e22/company/Cinematic%20Welding%20at%20Tj%C3%A4dertuppen%20Workshop-443cdecb4e22-320.webp",
+      "480": "/images/optimized/443cdecb4e22/company/Cinematic%20Welding%20at%20Tj%C3%A4dertuppen%20Workshop-443cdecb4e22-480.webp",
+      "800": "/images/optimized/443cdecb4e22/company/Cinematic%20Welding%20at%20Tj%C3%A4dertuppen%20Workshop-443cdecb4e22-800.webp",
+      "1086": "/images/optimized/443cdecb4e22/company/Cinematic%20Welding%20at%20Tj%C3%A4dertuppen%20Workshop-443cdecb4e22-1086.webp"
+    }
+  },
+  "/images/company/Construction%20Workers%20in%20a%20Scaffolded%20Industrial%20Hall.png": {
+    "width": 1086,
+    "height": 1448,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1086
+    ],
+    "sources": {
+      "160": "/images/optimized/e7124a74abc0/company/Construction%20Workers%20in%20a%20Scaffolded%20Industrial%20Hall-e7124a74abc0-160.webp",
+      "320": "/images/optimized/e7124a74abc0/company/Construction%20Workers%20in%20a%20Scaffolded%20Industrial%20Hall-e7124a74abc0-320.webp",
+      "480": "/images/optimized/e7124a74abc0/company/Construction%20Workers%20in%20a%20Scaffolded%20Industrial%20Hall-e7124a74abc0-480.webp",
+      "800": "/images/optimized/e7124a74abc0/company/Construction%20Workers%20in%20a%20Scaffolded%20Industrial%20Hall-e7124a74abc0-800.webp",
+      "1086": "/images/optimized/e7124a74abc0/company/Construction%20Workers%20in%20a%20Scaffolded%20Industrial%20Hall-e7124a74abc0-1086.webp"
+    }
+  },
+  "/images/company/Elevated%20Worksite%20Assembly%20Above%20the%20Yard.png": {
+    "width": 1086,
+    "height": 1448,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1086
+    ],
+    "sources": {
+      "160": "/images/optimized/7d56e5b4dbd2/company/Elevated%20Worksite%20Assembly%20Above%20the%20Yard-7d56e5b4dbd2-160.webp",
+      "320": "/images/optimized/7d56e5b4dbd2/company/Elevated%20Worksite%20Assembly%20Above%20the%20Yard-7d56e5b4dbd2-320.webp",
+      "480": "/images/optimized/7d56e5b4dbd2/company/Elevated%20Worksite%20Assembly%20Above%20the%20Yard-7d56e5b4dbd2-480.webp",
+      "800": "/images/optimized/7d56e5b4dbd2/company/Elevated%20Worksite%20Assembly%20Above%20the%20Yard-7d56e5b4dbd2-800.webp",
+      "1086": "/images/optimized/7d56e5b4dbd2/company/Elevated%20Worksite%20Assembly%20Above%20the%20Yard-7d56e5b4dbd2-1086.webp"
+    }
+  },
+  "/images/company/High-Visibility%20Worker%20at%20Industrial%20Plant.png": {
+    "width": 1087,
+    "height": 1447,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1087
+    ],
+    "sources": {
+      "160": "/images/optimized/252a29241849/company/High-Visibility%20Worker%20at%20Industrial%20Plant-252a29241849-160.webp",
+      "320": "/images/optimized/252a29241849/company/High-Visibility%20Worker%20at%20Industrial%20Plant-252a29241849-320.webp",
+      "480": "/images/optimized/252a29241849/company/High-Visibility%20Worker%20at%20Industrial%20Plant-252a29241849-480.webp",
+      "800": "/images/optimized/252a29241849/company/High-Visibility%20Worker%20at%20Industrial%20Plant-252a29241849-800.webp",
+      "1087": "/images/optimized/252a29241849/company/High-Visibility%20Worker%20at%20Industrial%20Plant-252a29241849-1087.webp"
+    }
+  },
+  "/images/company/High-Visibility%20Worker%20Repairing%20Trailer.png": {
+    "width": 1086,
+    "height": 1448,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1086
+    ],
+    "sources": {
+      "160": "/images/optimized/6b38d9d075df/company/High-Visibility%20Worker%20Repairing%20Trailer-6b38d9d075df-160.webp",
+      "320": "/images/optimized/6b38d9d075df/company/High-Visibility%20Worker%20Repairing%20Trailer-6b38d9d075df-320.webp",
+      "480": "/images/optimized/6b38d9d075df/company/High-Visibility%20Worker%20Repairing%20Trailer-6b38d9d075df-480.webp",
+      "800": "/images/optimized/6b38d9d075df/company/High-Visibility%20Worker%20Repairing%20Trailer-6b38d9d075df-800.webp",
+      "1086": "/images/optimized/6b38d9d075df/company/High-Visibility%20Worker%20Repairing%20Trailer-6b38d9d075df-1086.webp"
+    }
+  },
+  "/images/company/Industrial%20Worker%20with%20Branded%20Pickup.png": {
+    "width": 1983,
+    "height": 793,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1200,
+      1600,
+      1983
+    ],
+    "sources": {
+      "160": "/images/optimized/51cfb0bf9fdf/company/Industrial%20Worker%20with%20Branded%20Pickup-51cfb0bf9fdf-160.webp",
+      "320": "/images/optimized/51cfb0bf9fdf/company/Industrial%20Worker%20with%20Branded%20Pickup-51cfb0bf9fdf-320.webp",
+      "480": "/images/optimized/51cfb0bf9fdf/company/Industrial%20Worker%20with%20Branded%20Pickup-51cfb0bf9fdf-480.webp",
+      "800": "/images/optimized/51cfb0bf9fdf/company/Industrial%20Worker%20with%20Branded%20Pickup-51cfb0bf9fdf-800.webp",
+      "1200": "/images/optimized/51cfb0bf9fdf/company/Industrial%20Worker%20with%20Branded%20Pickup-51cfb0bf9fdf-1200.webp",
+      "1600": "/images/optimized/51cfb0bf9fdf/company/Industrial%20Worker%20with%20Branded%20Pickup-51cfb0bf9fdf-1600.webp",
+      "1983": "/images/optimized/51cfb0bf9fdf/company/Industrial%20Worker%20with%20Branded%20Pickup-51cfb0bf9fdf-1983.webp"
+    }
+  },
+  "/images/company/Outdoor%20Welder%20Sparks%20Against%20Blue%20Machinery.png": {
+    "width": 1086,
+    "height": 1448,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1086
+    ],
+    "sources": {
+      "160": "/images/optimized/0ca47ea92ad8/company/Outdoor%20Welder%20Sparks%20Against%20Blue%20Machinery-0ca47ea92ad8-160.webp",
+      "320": "/images/optimized/0ca47ea92ad8/company/Outdoor%20Welder%20Sparks%20Against%20Blue%20Machinery-0ca47ea92ad8-320.webp",
+      "480": "/images/optimized/0ca47ea92ad8/company/Outdoor%20Welder%20Sparks%20Against%20Blue%20Machinery-0ca47ea92ad8-480.webp",
+      "800": "/images/optimized/0ca47ea92ad8/company/Outdoor%20Welder%20Sparks%20Against%20Blue%20Machinery-0ca47ea92ad8-800.webp",
+      "1086": "/images/optimized/0ca47ea92ad8/company/Outdoor%20Welder%20Sparks%20Against%20Blue%20Machinery-0ca47ea92ad8-1086.webp"
+    }
+  },
+  "/images/company/Rainy%20Construction%20Yard%20with%20Hi-Vis%20Worker.png": {
+    "width": 950,
+    "height": 1655,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      950
+    ],
+    "sources": {
+      "160": "/images/optimized/ac95ca6cc133/company/Rainy%20Construction%20Yard%20with%20Hi-Vis%20Worker-ac95ca6cc133-160.webp",
+      "320": "/images/optimized/ac95ca6cc133/company/Rainy%20Construction%20Yard%20with%20Hi-Vis%20Worker-ac95ca6cc133-320.webp",
+      "480": "/images/optimized/ac95ca6cc133/company/Rainy%20Construction%20Yard%20with%20Hi-Vis%20Worker-ac95ca6cc133-480.webp",
+      "800": "/images/optimized/ac95ca6cc133/company/Rainy%20Construction%20Yard%20with%20Hi-Vis%20Worker-ac95ca6cc133-800.webp",
+      "950": "/images/optimized/ac95ca6cc133/company/Rainy%20Construction%20Yard%20with%20Hi-Vis%20Worker-ac95ca6cc133-950.webp"
+    }
+  },
+  "/images/company/Rooftop%20Construction%20Worker%20and%20Steel%20Framework.png": {
+    "width": 1086,
+    "height": 1448,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1086
+    ],
+    "sources": {
+      "160": "/images/optimized/a8de8490a6aa/company/Rooftop%20Construction%20Worker%20and%20Steel%20Framework-a8de8490a6aa-160.webp",
+      "320": "/images/optimized/a8de8490a6aa/company/Rooftop%20Construction%20Worker%20and%20Steel%20Framework-a8de8490a6aa-320.webp",
+      "480": "/images/optimized/a8de8490a6aa/company/Rooftop%20Construction%20Worker%20and%20Steel%20Framework-a8de8490a6aa-480.webp",
+      "800": "/images/optimized/a8de8490a6aa/company/Rooftop%20Construction%20Worker%20and%20Steel%20Framework-a8de8490a6aa-800.webp",
+      "1086": "/images/optimized/a8de8490a6aa/company/Rooftop%20Construction%20Worker%20and%20Steel%20Framework-a8de8490a6aa-1086.webp"
+    }
+  },
+  "/images/company/Sparks%20Fly%20in%20the%20Industrial%20Workshop.png": {
+    "width": 1086,
+    "height": 1448,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1086
+    ],
+    "sources": {
+      "160": "/images/optimized/269c765f9be1/company/Sparks%20Fly%20in%20the%20Industrial%20Workshop-269c765f9be1-160.webp",
+      "320": "/images/optimized/269c765f9be1/company/Sparks%20Fly%20in%20the%20Industrial%20Workshop-269c765f9be1-320.webp",
+      "480": "/images/optimized/269c765f9be1/company/Sparks%20Fly%20in%20the%20Industrial%20Workshop-269c765f9be1-480.webp",
+      "800": "/images/optimized/269c765f9be1/company/Sparks%20Fly%20in%20the%20Industrial%20Workshop-269c765f9be1-800.webp",
+      "1086": "/images/optimized/269c765f9be1/company/Sparks%20Fly%20in%20the%20Industrial%20Workshop-269c765f9be1-1086.webp"
+    }
+  },
+  "/images/company/Sunset%20Blueprint%20Collaboration%20at%20Construction%20Site.png": {
+    "width": 1086,
+    "height": 1448,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1086
+    ],
+    "sources": {
+      "160": "/images/optimized/a19e0e75496d/company/Sunset%20Blueprint%20Collaboration%20at%20Construction%20Site-a19e0e75496d-160.webp",
+      "320": "/images/optimized/a19e0e75496d/company/Sunset%20Blueprint%20Collaboration%20at%20Construction%20Site-a19e0e75496d-320.webp",
+      "480": "/images/optimized/a19e0e75496d/company/Sunset%20Blueprint%20Collaboration%20at%20Construction%20Site-a19e0e75496d-480.webp",
+      "800": "/images/optimized/a19e0e75496d/company/Sunset%20Blueprint%20Collaboration%20at%20Construction%20Site-a19e0e75496d-800.webp",
+      "1086": "/images/optimized/a19e0e75496d/company/Sunset%20Blueprint%20Collaboration%20at%20Construction%20Site-a19e0e75496d-1086.webp"
+    }
+  },
+  "/images/company/Sunset%20Gamma%20Welding%20Inspection.png": {
+    "width": 1087,
+    "height": 1447,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1087
+    ],
+    "sources": {
+      "160": "/images/optimized/05d613694ce4/company/Sunset%20Gamma%20Welding%20Inspection-05d613694ce4-160.webp",
+      "320": "/images/optimized/05d613694ce4/company/Sunset%20Gamma%20Welding%20Inspection-05d613694ce4-320.webp",
+      "480": "/images/optimized/05d613694ce4/company/Sunset%20Gamma%20Welding%20Inspection-05d613694ce4-480.webp",
+      "800": "/images/optimized/05d613694ce4/company/Sunset%20Gamma%20Welding%20Inspection-05d613694ce4-800.webp",
+      "1087": "/images/optimized/05d613694ce4/company/Sunset%20Gamma%20Welding%20Inspection-05d613694ce4-1087.webp"
+    }
+  },
+  "/images/company/Sunset%20Steelwork%20and%20Welding%20Team.png": {
+    "width": 1087,
+    "height": 1447,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1087
+    ],
+    "sources": {
+      "160": "/images/optimized/0963aeb08dce/company/Sunset%20Steelwork%20and%20Welding%20Team-0963aeb08dce-160.webp",
+      "320": "/images/optimized/0963aeb08dce/company/Sunset%20Steelwork%20and%20Welding%20Team-0963aeb08dce-320.webp",
+      "480": "/images/optimized/0963aeb08dce/company/Sunset%20Steelwork%20and%20Welding%20Team-0963aeb08dce-480.webp",
+      "800": "/images/optimized/0963aeb08dce/company/Sunset%20Steelwork%20and%20Welding%20Team-0963aeb08dce-800.webp",
+      "1087": "/images/optimized/0963aeb08dce/company/Sunset%20Steelwork%20and%20Welding%20Team-0963aeb08dce-1087.webp"
+    }
+  },
+  "/images/company/Sunset%20Welder%20Beneath%20Steel%20Framework.png": {
+    "width": 1536,
+    "height": 1024,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1200,
+      1536
+    ],
+    "sources": {
+      "160": "/images/optimized/aab3edf84058/company/Sunset%20Welder%20Beneath%20Steel%20Framework-aab3edf84058-160.webp",
+      "320": "/images/optimized/aab3edf84058/company/Sunset%20Welder%20Beneath%20Steel%20Framework-aab3edf84058-320.webp",
+      "480": "/images/optimized/aab3edf84058/company/Sunset%20Welder%20Beneath%20Steel%20Framework-aab3edf84058-480.webp",
+      "800": "/images/optimized/aab3edf84058/company/Sunset%20Welder%20Beneath%20Steel%20Framework-aab3edf84058-800.webp",
+      "1200": "/images/optimized/aab3edf84058/company/Sunset%20Welder%20Beneath%20Steel%20Framework-aab3edf84058-1200.webp",
+      "1536": "/images/optimized/aab3edf84058/company/Sunset%20Welder%20Beneath%20Steel%20Framework-aab3edf84058-1536.webp"
+    }
+  },
+  "/images/company/tjader-vehicle.png": {
+    "width": 1024,
+    "height": 768,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1024
+    ],
+    "sources": {
+      "160": "/images/optimized/dc4491749547/company/tjader-vehicle-dc4491749547-160.webp",
+      "320": "/images/optimized/dc4491749547/company/tjader-vehicle-dc4491749547-320.webp",
+      "480": "/images/optimized/dc4491749547/company/tjader-vehicle-dc4491749547-480.webp",
+      "800": "/images/optimized/dc4491749547/company/tjader-vehicle-dc4491749547-800.webp",
+      "1024": "/images/optimized/dc4491749547/company/tjader-vehicle-dc4491749547-1024.webp"
+    }
+  },
+  "/images/company/Tj%C3%A4dertuppen%20Byggare%20i%20Solnedg%C3%A5ngen.png": {
+    "width": 1536,
+    "height": 1024,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1200,
+      1536
+    ],
+    "sources": {
+      "160": "/images/optimized/a1dda8e418a1/company/Tj%C3%A4dertuppen%20Byggare%20i%20Solnedg%C3%A5ngen-a1dda8e418a1-160.webp",
+      "320": "/images/optimized/a1dda8e418a1/company/Tj%C3%A4dertuppen%20Byggare%20i%20Solnedg%C3%A5ngen-a1dda8e418a1-320.webp",
+      "480": "/images/optimized/a1dda8e418a1/company/Tj%C3%A4dertuppen%20Byggare%20i%20Solnedg%C3%A5ngen-a1dda8e418a1-480.webp",
+      "800": "/images/optimized/a1dda8e418a1/company/Tj%C3%A4dertuppen%20Byggare%20i%20Solnedg%C3%A5ngen-a1dda8e418a1-800.webp",
+      "1200": "/images/optimized/a1dda8e418a1/company/Tj%C3%A4dertuppen%20Byggare%20i%20Solnedg%C3%A5ngen-a1dda8e418a1-1200.webp",
+      "1536": "/images/optimized/a1dda8e418a1/company/Tj%C3%A4dertuppen%20Byggare%20i%20Solnedg%C3%A5ngen-a1dda8e418a1-1536.webp"
+    }
+  },
+  "/images/company/welder-at-industrial-machine.png": {
+    "width": 1448,
+    "height": 1086,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1200,
+      1448
+    ],
+    "sources": {
+      "160": "/images/optimized/3506b7a1afdc/company/welder-at-industrial-machine-3506b7a1afdc-160.webp",
+      "320": "/images/optimized/3506b7a1afdc/company/welder-at-industrial-machine-3506b7a1afdc-320.webp",
+      "480": "/images/optimized/3506b7a1afdc/company/welder-at-industrial-machine-3506b7a1afdc-480.webp",
+      "800": "/images/optimized/3506b7a1afdc/company/welder-at-industrial-machine-3506b7a1afdc-800.webp",
+      "1200": "/images/optimized/3506b7a1afdc/company/welder-at-industrial-machine-3506b7a1afdc-1200.webp",
+      "1448": "/images/optimized/3506b7a1afdc/company/welder-at-industrial-machine-3506b7a1afdc-1448.webp"
+    }
+  },
+  "/images/company/Winter%20Industrial%20Worker%20at%20Billerud%20Plant.png": {
+    "width": 1299,
+    "height": 1211,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1200,
+      1299
+    ],
+    "sources": {
+      "160": "/images/optimized/0144d307df90/company/Winter%20Industrial%20Worker%20at%20Billerud%20Plant-0144d307df90-160.webp",
+      "320": "/images/optimized/0144d307df90/company/Winter%20Industrial%20Worker%20at%20Billerud%20Plant-0144d307df90-320.webp",
+      "480": "/images/optimized/0144d307df90/company/Winter%20Industrial%20Worker%20at%20Billerud%20Plant-0144d307df90-480.webp",
+      "800": "/images/optimized/0144d307df90/company/Winter%20Industrial%20Worker%20at%20Billerud%20Plant-0144d307df90-800.webp",
+      "1200": "/images/optimized/0144d307df90/company/Winter%20Industrial%20Worker%20at%20Billerud%20Plant-0144d307df90-1200.webp",
+      "1299": "/images/optimized/0144d307df90/company/Winter%20Industrial%20Worker%20at%20Billerud%20Plant-0144d307df90-1299.webp"
+    }
+  },
+  "/images/company/Winter%20Welding%20at%20Tj%C3%A4dertuppen%20Site.png": {
+    "width": 1086,
+    "height": 1448,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1086
+    ],
+    "sources": {
+      "160": "/images/optimized/8b7b8232e478/company/Winter%20Welding%20at%20Tj%C3%A4dertuppen%20Site-8b7b8232e478-160.webp",
+      "320": "/images/optimized/8b7b8232e478/company/Winter%20Welding%20at%20Tj%C3%A4dertuppen%20Site-8b7b8232e478-320.webp",
+      "480": "/images/optimized/8b7b8232e478/company/Winter%20Welding%20at%20Tj%C3%A4dertuppen%20Site-8b7b8232e478-480.webp",
+      "800": "/images/optimized/8b7b8232e478/company/Winter%20Welding%20at%20Tj%C3%A4dertuppen%20Site-8b7b8232e478-800.webp",
+      "1086": "/images/optimized/8b7b8232e478/company/Winter%20Welding%20at%20Tj%C3%A4dertuppen%20Site-8b7b8232e478-1086.webp"
+    }
+  },
+  "/images/company/Worker%20Overlooking%20Crane%20at%20Sunset.png": {
+    "width": 1086,
+    "height": 1448,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1086
+    ],
+    "sources": {
+      "160": "/images/optimized/4e3b682f890f/company/Worker%20Overlooking%20Crane%20at%20Sunset-4e3b682f890f-160.webp",
+      "320": "/images/optimized/4e3b682f890f/company/Worker%20Overlooking%20Crane%20at%20Sunset-4e3b682f890f-320.webp",
+      "480": "/images/optimized/4e3b682f890f/company/Worker%20Overlooking%20Crane%20at%20Sunset-4e3b682f890f-480.webp",
+      "800": "/images/optimized/4e3b682f890f/company/Worker%20Overlooking%20Crane%20at%20Sunset-4e3b682f890f-800.webp",
+      "1086": "/images/optimized/4e3b682f890f/company/Worker%20Overlooking%20Crane%20at%20Sunset-4e3b682f890f-1086.webp"
+    }
+  },
+  "/images/company%20banner/Industrial%20Worker%20Welding%20Amid%20Sparks.png": {
+    "width": 1983,
+    "height": 793,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1200,
+      1600,
+      1983
+    ],
+    "sources": {
+      "160": "/images/optimized/e2d404c6e65f/company%20banner/Industrial%20Worker%20Welding%20Amid%20Sparks-e2d404c6e65f-160.webp",
+      "320": "/images/optimized/e2d404c6e65f/company%20banner/Industrial%20Worker%20Welding%20Amid%20Sparks-e2d404c6e65f-320.webp",
+      "480": "/images/optimized/e2d404c6e65f/company%20banner/Industrial%20Worker%20Welding%20Amid%20Sparks-e2d404c6e65f-480.webp",
+      "800": "/images/optimized/e2d404c6e65f/company%20banner/Industrial%20Worker%20Welding%20Amid%20Sparks-e2d404c6e65f-800.webp",
+      "1200": "/images/optimized/e2d404c6e65f/company%20banner/Industrial%20Worker%20Welding%20Amid%20Sparks-e2d404c6e65f-1200.webp",
+      "1600": "/images/optimized/e2d404c6e65f/company%20banner/Industrial%20Worker%20Welding%20Amid%20Sparks-e2d404c6e65f-1600.webp",
+      "1983": "/images/optimized/e2d404c6e65f/company%20banner/Industrial%20Worker%20Welding%20Amid%20Sparks-e2d404c6e65f-1983.webp"
+    }
+  },
+  "/images/company%20banner/Stronger%20Structures%2C%20Brighter%20Tomorrows.png": {
+    "width": 1983,
+    "height": 793,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1200,
+      1600,
+      1983
+    ],
+    "sources": {
+      "160": "/images/optimized/c25b20870210/company%20banner/Stronger%20Structures%2C%20Brighter%20Tomorrows-c25b20870210-160.webp",
+      "320": "/images/optimized/c25b20870210/company%20banner/Stronger%20Structures%2C%20Brighter%20Tomorrows-c25b20870210-320.webp",
+      "480": "/images/optimized/c25b20870210/company%20banner/Stronger%20Structures%2C%20Brighter%20Tomorrows-c25b20870210-480.webp",
+      "800": "/images/optimized/c25b20870210/company%20banner/Stronger%20Structures%2C%20Brighter%20Tomorrows-c25b20870210-800.webp",
+      "1200": "/images/optimized/c25b20870210/company%20banner/Stronger%20Structures%2C%20Brighter%20Tomorrows-c25b20870210-1200.webp",
+      "1600": "/images/optimized/c25b20870210/company%20banner/Stronger%20Structures%2C%20Brighter%20Tomorrows-c25b20870210-1600.webp",
+      "1983": "/images/optimized/c25b20870210/company%20banner/Stronger%20Structures%2C%20Brighter%20Tomorrows-c25b20870210-1983.webp"
+    }
+  },
+  "/images/company%20banner/Sunset%20Industrial%20Branding%20with%20Pickup%20Truck.png": {
+    "width": 1983,
+    "height": 793,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1200,
+      1600,
+      1983
+    ],
+    "sources": {
+      "160": "/images/optimized/51cfb0bf9fdf/company%20banner/Sunset%20Industrial%20Branding%20with%20Pickup%20Truck-51cfb0bf9fdf-160.webp",
+      "320": "/images/optimized/51cfb0bf9fdf/company%20banner/Sunset%20Industrial%20Branding%20with%20Pickup%20Truck-51cfb0bf9fdf-320.webp",
+      "480": "/images/optimized/51cfb0bf9fdf/company%20banner/Sunset%20Industrial%20Branding%20with%20Pickup%20Truck-51cfb0bf9fdf-480.webp",
+      "800": "/images/optimized/51cfb0bf9fdf/company%20banner/Sunset%20Industrial%20Branding%20with%20Pickup%20Truck-51cfb0bf9fdf-800.webp",
+      "1200": "/images/optimized/51cfb0bf9fdf/company%20banner/Sunset%20Industrial%20Branding%20with%20Pickup%20Truck-51cfb0bf9fdf-1200.webp",
+      "1600": "/images/optimized/51cfb0bf9fdf/company%20banner/Sunset%20Industrial%20Branding%20with%20Pickup%20Truck-51cfb0bf9fdf-1600.webp",
+      "1983": "/images/optimized/51cfb0bf9fdf/company%20banner/Sunset%20Industrial%20Branding%20with%20Pickup%20Truck-51cfb0bf9fdf-1983.webp"
+    }
+  },
+  "/images/company%20banner/Sunset%20Steel%20Yard%20with%20High-Visibility%20Worker.png": {
+    "width": 1672,
+    "height": 941,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1200,
+      1600,
+      1672
+    ],
+    "sources": {
+      "160": "/images/optimized/12ee3ee1f565/company%20banner/Sunset%20Steel%20Yard%20with%20High-Visibility%20Worker-12ee3ee1f565-160.webp",
+      "320": "/images/optimized/12ee3ee1f565/company%20banner/Sunset%20Steel%20Yard%20with%20High-Visibility%20Worker-12ee3ee1f565-320.webp",
+      "480": "/images/optimized/12ee3ee1f565/company%20banner/Sunset%20Steel%20Yard%20with%20High-Visibility%20Worker-12ee3ee1f565-480.webp",
+      "800": "/images/optimized/12ee3ee1f565/company%20banner/Sunset%20Steel%20Yard%20with%20High-Visibility%20Worker-12ee3ee1f565-800.webp",
+      "1200": "/images/optimized/12ee3ee1f565/company%20banner/Sunset%20Steel%20Yard%20with%20High-Visibility%20Worker-12ee3ee1f565-1200.webp",
+      "1600": "/images/optimized/12ee3ee1f565/company%20banner/Sunset%20Steel%20Yard%20with%20High-Visibility%20Worker-12ee3ee1f565-1600.webp",
+      "1672": "/images/optimized/12ee3ee1f565/company%20banner/Sunset%20Steel%20Yard%20with%20High-Visibility%20Worker-12ee3ee1f565-1672.webp"
+    }
+  },
+  "/images/company%20banner/Swedish%20Coastal%20Craftsmanship%20Banner.png": {
+    "width": 1983,
+    "height": 793,
+    "widths": [
+      160,
+      320,
+      480,
+      800,
+      1200,
+      1600,
+      1983
+    ],
+    "sources": {
+      "160": "/images/optimized/9ba6e979ce46/company%20banner/Swedish%20Coastal%20Craftsmanship%20Banner-9ba6e979ce46-160.webp",
+      "320": "/images/optimized/9ba6e979ce46/company%20banner/Swedish%20Coastal%20Craftsmanship%20Banner-9ba6e979ce46-320.webp",
+      "480": "/images/optimized/9ba6e979ce46/company%20banner/Swedish%20Coastal%20Craftsmanship%20Banner-9ba6e979ce46-480.webp",
+      "800": "/images/optimized/9ba6e979ce46/company%20banner/Swedish%20Coastal%20Craftsmanship%20Banner-9ba6e979ce46-800.webp",
+      "1200": "/images/optimized/9ba6e979ce46/company%20banner/Swedish%20Coastal%20Craftsmanship%20Banner-9ba6e979ce46-1200.webp",
+      "1600": "/images/optimized/9ba6e979ce46/company%20banner/Swedish%20Coastal%20Craftsmanship%20Banner-9ba6e979ce46-1600.webp",
+      "1983": "/images/optimized/9ba6e979ce46/company%20banner/Swedish%20Coastal%20Craftsmanship%20Banner-9ba6e979ce46-1983.webp"
+    }
+  }
+}

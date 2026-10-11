@@ -22,6 +22,8 @@ import PublicSiteFooter from '../components/layout/PublicSiteFooter';
 import PublicSiteHeader from '../components/layout/PublicSiteHeader';
 import PublicImageViewer from '../components/layout/PublicImageViewer';
 import ApprovedFeedback from '../components/feedback/ApprovedFeedback';
+import OptimizedImage from '../components/ui/OptimizedImage';
+import { getOptimizedImageUrl } from '../utils/imageSources';
 import { landingMedia } from '../config/landingMedia';
 import { useLanguage } from '../context/LanguageContext';
 import './Home.css';
@@ -160,11 +162,12 @@ export default function Home() {
               key={image}
               style={{ flexBasis: `${100 / landingMedia.heroBanners.length}%` }}
             >
-              <img
+              <OptimizedImage
                 src={image}
                 alt=""
-                loading="eager"
-                fetchPriority={index === 0 ? 'high' : 'auto'}
+                loading={index === 0 ? 'eager' : 'lazy'}
+                fetchPriority={index === 0 ? 'high' : undefined}
+                sizes="100vw"
               />
             </div>
           ))}
@@ -212,11 +215,14 @@ export default function Home() {
               <button
                 className="tj-service-image"
                 type="button"
-                style={{ '--service-photo': `url("${landingMedia.services[index]}")` }}
                 onClick={() => setSelectedServiceIndex(index)}
                 aria-label={tp(`View ${title} image`)}
               >
-                <img src={landingMedia.services[index]} alt="" loading="lazy" />
+                <OptimizedImage
+                  src={landingMedia.services[index]}
+                  alt=""
+                  sizes="(max-width: 760px) 100vw, 33vw"
+                />
                 <span className="tj-service-icon"><Icon size={20} strokeWidth={1.6} /></span>
               </button>
               <div className="tj-service-copy">
@@ -243,15 +249,17 @@ export default function Home() {
           <div className="tj-service-lightbox-content">
             <div
               className="tj-service-lightbox-stage"
-              style={{ '--service-photo': `url("${landingMedia.services[selectedServiceIndex]}")` }}
+              style={{ '--service-photo': `url("${getOptimizedImageUrl(landingMedia.services[selectedServiceIndex])}")` }}
             >
               <div className="tj-service-lightbox-topline">
                 <span>{tp('Tjädertuppen · Service gallery')}</span>
                 <span>{String(selectedServiceIndex + 1).padStart(2, '0')} / {String(services.length).padStart(2, '0')}</span>
               </div>
-              <img
+              <OptimizedImage
                 src={landingMedia.services[selectedServiceIndex]}
                 alt={tp(`${services[selectedServiceIndex].title} service`)}
+                loading="eager"
+                sizes="(max-width: 760px) 100vw, 72vw"
               />
               <button
                 className="tj-service-lightbox-arrow is-previous"
@@ -296,7 +304,11 @@ export default function Home() {
                     aria-label={tp(`Show ${service.title} image`)}
                     aria-current={index === selectedServiceIndex ? 'true' : undefined}
                   >
-                    <img src={landingMedia.services[index]} alt="" />
+                    <OptimizedImage
+                      src={landingMedia.services[index]}
+                      alt=""
+                      sizes="100px"
+                    />
                     <span>{tp(service.title)}</span>
                   </button>
                 ))}
@@ -325,14 +337,22 @@ export default function Home() {
           </ul>
         </div>
         <figure className="tj-about-photo">
-          <img src={landingMedia.company.worker} alt={tp("Tjädertuppen worker wearing the company's branded high-visibility jacket")} />
+          <OptimizedImage
+            src={landingMedia.company.worker}
+            alt={tp("Tjädertuppen worker wearing the company's branded high-visibility jacket")}
+            sizes="(max-width: 700px) 100vw, 50vw"
+          />
           <figcaption><span>{tp('Our people. Our standard.')}</span><span>01 / {tp('SWEDEN')}</span></figcaption>
         </figure>
       </section>
 
       <section className="tj-why tj-section" data-header-theme="light">
         <div className="tj-why-photo">
-          <img src={landingMedia.company.vehicle} alt={tp('Tjädertuppen branded service vehicle')} loading="lazy" />
+          <OptimizedImage
+            src={landingMedia.company.vehicle}
+            alt={tp('Tjädertuppen branded service vehicle')}
+            sizes="(max-width: 700px) 100vw, 50vw"
+          />
           <span className="tj-photo-label"><Truck size={15} /> {tp('Ready when the work calls')}</span>
         </div>
         <div className="tj-why-copy">
@@ -359,7 +379,12 @@ export default function Home() {
         <div className="tj-company-gallery">
           {companyGallery.map((item, index) => (
             <figure className={`tj-company-image ${item.kind}`} key={item.title}>
-              <img src={item.image} alt={tp(item.title)} className={`fit-${item.fit}`} loading="lazy" />
+              <OptimizedImage
+                src={item.image}
+                alt={tp(item.title)}
+                className={`fit-${item.fit}`}
+                sizes="(max-width: 700px) 50vw, 33vw"
+              />
               <figcaption><span>0{index + 1}</span>{tp(item.title)}<ArrowUpRight size={15} /></figcaption>
             </figure>
           ))}

@@ -4,6 +4,7 @@ import { ArrowRight, ChevronDown, Menu, X } from 'lucide-react';
 import PublicNavbar from './PublicNavbar';
 import { useLanguage } from '../../context/LanguageContext';
 import { publicProjects, publicServices } from '../../config/publicCatalog';
+import OptimizedImage from '../ui/OptimizedImage';
 
 const navigation = [
   { label: 'Home', to: '/', end: true, type: 'link' },
@@ -163,7 +164,7 @@ export default function PublicSiteHeader({ variant = 'page' }) {
                         onClick={() => { setOpenDropdown(''); setMenuOpen(false); }}
                       >
                         <span className="tj-nav-dropdown-thumb">
-                          <img src={image ?? images[0]} alt="" />
+                          <OptimizedImage src={image ?? images[0]} alt="" sizes="58px" />
                           <span><ItemIcon size={14} /></span>
                         </span>
                         <span className="tj-nav-dropdown-copy">

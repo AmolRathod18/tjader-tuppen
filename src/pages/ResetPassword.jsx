@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, CheckCircle2, LockKeyhole } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import PublicNavbar from '../components/layout/PublicNavbar';
+import OptimizedImage from '../components/ui/OptimizedImage';
 import logo from '../assets/TJADERTUPPEN_Logo.jpeg';
 
 export default function ResetPassword() {
@@ -109,7 +110,7 @@ export default function ResetPassword() {
 
         <div className="login-card auth-card-compact">
           <div className="login-logo">
-            <img src={logo} alt="TJÄDERTUPPEN" className="login-brand-logo" />
+            <OptimizedImage src={logo} alt="TJÄDERTUPPEN" className="login-brand-logo" loading="eager" />
             <div className="login-logo-text">
               <h2>TJÄDERTUPPEN</h2>
               <span>Admin portal</span>

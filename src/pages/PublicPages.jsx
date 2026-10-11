@@ -15,6 +15,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
+import OptimizedImage from '../components/ui/OptimizedImage';
 import { landingMedia } from '../config/landingMedia';
 import { useLanguage } from '../context/LanguageContext';
 import { publicProjects, publicServices } from '../config/publicCatalog';
@@ -109,7 +110,13 @@ function PublicPageHero({ eyebrow, title, accent, description, image, imageAlt }
         <p>{tp(description)}</p>
       </div>
       <div className="tj-public-hero-image">
-        <img src={image} alt={tp(imageAlt)} />
+        <OptimizedImage
+          src={image}
+          alt={tp(imageAlt)}
+          loading="eager"
+          fetchPriority="high"
+          sizes="(max-width: 760px) 100vw, 50vw"
+        />
         <span className="tj-public-image-mark">TJ / SVETS &amp; KONSULT</span>
       </div>
     </section>
@@ -149,7 +156,11 @@ export function AboutPage() {
         </div>
       </section>
       <section className="tj-about-band" data-header-theme="dark">
-        <img src={landingMedia.company.vehicleArtwork} alt={tp('Tjädertuppen branded service vehicle')} loading="lazy" />
+        <OptimizedImage
+          src={landingMedia.company.vehicleArtwork}
+          alt={tp('Tjädertuppen branded service vehicle')}
+          sizes="100vw"
+        />
         <div><p className="tj-eyebrow tj-eyebrow-light"><span /> Svets &amp; Konsult</p><h2>{tp('Ready when')}<br />{tp('the work calls.')}</h2></div>
       </section>
       <PageContactPrompt />
@@ -170,7 +181,9 @@ export function ServicesPage() {
       <section className="tj-public-services tj-section" data-header-theme="light">
         {services.map(({ number, title, description, image, icon: Icon }) => (
           <article className="tj-public-service" key={number}>
-            <div className="tj-public-service-photo"><img src={image} alt="" loading="lazy" /></div>
+            <div className="tj-public-service-photo">
+              <OptimizedImage src={image} alt="" sizes="(max-width: 760px) 100vw, 50vw" />
+            </div>
             <div className="tj-public-service-copy">
               <span className="tj-public-service-number">{number}</span>
               <Icon size={21} strokeWidth={1.6} />
@@ -199,7 +212,11 @@ export function ProjectsPage() {
       <section className="tj-project-grid tj-section" data-header-theme="dark">
         {projects.map(({ title, category, image, alt, className = '' }, index) => (
           <figure className={`tj-project ${className}`} key={title}>
-            <img src={image} alt={tp(alt)} loading="lazy" />
+            <OptimizedImage
+              src={image}
+              alt={tp(alt)}
+              sizes="(max-width: 700px) 50vw, 33vw"
+            />
             <figcaption><span>0{index + 1} / {tp(category)}</span><strong>{tp(title)}</strong><ArrowUpRight size={17} /></figcaption>
           </figure>
         ))}
@@ -230,10 +247,12 @@ export function ContactPage() {
   return (
     <>
       <section className="tj-contact-page" data-header-theme="dark">
-        <img
+        <OptimizedImage
           className="tj-contact-banner-image"
           src={landingMedia.company.worker}
           alt={tp('Tjädertuppen worker on an industrial service site')}
+          loading="eager"
+          sizes="(max-width: 760px) 100vw, 55vw"
         />
         <div className="tj-contact-image-note">
           <span className="tj-contact-image-note-icon"><MapPin size={17} /></span>
@@ -341,7 +360,13 @@ export function PublicDetailPage({ type }) {
   return (
     <>
       <section className="tj-detail-hero" data-header-theme="dark">
-        <img className="tj-detail-hero-image" src={item.images[0]} alt="" />
+        <OptimizedImage
+          className="tj-detail-hero-image"
+          src={item.images[0]}
+          alt=""
+          loading="eager"
+          sizes="(max-width: 760px) 100vw, 60vw"
+        />
         <div className="tj-detail-hero-shade" />
         <div className="tj-detail-hero-copy">
           <p className="tj-eyebrow tj-eyebrow-light"><span /> {tp(category)} / Tjädertuppen Svets &amp; Konsult</p>
@@ -388,7 +413,11 @@ export function PublicDetailPage({ type }) {
         <div className="tj-detail-gallery-grid">
           {item.images.map((image, index) => (
             <figure key={image}>
-              <img src={image} alt={`${tp(item.title)} — ${index + 1}`} loading="lazy" />
+              <OptimizedImage
+                src={image}
+                alt={`${tp(item.title)} — ${index + 1}`}
+                sizes="(max-width: 700px) 50vw, 33vw"
+              />
               <figcaption><span>0{index + 1}</span> / {tp(item.title)}</figcaption>
             </figure>
           ))}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowUpRight, MapPin, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import OptimizedImage from '../ui/OptimizedImage';
 import logo from '../../assets/TJADERTUPPEN_Logo.jpeg';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -20,7 +21,7 @@ export default function PublicSiteFooter() {
       <div className="tj-footer-main">
         <div className="tj-footer-brand">
           <Link to="/" className="tj-footer-logo">
-            <img src={logo} alt="" />
+            <OptimizedImage src={logo} alt="" />
             <strong>TJÄDERTUPPEN<small>Svets &amp; Konsult</small></strong>
           </Link>
           <p>{tp('Professional welding, fabrication and industrial services. Skilled work, delivered reliably across Sweden.')}</p>

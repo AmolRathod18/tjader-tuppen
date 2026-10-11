@@ -3044,7 +3044,13 @@ select {
 }
 
 .employee-history-heading { margin-bottom: 16px; }
-.employee-history-heading > span {
+.employee-history-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto !important;
+}
+.employee-history-heading-actions > span {
   padding: 5px 9px;
   border-radius: 999px;
   background: var(--color-primary-light);
@@ -3112,6 +3118,10 @@ select {
   .employee-history-heading > div {
     min-width: 0;
     flex: 1 1 220px;
+  }
+
+  .employee-history-heading-actions {
+    justify-content: flex-end;
   }
 
   .employee-history-item,

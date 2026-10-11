@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowUpRight, House, LockKeyhole } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
+import OptimizedImage from '../ui/OptimizedImage';
 import logo from '../../assets/TJADERTUPPEN_Logo.jpeg';
 import FeedbackWidget from '../feedback/FeedbackWidget';
 
@@ -16,7 +17,7 @@ export default function PublicNavbar() {
   return (
     <nav className="public-nav" aria-label={tp('Public navigation')}>
       <Link to="/" className="public-nav-brand">
-        <span className="public-nav-mark"><img src={logo} alt="" /></span>
+        <span className="public-nav-mark"><OptimizedImage src={logo} alt="" loading="eager" /></span>
         <span>
           <strong>TJÄDERTUPPEN</strong>
           <small>{isLogin || isPublicPage ? 'Svets & Konsult' : tp('Management System')}</small>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, CheckCircle2, Mail, ShieldCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import PublicNavbar from '../components/layout/PublicNavbar';
+import OptimizedImage from '../components/ui/OptimizedImage';
 import logo from '../assets/TJADERTUPPEN_Logo.jpeg';
 
 const RATE_LIMIT_MESSAGE = 'Password reset emails are temporarily rate-limited. Please wait 2–3 hours before trying again.';
@@ -90,7 +91,7 @@ export default function ForgotPassword() {
 
         <div className="login-card auth-card-compact">
           <div className="login-logo">
-            <img src={logo} alt="TJÄDERTUPPEN" className="login-brand-logo" />
+            <OptimizedImage src={logo} alt="TJÄDERTUPPEN" className="login-brand-logo" loading="eager" />
             <div className="login-logo-text">
               <h2>TJÄDERTUPPEN</h2>
               <span>Admin portal</span>

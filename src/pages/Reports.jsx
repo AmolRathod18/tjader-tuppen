@@ -11,6 +11,7 @@ import jsPDF from 'jspdf';
 import logoUrl from '../assets/TJADERTUPPEN_Logo.jpeg';
 import { calculateShiftHours, getWorkEntryBreakdown, getWeeklyHours } from '../utils/workHours';
 import { addCalendarDays, formatIsoCalendarDate, formatIsoWeekPeriod, getIsoWeekInfo, getIsoWeekPeriodLabels } from '../utils/isoWeek';
+import { getDailyDescription, getWeekendNote, getWorkEntryTravelDetails, getWorkHoursColumns, mapReportEntry } from '../utils/reportEntryFields';
 import { Modal } from '../components/ui/Modal';
 import DatePicker from '../components/ui/DatePicker';
 
@@ -218,9 +219,9 @@ function getLogoSize(logoData, maxWidth, maxHeight) {
 }
 
 async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditures, getProjectById, getCompanyById, getEmployeeById }) {
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const PW = 210;
-  const PH = 297;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const PW = 297;
+  const PH = 210;
   const M = 8;
   const CW = PW - M * 2;
   const logoData = await loadLogoData(lang);
@@ -234,10 +235,8 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
   });
   const locale = lang === 'sv' ? 'sv-SE' : 'en-GB';
   const reportTitle = title.replace(/WORK REPORT|ARBETSRAPPORT/gi, lang === 'sv' ? 'RAPPORT' : 'REPORT');
-  const headers = lang === 'sv'
-    ? ['Datum', 'Företag / Projekt', 'Normal\n(tim)', 'ÖT\n(tim)', 'Helg\n(tim)', 'Resa KM', 'Resa tim']
-    : ['Date', 'Company / Project', 'Normal\n(h)', 'OT\n(h)', 'Weekend\n(h)', 'Travel KM', 'Travel Hrs'];
-  const columns = [26, 58, 24, 20, 24, 22, 20];
+  const columns = getWorkHoursColumns(lang, CW);
+  const headers = columns.map(column => column.label);
 
   const drawPageHeader = (employee) => {
     pdf.setFillColor(255, 255, 255);
@@ -274,21 +273,21 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
 
   const drawTableHeader = (y) => {
     pdf.setFillColor(31, 48, 65);
-    pdf.rect(M, y, CW, 14, 'F');
+    pdf.rect(M, y, CW, 12, 'F');
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(8.5);
     pdf.setTextColor(255, 255, 255);
     let x = M;
     headers.forEach((header, index) => {
       const lines = header.split('\n');
-      lines.forEach((line, lineIndex) => pdf.text(line, index > 1 ? x + columns[index] / 2 : x + 3, y + 6 + lineIndex * 4, { align: index > 1 ? 'center' : 'left' }));
+      lines.forEach((line, lineIndex) => pdf.text(line, index > 1 ? x + columns[index].width / 2 : x + 3, y + 5 + lineIndex * 3.5, { align: index > 1 ? 'center' : 'left' }));
       pdf.setDrawColor(128, 139, 148);
       pdf.setLineWidth(0.2);
-      pdf.line(x, y, x, y + 14);
-      x += columns[index];
+      pdf.line(x, y, x, y + 12);
+      x += columns[index].width;
     });
-    pdf.line(M + CW, y, M + CW, y + 14);
-    return y + 14;
+    pdf.line(M + CW, y, M + CW, y + 12);
+    return y + 12;
   };
 
   employeeIds.forEach((employeeId, employeeIndex) => {
@@ -299,17 +298,19 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
     const byDate = new Map();
     employeeEntries.forEach(entry => {
       const hours = getWorkEntryBreakdown(entry);
-      const row = byDate.get(entry.date) || { date: entry.date, project: '', normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: null };
+      const row = byDate.get(entry.date) || { date: entry.date, project: '', description: [], normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: null };
       const project = getProjectById(entry.projectId);
       const company = getCompanyById(entry.companyId || project?.companyId);
       row.project = [company?.name, project?.name].filter(Boolean).join(' / ') || '—';
+      const description = getDailyDescription(entry);
+      if (description) row.description.push(description);
       row.normal += hours.normalHours;
       row.overtime += hours.normalOvertime;
       row.weekend += hours.weekendOvertime;
       byDate.set(entry.date, row);
     });
     employeeExpenditures.forEach(item => {
-      const row = byDate.get(item.journeyDate) || { date: item.journeyDate, project: '', normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: null };
+      const row = byDate.get(item.journeyDate) || { date: item.journeyDate, project: '', description: [], normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: null };
       const project = getProjectById(item.projectId);
       const company = project ? getCompanyById(project.companyId) : null;
       if (!row.project) row.project = [company?.name, project?.name].filter(Boolean).join(' / ') || '—';
@@ -326,20 +327,26 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
       travelHours: sum.travelHours + (row.travelHours || 0),
       hasTravelHours: sum.hasTravelHours || row.travelHours != null,
     }), { normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: 0, hasTravelHours: false });
+    const weekendEntries = employeeEntries.filter(entry => getWorkEntryBreakdown(entry).weekendOvertime > 0);
+    const weekendNoteText = weekendEntries.length
+      ? weekendEntries.map(entry => {
+          const dateLabel = new Date(`${entry.date}T00:00:00`).toLocaleDateString(locale, { day: '2-digit', month: 'short' });
+          const note = getWeekendNote(entry);
+          return note ? `${dateLabel}: ${note}` : `${dateLabel}: —`;
+        }).join('  •  ')
+      : (lang === 'sv' ? 'Inga helgnoteringar för denna period.' : 'No weekend notes for this period.');
+    const noteColumnWidth = CW * 0.43;
+    const weekendNoteLines = pdf.splitTextToSize(weekendNoteText, noteColumnWidth - 8);
+    const weekendNoteBoxHeight = Math.max(25, 12 + weekendNoteLines.length * 3.8);
+    const finalBlockHeight = 12 + 3 + Math.max(31, weekendNoteBoxHeight) + 2;
 
     drawPageHeader(employee);
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(15);
     pdf.setTextColor(15, 23, 42);
-    pdf.text(lang === 'sv' ? '1. Veckotid och resor' : '1. Weekly Working Hours & Travel', M, 66);
-    let y = drawTableHeader(72);
+    pdf.text(lang === 'sv' ? 'Veckotid och resor' : 'Weekly Working Hours & Travel', M, 60);
+    let y = drawTableHeader(65);
     rows.forEach((row, index) => {
-      const rowHeight = 13;
-      pdf.setFillColor(index % 2 ? 247 : 255, index % 2 ? 249 : 255, index % 2 ? 251 : 255);
-      pdf.rect(M, y, CW, rowHeight, 'F');
-      pdf.setDrawColor(220, 226, 231);
-      pdf.setLineWidth(0.2);
-      pdf.rect(M, y, CW, rowHeight, 'S');
       const values = [
         new Date(`${row.date}T00:00:00`).toLocaleDateString(locale),
         row.project || '—',
@@ -348,75 +355,102 @@ async function buildEmployeeWisePDF({ lang, title, subtitle, entries, expenditur
         row.weekend.toFixed(1),
         row.kilometers.toLocaleString(),
         row.travelHours == null ? '—' : row.travelHours.toFixed(2).replace(/0$/, ''),
+        row.description.join(' • ') || '—',
       ];
-      let x = M;
-      values.forEach((value, valueIndex) => {
+      const lines = values.map((value, valueIndex) => {
         pdf.setFont('helvetica', valueIndex === 1 ? 'bold' : 'normal');
-        pdf.setFontSize(9.5);
+        pdf.setFontSize(9);
+        return pdf.splitTextToSize(String(value), columns[valueIndex].width - 6);
+      });
+      const rowHeight = Math.max(10, 4 + Math.max(...lines.map(cellLines => cellLines.length)) * 3.5);
+      const isLastRow = index === rows.length - 1;
+      const reservedHeight = isLastRow
+        ? (y + rowHeight + finalBlockHeight <= PH - 18 ? finalBlockHeight : 12)
+        : 0;
+      if (y + rowHeight + reservedHeight > PH - 18) {
+        pdf.addPage();
+        drawPageHeader(employee);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(15);
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(lang === 'sv' ? 'Veckotid och resor' : 'Weekly Working Hours & Travel', M, 60);
+        y = drawTableHeader(65);
+      }
+      pdf.setFillColor(index % 2 ? 247 : 255, index % 2 ? 249 : 255, index % 2 ? 251 : 255);
+      pdf.rect(M, y, CW, rowHeight, 'F');
+      pdf.setDrawColor(220, 226, 231);
+      pdf.setLineWidth(0.2);
+      pdf.rect(M, y, CW, rowHeight, 'S');
+      let x = M;
+      lines.forEach((cellLines, valueIndex) => {
+        pdf.setFont('helvetica', valueIndex === 1 ? 'bold' : 'normal');
+        pdf.setFontSize(9);
         pdf.setTextColor(24, 29, 33);
-        pdf.text(String(value), valueIndex > 1 ? x + columns[valueIndex] / 2 : x + 4, y + 8, { align: valueIndex > 1 ? 'center' : 'left' });
+        cellLines.forEach((line, lineIndex) => {
+          const centered = valueIndex >= 2 && valueIndex < 7;
+          pdf.text(line, centered ? x + columns[valueIndex].width / 2 : x + 3, y + 4 + lineIndex * 3.5, { align: centered ? 'center' : 'left' });
+        });
         pdf.line(x, y, x, y + rowHeight);
-        x += columns[valueIndex];
+        x += columns[valueIndex].width;
       });
       y += rowHeight;
     });
+    if (y + 12 > PH - 18) {
+      pdf.addPage();
+      drawPageHeader(employee);
+      y = drawTableHeader(65);
+    }
     pdf.setFillColor(231, 239, 247);
     pdf.rect(M, y, CW, 12, 'F');
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(10);
     pdf.setTextColor(15, 23, 42);
     pdf.text(lang === 'sv' ? 'TOTALT' : 'TOTAL', M + 4, y + 8);
-    let totalX = M + columns[0] + columns[1];
+    let totalX = M + columns[0].width + columns[1].width;
     [totals.normal, totals.overtime, totals.weekend, totals.kilometers, totals.hasTravelHours ? totals.travelHours : null].forEach((value, index) => {
       const columnIndex = index + 2;
       const formattedValue = value == null ? '—' : index > 2 ? (index === 3 ? value.toLocaleString() : value.toFixed(2).replace(/0$/, '')) : value.toFixed(1);
-      pdf.text(formattedValue, totalX + columns[columnIndex] / 2, y + 8, { align: 'center' });
-      totalX += columns[columnIndex];
+      pdf.text(formattedValue, totalX + columns[columnIndex].width / 2, y + 8, { align: 'center' });
+      totalX += columns[columnIndex].width;
     });
-    y += 18;
-
-    const weekendEntries = entries.filter(entry => getWorkEntryBreakdown(entry).weekendOvertime > 0);
-    const weekendNoteText = weekendEntries.length
-      ? weekendEntries.map(entry => {
-          const dateLabel = new Date(`${entry.date}T00:00:00`).toLocaleDateString(locale, { day: '2-digit', month: 'short' });
-          const note = (entry.remarks || entry.description || '').trim();
-          return note ? `${dateLabel}: ${note}` : `${dateLabel}: ${lang === 'sv' ? 'Helgnoteringar' : 'Weekend notes'}`;
-        }).join('  •  ')
-      : (lang === 'sv' ? 'Inga helgnoteringar för denna period.' : 'No weekend notes for this period.');
-    const weekendNoteLines = pdf.splitTextToSize(weekendNoteText, CW - 20);
-    const weekendNoteBoxHeight = 16 + weekendNoteLines.length * 4.5;
+    y += 15;
+    if (y + Math.max(31, weekendNoteBoxHeight) > PH - 18) {
+      pdf.addPage();
+      drawPageHeader(employee);
+      y = 66;
+    }
+    const summaryX = M + noteColumnWidth + 5;
+    const summaryWidth = (CW - noteColumnWidth - 5) / 2;
     pdf.setFillColor(245, 248, 252);
-    pdf.roundedRect(M, y, CW, weekendNoteBoxHeight, 2, 2, 'F');
+    pdf.roundedRect(M, y, noteColumnWidth, weekendNoteBoxHeight, 2, 2, 'F');
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
     pdf.setTextColor(15, 23, 42);
-    pdf.text(lang === 'sv' ? 'HELGNOTERINGAR' : 'WEEKEND NOTES', M + 4, y + 8);
+    pdf.text(lang === 'sv' ? 'HELGNOTERINGAR' : 'WEEKEND NOTES', M + 4, y + 7);
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8.5);
     pdf.setTextColor(61, 75, 87);
-    pdf.text(weekendNoteLines, M + 4, y + 15);
-    y += weekendNoteBoxHeight + 10;
-
-    pdf.setDrawColor(157, 169, 178);
-    pdf.line(M, y, PW - M, y);
-    pdf.setFontSize(15);
-    pdf.text(lang === 'sv' ? '2. Veckosammanfattning' : '2. Weekly Totals', M, y + 11);
-    const boxY = y + 18;
-    const boxW = (CW - 6) / 2;
-    pdf.setFillColor(235, 245, 255);
-    pdf.roundedRect(M, boxY, boxW, 23, 2, 2, 'F');
-    pdf.setFillColor(232, 247, 237);
-    pdf.roundedRect(M + boxW + 6, boxY, boxW, 23, 2, 2, 'F');
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(10);
-    pdf.setTextColor(61, 75, 87);
-    pdf.text(lang === 'sv' ? 'Total arbetstid' : 'Total Work Hours', M + 24, boxY + 8);
-    pdf.text(lang === 'sv' ? 'Total resa' : 'Total Travel', M + boxW + 30, boxY + 8);
+    pdf.text(weekendNoteLines, M + 4, y + 14);
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(17);
+    pdf.setFontSize(11);
     pdf.setTextColor(15, 23, 42);
-    pdf.text(`${(totals.normal + totals.overtime + totals.weekend).toFixed(1)} h`, M + 24, boxY + 17);
-    pdf.text(`${totals.kilometers.toLocaleString()} KM / ${totals.hasTravelHours ? `${totals.travelHours.toFixed(2).replace(/0$/, '')} hr` : '—'}`, M + boxW + 30, boxY + 17);
+    pdf.text(lang === 'sv' ? 'Veckosammanfattning' : 'Weekly Totals', summaryX, y + 6);
+    [
+      { label: lang === 'sv' ? 'Total arbetstid' : 'Total Work Hours', value: `${(totals.normal + totals.overtime + totals.weekend).toFixed(1)} h`, fill: [235, 245, 255] },
+      { label: lang === 'sv' ? 'Total resa' : 'Total Travel', value: `${totals.kilometers.toLocaleString()} KM / ${totals.hasTravelHours ? `${totals.travelHours.toFixed(2).replace(/0$/, '')} hr` : '—'}`, fill: [232, 247, 237] },
+    ].forEach((summary, index) => {
+      const cardX = summaryX + index * (summaryWidth + 4);
+      pdf.setFillColor(...summary.fill);
+      pdf.roundedRect(cardX, y + 10, summaryWidth, 21, 2, 2, 'F');
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(61, 75, 87);
+      pdf.text(summary.label, cardX + 4, y + 17);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(13);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(summary.value, cardX + 4, y + 26);
+    });
     pdf.setDrawColor(157, 169, 178);
     pdf.line(M, PH - 18, PW - M, PH - 18);
     pdf.setFont('helvetica', 'normal');
@@ -720,7 +754,7 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
         const hours = getWorkEntryBreakdown(entry);
         return `${hours.normalHours.toFixed(1)} + ${hours.normalOvertime.toFixed(1)} + ${hours.weekendOvertime.toFixed(1)} h`;
       })(),
-      entry.description || '—',
+      getDailyDescription(entry) || '—',
     ];
     const descriptionText = String(cellValues[5]);
     const descriptionFontSize = Math.max(7.2, Math.min(10, 10 - Math.max(0, descriptionText.length - 32) * 0.08));
@@ -893,10 +927,10 @@ async function buildPDF({ lang, title, subtitle, entries, expenditures, getProje
 }
 
 async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, rangeStart, rangeEnd, getProjectById, getCompanyById, getEmployeeById }) {
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const pageWidth = 210;
-  const pageHeight = 297;
-  const margin = 10;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const pageWidth = 297;
+  const pageHeight = 210;
+  const margin = 8;
   const contentWidth = pageWidth - margin * 2;
   const logoData = await loadLogoData(lang);
   const periodName = period === 'daily' ? (lang === 'sv' ? 'Daglig' : 'Daily') : period === 'monthly' ? (lang === 'sv' ? 'Månads' : 'Monthly') : period === 'custom' ? (lang === 'sv' ? 'Anpassad' : 'Custom') : (lang === 'sv' ? 'Vecko' : 'Weekly');
@@ -916,7 +950,7 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       .sort();
   };
 
-  const drawHeader = (employee) => {
+  const drawHeader = (employee, monthlySummary = null, showMonthlyEmployeeDetails = true) => {
     pdf.setFillColor(255, 255, 255);
     pdf.rect(0, 0, pageWidth, pageHeight, 'F');
     const logoSize = getLogoSize(logoData, 62, 20);
@@ -935,17 +969,61 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     pdf.setLineWidth(0.35);
     pdf.line(margin, 35, pageWidth - margin, 35);
 
-    pdf.setFillColor(247, 248, 249);
-    pdf.roundedRect(margin, 40, contentWidth, 15, 1.5, 1.5, 'F');
-    pdf.setFontSize(8);
-    pdf.setTextColor(92, 101, 109);
-    pdf.text(lang === 'sv' ? 'MEDARBETARE' : 'EMPLOYEE', margin + 4, 46);
-    pdf.text(lang === 'sv' ? 'MEDARBETAR-ID' : 'EMPLOYEE ID', pageWidth - margin - 23, 46, { align: 'right' });
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(11);
-    pdf.setTextColor(24, 29, 33);
-    pdf.text(employee?.name || (lang === 'sv' ? 'Okänd medarbetare' : 'Unknown employee'), margin + 4, 52);
-    pdf.text(formatEmployeeCode(employee), pageWidth - margin - 4, 52, { align: 'right' });
+    if (period === 'monthly') {
+      if (showMonthlyEmployeeDetails) {
+        const employeeX = 57;
+        const employeeIdX = 88;
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(92, 101, 109);
+        pdf.text(lang === 'sv' ? 'MEDARBETARE' : 'EMPLOYEE', employeeX, 14);
+        pdf.text(lang === 'sv' ? 'MEDARBETAR-ID' : 'EMPLOYEE ID', employeeIdX, 14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9);
+        pdf.setTextColor(24, 29, 33);
+        const employeeName = employee?.name || (lang === 'sv' ? 'Okänd medarbetare' : 'Unknown employee');
+        pdf.text(pdf.splitTextToSize(employeeName, 29), employeeX, 21);
+        pdf.text(formatEmployeeCode(employee), employeeIdX, 21);
+      }
+
+      if (monthlySummary) {
+        const summaryX = 123;
+        const summaryWidth = 105;
+        const summaryGap = 4;
+        const cardWidth = (summaryWidth - summaryGap) / 2;
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(lang === 'sv' ? 'MÅNADSSAMMANFATTNING' : 'MONTHLY TOTALS', summaryX, 11);
+        [
+          { label: lang === 'sv' ? 'Total arbetstid' : 'Total Work Hours', value: `${monthlySummary.totalHours.toFixed(1)} h`, fill: [236, 245, 255] },
+          { label: lang === 'sv' ? 'Total resa' : 'Total Travel', value: `${Math.round(monthlySummary.totals.kilometers)} km -> ${monthlySummary.totals.hasTravelHours ? `${monthlySummary.totals.travelHours.toFixed(2).replace(/\.00$/, '')} h` : '—'}`, fill: [237, 249, 241] },
+        ].forEach((summary, index) => {
+          const cardX = summaryX + index * (cardWidth + summaryGap);
+          pdf.setFillColor(...summary.fill);
+          pdf.roundedRect(cardX, 14, cardWidth, 16, 1.5, 1.5, 'F');
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(7);
+          pdf.setTextColor(70, 80, 88);
+          pdf.text(summary.label, cardX + 3, 19);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(9.5);
+          pdf.setTextColor(15, 23, 42);
+          pdf.text(summary.value, cardX + 3, 26);
+        });
+      }
+    } else {
+      pdf.setFillColor(247, 248, 249);
+      pdf.roundedRect(margin, 40, contentWidth, 15, 1.5, 1.5, 'F');
+      pdf.setFontSize(8);
+      pdf.setTextColor(92, 101, 109);
+      pdf.text(lang === 'sv' ? 'MEDARBETARE' : 'EMPLOYEE', margin + 4, 46);
+      pdf.text(lang === 'sv' ? 'MEDARBETAR-ID' : 'EMPLOYEE ID', pageWidth - margin - 23, 46, { align: 'right' });
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(11);
+      pdf.setTextColor(24, 29, 33);
+      pdf.text(employee?.name || (lang === 'sv' ? 'Okänd medarbetare' : 'Unknown employee'), margin + 4, 52);
+      pdf.text(formatEmployeeCode(employee), pageWidth - margin - 4, 52, { align: 'right' });
+    }
   };
 
   const drawFooter = (page, totalPages) => {
@@ -962,7 +1040,6 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
   const drawPage = (group, isFirstPage) => {
     if (!isFirstPage) pdf.addPage();
     const employee = getEmployeeById(group.employeeId);
-    drawHeader(employee);
     const entries = group.entries;
     const expenditures = group.expenditures;
     const dates = getDates(entries, expenditures);
@@ -992,7 +1069,15 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       const travelHours = enteredTravelHours.length
         ? enteredTravelHours.reduce((sum, item) => sum + Number(item.hours), 0)
         : null;
-      return { date, project, company, hours, kilometers, travelHours };
+      return {
+        date,
+        project,
+        company,
+        description: dateEntries.map(getDailyDescription).filter(Boolean).join(' • '),
+        hours,
+        kilometers,
+        travelHours,
+      };
     });
     const totals = rows.reduce((sum, row) => ({
       normal: sum.normal + row.hours.normal,
@@ -1003,106 +1088,124 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       hasTravelHours: sum.hasTravelHours || row.travelHours != null,
     }), { normal: 0, overtime: 0, weekend: 0, kilometers: 0, travelHours: 0, hasTravelHours: false });
     const totalHours = totals.normal + totals.overtime + totals.weekend;
-
-    const sectionTitleY = 68;
+    const monthlySummary = period === 'monthly' ? { totals, totalHours } : null;
+    drawHeader(employee, monthlySummary);
+    const sectionTitleY = period === 'monthly' ? 40 : 59;
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(16);
     pdf.setTextColor(15, 23, 42);
-    pdf.text(`1. ${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin + 1, sectionTitleY);
+    pdf.text(`${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin + 1, sectionTitleY);
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(7.5);
     pdf.setTextColor(72, 81, 88);
     weekPeriods.forEach((weekPeriod, index) => {
-      const y = sectionTitleY + 7 + index * 7;
+      const y = sectionTitleY + 7 + index * 4.2;
       pdf.text(`${lang === 'sv' ? 'Vecka' : 'Week'} ${String(weekPeriod.week).padStart(2, '0')} (${weekPeriod.weekYear})`, margin + 1, y);
       const locale = lang === 'sv' ? 'sv-SE' : 'en-GB';
       const monday = formatIsoCalendarDate(weekPeriod.startDate, locale);
       const sunday = formatIsoCalendarDate(weekPeriod.endDate, locale);
-      pdf.text(`Period: ${monday} – ${sunday}`, margin + 1, y + 3.5);
+      pdf.text(`Period: ${monday} – ${sunday}`, margin + 31, y);
     });
 
-    const columns = [
-      { label: lang === 'sv' ? 'Datum' : 'Date', width: 28 },
-      { label: lang === 'sv' ? 'Företag / Projekt' : 'Company / Project', width: 58 },
-      { label: lang === 'sv' ? 'Ordinarie\n(tim)' : 'Normal\n(h)', width: 20 },
-      { label: lang === 'sv' ? 'Övertid\n(tim)' : 'OT\n(h)', width: 18 },
-      { label: lang === 'sv' ? 'Helg\n(tim)' : 'Weekend\n(h)', width: 24 },
-      { label: lang === 'sv' ? 'Resa km' : 'Travel KM', width: 22 },
-      { label: lang === 'sv' ? 'Restid' : 'Travel Hrs', width: 20 },
-    ];
-    const tableTop = Math.max(81, sectionTitleY + 12 + weekPeriods.length * 7);
-    const headerHeight = 14;
-    const rowHeight = 13;
-    let x = margin;
-    pdf.setFillColor(31, 48, 65);
-    pdf.rect(margin, tableTop, contentWidth, headerHeight, 'F');
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(8.5);
-    pdf.setTextColor(255, 255, 255);
-    columns.forEach(column => {
-      const lines = column.label.split('\n');
-      lines.forEach((line, index) => pdf.text(line, x + column.width / 2, tableTop + 6 + index * 4, { align: 'center' }));
-      x += column.width;
-    });
-    let y = tableTop + headerHeight;
+    const columns = getWorkHoursColumns(lang, contentWidth);
+    const tableTop = Math.max(period === 'monthly' ? 54 : 73, sectionTitleY + 8 + weekPeriods.length * 4.2);
+    const headerHeight = 12;
+    const weekendNoteText = entries
+      .map(getWeekendNote)
+      .filter(Boolean)
+      .join(' • ') || (lang === 'sv' ? 'Inga helgnoteringar för denna period.' : 'No weekend notes for this period.');
+    const noteColumnWidth = period === 'monthly' ? contentWidth : contentWidth * 0.43;
+    const weekendNoteLines = pdf.splitTextToSize(weekendNoteText, noteColumnWidth - 8);
+    const weekendNoteBoxHeight = Math.max(25, 12 + weekendNoteLines.length * 3.8);
+    const bottomBlockHeight = Math.max(31, weekendNoteBoxHeight);
+    const totalRowHeight = 12;
+    const finalBlockHeight = totalRowHeight + 3 + bottomBlockHeight + 2;
+    const drawHoursTableHeader = headerY => {
+      let headerX = margin;
+      pdf.setFillColor(31, 48, 65);
+      pdf.rect(margin, headerY, contentWidth, headerHeight, 'F');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(255, 255, 255);
+      columns.forEach(column => {
+        column.label.split('\n').forEach((line, lineIndex) => {
+          pdf.text(line, headerX + column.width / 2, headerY + 5 + lineIndex * 3.5, { align: 'center' });
+        });
+        headerX += column.width;
+      });
+      return headerY + headerHeight;
+    };
+    let y = drawHoursTableHeader(tableTop);
     rows.forEach((row, index) => {
-      if (y + rowHeight > pageHeight - 58) {
-        pdf.addPage();
-        drawHeader(employee);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(16);
-        pdf.setTextColor(15, 23, 42);
-        pdf.text(`1. ${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin + 1, sectionTitleY);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(7.5);
-        pdf.setTextColor(72, 81, 88);
-        weekPeriods.forEach((weekPeriod, weekIndex) => {
-          const weekY = sectionTitleY + 7 + weekIndex * 7;
-          pdf.text(`${lang === 'sv' ? 'Vecka' : 'Week'} ${String(weekPeriod.week).padStart(2, '0')} (${weekPeriod.weekYear})`, margin + 1, weekY);
-          const locale = lang === 'sv' ? 'sv-SE' : 'en-GB';
-          const monday = formatIsoCalendarDate(weekPeriod.startDate, locale);
-          const sunday = formatIsoCalendarDate(weekPeriod.endDate, locale);
-          pdf.text(`Period: ${monday} – ${sunday}`, margin + 1, weekY + 3.5);
-        });
-        pdf.setFillColor(31, 48, 65);
-        pdf.rect(margin, tableTop, contentWidth, headerHeight, 'F');
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(8.5);
-        pdf.setTextColor(255, 255, 255);
-        let headerX = margin;
-        columns.forEach(column => {
-          column.label.split('\n').forEach((line, lineIndex) => pdf.text(line, headerX + column.width / 2, tableTop + 6 + lineIndex * 4, { align: 'center' }));
-          headerX += column.width;
-        });
-        y = tableTop + headerHeight;
-      }
-      pdf.setFillColor(index % 2 === 0 ? 255 : 247, index % 2 === 0 ? 255 : 249, index % 2 === 0 ? 255 : 252);
-      pdf.rect(margin, y, contentWidth, rowHeight, 'F');
-      pdf.setDrawColor(220, 226, 230);
-      pdf.setLineWidth(0.2);
-      pdf.rect(margin, y, contentWidth, rowHeight, 'S');
       const values = [
-        row.date ? reportDate(row.date) : '—',
+        reportDate(row.date),
         row.project ? `${row.company?.name || '—'}\n${row.project.name}` : '—',
         row.hours.normal.toFixed(1),
         row.hours.overtime.toFixed(1),
         row.hours.weekend.toFixed(1),
         String(Math.round(row.kilometers)),
         row.travelHours == null ? '—' : row.travelHours.toFixed(2).replace(/\.00$/, ''),
+        row.description || '—',
       ];
-      let cellX = margin;
-      values.forEach((value, cellIndex) => {
+      const cellLines = values.map((value, cellIndex) => {
         pdf.setFont('helvetica', cellIndex === 1 ? 'bold' : 'normal');
-        pdf.setFontSize(cellIndex === 1 ? 8.5 : 9);
+        pdf.setFontSize(cellIndex === 1 ? 8.5 : 8);
+        return pdf.splitTextToSize(String(value), columns[cellIndex].width - 6);
+      });
+      const rowHeight = Math.max(10, 4 + Math.max(...cellLines.map(lines => lines.length)) * 3.5);
+      const isLastRow = index === rows.length - 1;
+      const reservedHeight = isLastRow
+        ? (y + rowHeight + finalBlockHeight <= pageHeight - 18 ? finalBlockHeight : totalRowHeight)
+        : 0;
+      if (y + rowHeight + reservedHeight > pageHeight - 18) {
+        pdf.addPage();
+        drawHeader(employee, monthlySummary, false);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(16);
+        pdf.setTextColor(15, 23, 42);
+        const continuationTitleY = period === 'monthly' ? 59 : sectionTitleY;
+        pdf.text(`${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin + 1, continuationTitleY);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(72, 81, 88);
+        if (period !== 'monthly') {
+          weekPeriods.forEach((weekPeriod, weekIndex) => {
+            const weekY = sectionTitleY + 7 + weekIndex * 4.2;
+            pdf.text(`${lang === 'sv' ? 'Vecka' : 'Week'} ${String(weekPeriod.week).padStart(2, '0')} (${weekPeriod.weekYear})`, margin + 1, weekY);
+            const locale = lang === 'sv' ? 'sv-SE' : 'en-GB';
+            const monday = formatIsoCalendarDate(weekPeriod.startDate, locale);
+            const sunday = formatIsoCalendarDate(weekPeriod.endDate, locale);
+            pdf.text(`Period: ${monday} – ${sunday}`, margin + 31, weekY);
+          });
+        }
+        y = drawHoursTableHeader(period === 'monthly' ? 68 : tableTop);
+      }
+      pdf.setFillColor(index % 2 === 0 ? 255 : 247, index % 2 === 0 ? 255 : 249, index % 2 === 0 ? 255 : 252);
+      pdf.rect(margin, y, contentWidth, rowHeight, 'F');
+      pdf.setDrawColor(220, 226, 230);
+      pdf.setLineWidth(0.2);
+      pdf.rect(margin, y, contentWidth, rowHeight, 'S');
+      let cellX = margin;
+      cellLines.forEach((lines, cellIndex) => {
+        const isNumeric = cellIndex >= 2 && cellIndex < 7;
+        pdf.setFont('helvetica', cellIndex === 1 ? 'bold' : 'normal');
+        pdf.setFontSize(cellIndex === 1 ? 8.5 : 8);
         pdf.setTextColor(24, 29, 33);
-        String(value).split('\n').forEach((line, lineIndex) => pdf.text(line, cellX + (cellIndex === 1 ? 4 : columns[cellIndex].width / 2), y + 5 + lineIndex * 4, { align: cellIndex === 1 ? 'left' : 'center' }));
+        lines.forEach((line, lineIndex) => {
+          pdf.text(line, isNumeric ? cellX + columns[cellIndex].width / 2 : cellX + 3, y + 4 + lineIndex * 3.5, { align: isNumeric ? 'center' : 'left' });
+        });
         cellX += columns[cellIndex].width;
       });
       y += rowHeight;
     });
 
+    if (!rows.length && y + totalRowHeight > pageHeight - 18) {
+      pdf.addPage();
+      drawHeader(employee, monthlySummary, false);
+      y = tableTop + headerHeight;
+    }
     pdf.setFillColor(232, 240, 247);
-    pdf.rect(margin, y + 1, contentWidth, rowHeight, 'F');
+    pdf.rect(margin, y + 1, contentWidth, totalRowHeight, 'F');
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
     pdf.setTextColor(24, 29, 33);
@@ -1114,118 +1217,137 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       pdf.text(value == null ? '—' : index === 3 ? String(Math.round(value)) : value.toFixed(2).replace(/\.00$/, ''), totalX + column.width / 2, y + 9, { align: 'center' });
       totalX += column.width;
     });
-
-    const workDescriptionText = entries
-      .map(entry => entry.description?.trim())
-      .filter(Boolean)
-      .join(' • ') || (lang === 'sv' ? 'Ingen arbetsbeskrivning' : 'No work description');
-    const workDescriptionLines = pdf.splitTextToSize(workDescriptionText, contentWidth - 14);
-    const workDescriptionBoxHeight = 18 + workDescriptionLines.length * 4.5;
-    const workDescriptionY = y + rowHeight + 8;
+    y += totalRowHeight;
+    let bottomY = y + 3;
+    if (bottomY + bottomBlockHeight > pageHeight - 18) {
+      pdf.addPage();
+      drawHeader(employee, monthlySummary, false);
+      bottomY = 62;
+    }
+    const summaryX = margin + noteColumnWidth + 5;
+    const summaryWidth = (contentWidth - noteColumnWidth - 5) / 2;
     pdf.setFillColor(245, 248, 252);
-    pdf.roundedRect(margin, workDescriptionY, contentWidth, workDescriptionBoxHeight, 2, 2, 'F');
+    pdf.roundedRect(margin, bottomY, noteColumnWidth, weekendNoteBoxHeight, 2, 2, 'F');
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
     pdf.setTextColor(15, 23, 42);
-    pdf.text(lang === 'sv' ? 'HELGNOTERINGAR' : 'WEEKEND NOTES', margin + 4, workDescriptionY + 8);
+    pdf.text(lang === 'sv' ? 'HELGNOTERINGAR' : 'WEEKEND NOTES', margin + 4, bottomY + 7);
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8.5);
     pdf.setTextColor(61, 75, 87);
-    pdf.text(workDescriptionLines, margin + 4, workDescriptionY + 15);
+    pdf.text(weekendNoteLines, margin + 4, bottomY + 14);
 
-    let totalsY = workDescriptionY + workDescriptionBoxHeight + 14;
-    if (totalsY + 40 > pageHeight - 18) {
-      pdf.addPage();
-      drawHeader(employee);
-      totalsY = 58;
-    }
-    pdf.setFontSize(16);
-    pdf.text(`2. ${periodName} ${lang === 'sv' ? 'sammanfattning' : 'Totals'}`, margin + 1, totalsY);
-    const summaryY = totalsY + 11;
-    const summaryWidth = (contentWidth - 6) / 2;
-    [{ label: lang === 'sv' ? 'Total arbetstid' : 'Total Work Hours', value: `${totalHours.toFixed(1)} h`, fill: [236, 245, 255] }, { label: lang === 'sv' ? 'Total resa' : 'Total Travel', value: `${Math.round(totals.kilometers)} km -> ${totals.hasTravelHours ? `${totals.travelHours.toFixed(2).replace(/\.00$/, '')} h` : '—'}`, fill: [237, 249, 241] }].forEach((summary, index) => {
-      const summaryX = margin + index * (summaryWidth + 6);
-      pdf.setFillColor(...summary.fill);
-      pdf.roundedRect(summaryX, summaryY, summaryWidth, 23, 2, 2, 'F');
-      const iconX = summaryX + 13;
-      const iconY = summaryY + 11.5;
-      pdf.setFillColor(index === 0 ? 219 : 216, index === 0 ? 235 : 242, index === 0 ? 252 : 224);
-      pdf.circle(iconX, iconY, 7, 'F');
-      pdf.setDrawColor(index === 0 ? 37 : 41, index === 0 ? 112 : 91, index === 0 ? 177 : 73);
-      pdf.setLineWidth(1.1);
-      if (index === 0) {
-        pdf.circle(iconX, iconY, 4.2, 'S');
-        pdf.line(iconX, iconY, iconX, iconY - 2.8);
-        pdf.line(iconX, iconY, iconX + 2.4, iconY + 1.8);
-      } else {
-        pdf.setLineWidth(2.2);
-        pdf.line(iconX - 3.6, iconY + 5, iconX - 1.3, iconY - 5);
-        pdf.line(iconX + 3.6, iconY + 5, iconX + 1.3, iconY - 5);
-        pdf.setLineWidth(1.1);
-        pdf.line(iconX, iconY - 3.5, iconX, iconY - 1.5);
-        pdf.line(iconX, iconY + 0.5, iconX, iconY + 2.5);
-      }
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(10);
-      pdf.setTextColor(70, 80, 88);
-      pdf.text(summary.label, summaryX + 24, summaryY + 9);
+    if (period !== 'monthly') {
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(17);
+      pdf.setFontSize(11);
       pdf.setTextColor(15, 23, 42);
-      pdf.text(summary.value, summaryX + 24, summaryY + 18);
-    });
+      pdf.text(`${periodName} ${lang === 'sv' ? 'sammanfattning' : 'Totals'}`, summaryX, bottomY + 6);
+      [{ label: lang === 'sv' ? 'Total arbetstid' : 'Total Work Hours', value: `${totalHours.toFixed(1)} h`, fill: [236, 245, 255] }, { label: lang === 'sv' ? 'Total resa' : 'Total Travel', value: `${Math.round(totals.kilometers)} km -> ${totals.hasTravelHours ? `${totals.travelHours.toFixed(2).replace(/\.00$/, '')} h` : '—'}`, fill: [237, 249, 241] }].forEach((summary, index) => {
+        const cardX = summaryX + index * (summaryWidth + 4);
+        pdf.setFillColor(...summary.fill);
+        pdf.roundedRect(cardX, bottomY + 10, summaryWidth, 21, 2, 2, 'F');
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(70, 80, 88);
+        pdf.text(summary.label, cardX + 4, bottomY + 17);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(13);
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(summary.value, cardX + 4, bottomY + 26);
+      });
+    }
 
-    pdf.addPage();
-    drawHeader(employee);
-
-    const detailTop = 42;
-    const detailTitleY = detailTop + 25;
-    const detailTitle = lang === 'sv' ? '3. Detaljerade arbetsposter' : '3. Detailed Work Entries';
-    const detailSubtitle = lang === 'sv' ? 'Lista över alla arbetsposter med beskrivning och arbetstimmar för vald vecka.' : 'List of all work entries with description and working hours for the selected week.';
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(16);
-    pdf.setTextColor(15, 23, 42);
-    pdf.text(detailTitle, margin, detailTitleY);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(9);
-    pdf.setTextColor(72, 81, 88);
-    pdf.text(detailSubtitle, margin, detailTitleY + 8);
-
-    const detailTableTop = detailTitleY + 18;
-    const detailColumns = [
-      { label: lang === 'sv' ? 'Datum' : 'Date', width: 28 },
-      { label: lang === 'sv' ? 'Företag / Projekt' : 'Company / Project', width: 76 },
-      { label: lang === 'sv' ? 'Timmar' : 'Hours', width: 18 },
-    ];
+    const detailTitleY = bottomY + bottomBlockHeight + 6;
+    const detailTitle = lang === 'sv' ? 'Detaljerade arbetsposter' : 'Detailed Work Entries';
+    const detailSubtitle = lang === 'sv' ? 'Lista över alla arbetsposter och arbetstimmar för vald period.' : 'List of all work entries and working hours for the selected period.';
+    const detailColumns = period === 'monthly'
+      ? [
+        { label: lang === 'sv' ? 'Datum' : 'Date', width: 23 },
+        { label: lang === 'sv' ? 'Företag / Projekt' : 'Company / Project', width: 82 },
+        { label: lang === 'sv' ? 'Från plats' : 'From Place', width: 46 },
+        { label: lang === 'sv' ? 'Destination' : 'Destination', width: 46 },
+        { label: lang === 'sv' ? 'Resa km' : 'Travel KM', width: 38 },
+        { label: lang === 'sv' ? 'Restid' : 'Travel Hrs', width: 46 },
+      ]
+      : [
+        { label: lang === 'sv' ? 'Datum' : 'Date', width: 25 },
+        { label: lang === 'sv' ? 'Företag / Projekt' : 'Company / Project', width: 95 },
+        { label: lang === 'sv' ? 'Från plats' : 'From Place', width: 50 },
+        { label: lang === 'sv' ? 'Destination' : 'Destination', width: 50 },
+        { label: lang === 'sv' ? 'Timmar' : 'Hours', width: 61 },
+      ];
     const detailHeaderHeight = 12;
-    let detailX = margin;
-    pdf.setFillColor(31, 48, 65);
-    pdf.rect(margin, detailTableTop, contentWidth, detailHeaderHeight, 'F');
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(8.5);
-    pdf.setTextColor(255, 255, 255);
-    detailColumns.forEach(column => {
-      pdf.text(column.label, detailX + column.width / 2, detailTableTop + 8, { align: 'center' });
-      detailX += column.width;
-    });
-
-    let detailY = detailTableTop + detailHeaderHeight;
-    const detailRows = [...entries].sort((a, b) => a.date.localeCompare(b.date));
-    detailRows.forEach((entry, index) => {
+    const detailRows = [...entries].sort((a, b) => a.date.localeCompare(b.date)).map(entry => {
       const project = getProjectById(entry.projectId);
       const company = project ? getCompanyById(project.companyId) : null;
-      const breakdown = getWorkEntryBreakdown(entry);
-      const totalEntryHours = breakdown.normalHours + breakdown.normalOvertime + breakdown.weekendOvertime;
-      const lines = [
+      const travelDetails = getWorkEntryTravelDetails(entry, expenditures);
+      const breakdown = period === 'monthly' ? null : getWorkEntryBreakdown(entry);
+      const values = [
         reportDate(entry.date),
         `${company?.name || '—'}\n${project?.name || '—'}`,
-        `${totalEntryHours.toFixed(1)}`,
+        travelDetails.fromPlace || '—',
+        travelDetails.destination || '—',
+        ...(period === 'monthly' ? [
+          travelDetails.kilometers ? String(travelDetails.kilometers) : '—',
+          travelDetails.hasTravelHours ? travelDetails.travelHours.toFixed(2).replace(/\.00$/, '') : '—',
+        ] : []),
+        ...(breakdown ? [`${(breakdown.normalHours + breakdown.normalOvertime + breakdown.weekendOvertime).toFixed(1)}`] : []),
       ];
-      const rowHeight = 12;
-      if (detailY + rowHeight > pageHeight - 22) {
+      const cellLines = values.map((value, cellIndex) => {
+        const isHours = period !== 'monthly' && cellIndex === detailColumns.length - 1;
+        pdf.setFont('helvetica', isHours ? 'bold' : 'normal');
+        pdf.setFontSize(isHours ? 9 : 8.5);
+        return pdf.splitTextToSize(String(value), detailColumns[cellIndex].width - 6);
+      });
+      const lineCount = Math.max(...cellLines.map(lines => lines.length));
+      return { cellLines, rowHeight: Math.max(11, 4 + lineCount * 3.3) };
+    });
+    const detailCardHeight = period === 'monthly' ? 27 : 43;
+    const detailFinalBlockHeight = (period === 'monthly' ? 4 : 22) + detailCardHeight;
+    const detailContentHeight = 12 + detailHeaderHeight +
+      detailRows.reduce((height, row) => height + row.rowHeight, 0) + detailFinalBlockHeight;
+    const pageBottom = pageHeight - 18;
+    let detailHeadingY = detailTitleY;
+    if (detailHeadingY + detailContentHeight > pageBottom) {
+      pdf.addPage();
+      drawHeader(employee, monthlySummary, false);
+      detailHeadingY = period === 'monthly' ? 42 : 67;
+    }
+    const drawDetailHeading = headingY => {
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(16);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(detailTitle, margin, headingY);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9);
+      pdf.setTextColor(72, 81, 88);
+      pdf.text(detailSubtitle, margin, headingY + 8);
+      return headingY + 12;
+    };
+    const drawDetailTableHeader = headerY => {
+      pdf.setFillColor(31, 48, 65);
+      pdf.rect(margin, headerY, contentWidth, detailHeaderHeight, 'F');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(255, 255, 255);
+      let headerX = margin;
+      detailColumns.forEach(column => {
+        pdf.text(column.label, headerX + column.width / 2, headerY + 8, { align: 'center' });
+        headerX += column.width;
+      });
+    };
+    let detailY = drawDetailHeading(detailHeadingY);
+    drawDetailTableHeader(detailY);
+    detailY += detailHeaderHeight;
+
+    detailRows.forEach(({ cellLines, rowHeight }, index) => {
+      const isLastDetailRow = index === detailRows.length - 1;
+      if (detailY + rowHeight + (isLastDetailRow ? detailFinalBlockHeight : 0) > pageBottom) {
         pdf.addPage();
-        detailY = 20;
-        drawHeader(employee);
+        drawHeader(employee, monthlySummary, false);
+        detailY = drawDetailHeading(period === 'monthly' ? 42 : 67);
+        drawDetailTableHeader(detailY);
+        detailY += detailHeaderHeight;
       }
       pdf.setFillColor(index % 2 === 0 ? 255 : 247, index % 2 === 0 ? 255 : 249, index % 2 === 0 ? 255 : 252);
       pdf.rect(margin, detailY, contentWidth, rowHeight, 'F');
@@ -1233,14 +1355,18 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       pdf.setLineWidth(0.2);
       pdf.rect(margin, detailY, contentWidth, rowHeight, 'S');
       let detailCellX = margin;
-      lines.forEach((value, columnIndex) => {
-        const isRightAligned = columnIndex === 2;
-        pdf.setFont('helvetica', columnIndex === 2 ? 'bold' : 'normal');
-        pdf.setFontSize(columnIndex === 2 ? 9 : 8.5);
+      cellLines.forEach((lines, columnIndex) => {
+        const isHours = period !== 'monthly' && columnIndex === detailColumns.length - 1;
+        pdf.setFont('helvetica', isHours ? 'bold' : 'normal');
+        pdf.setFontSize(isHours ? 9 : 8.5);
         pdf.setTextColor(24, 29, 33);
-        const splitLines = String(value).split('\n');
-        splitLines.forEach((line, lineIndex) => {
-          pdf.text(line, isRightAligned ? detailCellX + detailColumns[columnIndex].width - 3 : detailCellX + 3, detailY + 5 + lineIndex * 4, { align: isRightAligned ? 'right' : 'left' });
+        lines.forEach((line, lineIndex) => {
+          pdf.text(
+            line,
+            isHours ? detailCellX + detailColumns[columnIndex].width - 3 : detailCellX + 3,
+            detailY + 4 + lineIndex * 3.3,
+            { align: isHours ? 'right' : 'left' },
+          );
         });
         pdf.setDrawColor(220, 226, 230);
         pdf.line(detailCellX, detailY, detailCellX, detailY + rowHeight);
@@ -1249,18 +1375,33 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       detailY += rowHeight;
     });
 
-    pdf.setFillColor(232, 240, 247);
-    pdf.rect(margin, detailY, contentWidth, 12, 'F');
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(9);
-    pdf.setTextColor(24, 29, 33);
-    pdf.text(lang === 'sv' ? 'TOTAL' : 'TOTAL', margin + 4, detailY + 8);
-    pdf.text(`${(detailRows.reduce((sum, entry) => sum + (getWorkEntryBreakdown(entry).normalHours + getWorkEntryBreakdown(entry).normalOvertime + getWorkEntryBreakdown(entry).weekendOvertime), 0)).toFixed(1)} h`, pageWidth - margin - 3, detailY + 8, { align: 'right' });
-
-    const finalCardY = detailY + 10;
-    const finalCardHeight = 43;
+    if (detailY + detailFinalBlockHeight > pageBottom) {
+      pdf.addPage();
+      drawHeader(employee, monthlySummary, false);
+      detailY = drawDetailHeading(period === 'monthly' ? 42 : 67);
+      drawDetailTableHeader(detailY);
+      detailY += detailHeaderHeight;
+    }
+    if (period !== 'monthly') {
+      pdf.setFillColor(232, 240, 247);
+      pdf.rect(margin, detailY, contentWidth, 12, 'F');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(24, 29, 33);
+      pdf.text(lang === 'sv' ? 'TOTAL' : 'TOTAL', margin + 4, detailY + 8);
+      pdf.text(
+        `${detailRows.reduce((sum, entry) => {
+          const breakdown = getWorkEntryBreakdown(entry);
+          return sum + breakdown.normalHours + breakdown.normalOvertime + breakdown.weekendOvertime;
+        }, 0).toFixed(1)} h`,
+        pageWidth - margin - 3,
+        detailY + 8,
+        { align: 'right' },
+      );
+    }
+    const finalCardY = detailY + (period === 'monthly' ? 4 : 10);
     pdf.setFillColor(247, 248, 249);
-    pdf.roundedRect(margin, finalCardY, contentWidth, finalCardHeight, 2, 2, 'F');
+    pdf.roundedRect(margin, finalCardY, contentWidth, detailCardHeight, 2, 2, 'F');
 
     pdf.setFillColor(31, 48, 65);
     pdf.roundedRect(pageWidth - margin - 54, finalCardY + 4, 54, 9, 2, 2, 'F');
@@ -1279,17 +1420,19 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     pdf.text(lang === 'sv' ? 'TOTAL' : 'TOTAL', margin + 5, finalCardY + 19);
     pdf.text(`${totalHours.toFixed(1)} h`, pageWidth - margin - 4, finalCardY + 19, { align: 'right' });
 
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8.2);
-    pdf.setTextColor(92, 101, 109);
-    pdf.text(lang === 'sv' ? 'MEDARBETARE' : 'EMPLOYEE', margin + 5, finalCardY + 30);
-    pdf.text(lang === 'sv' ? 'MEDARBETAR-ID' : 'EMPLOYEE ID', pageWidth - margin - 24, finalCardY + 30, { align: 'right' });
+    if (period !== 'monthly') {
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8.2);
+      pdf.setTextColor(92, 101, 109);
+      pdf.text(lang === 'sv' ? 'MEDARBETARE' : 'EMPLOYEE', margin + 5, finalCardY + 30);
+      pdf.text(lang === 'sv' ? 'MEDARBETAR-ID' : 'EMPLOYEE ID', pageWidth - margin - 24, finalCardY + 30, { align: 'right' });
 
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10.5);
-    pdf.setTextColor(24, 29, 33);
-    pdf.text(employee?.name || (lang === 'sv' ? 'Okänd medarbetare' : 'Unknown employee'), margin + 5, finalCardY + 37);
-    pdf.text(formatEmployeeCode(employee), pageWidth - margin - 4, finalCardY + 37, { align: 'right' });
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(10.5);
+      pdf.setTextColor(24, 29, 33);
+      pdf.text(employee?.name || (lang === 'sv' ? 'Okänd medarbetare' : 'Unknown employee'), margin + 5, finalCardY + 37);
+      pdf.text(formatEmployeeCode(employee), pageWidth - margin - 4, finalCardY + 37, { align: 'right' });
+    }
 
     return { totalHours, totals };
   };
@@ -1456,7 +1599,7 @@ export default function Reports() {
       .sort((a, b) => (getEmployeeById(a)?.name || '').localeCompare(getEmployeeById(b)?.name || ''))
       .map(employeeId => ({
         employeeId,
-        entries: reportEntries.filter(entry => entry.employeeId === employeeId),
+        entries: reportEntries.filter(entry => entry.employeeId === employeeId).map(mapReportEntry),
         expenditures: reportTravel.filter(item => item.employeeId === employeeId),
       }));
   };
@@ -1820,14 +1963,7 @@ export default function Reports() {
                   );
                 }
 
-                const weekendNote = (() => {
-                  const trimmedRemarks = w.remarks?.trim();
-                  const trimmedDescription = w.description?.trim();
-                  const weekendHours = getWorkEntryBreakdown(w).weekendOvertime;
-                  if (trimmedRemarks) return trimmedRemarks;
-                  if (weekendHours > 0 && trimmedDescription) return trimmedDescription;
-                  return '—';
-                })();
+                const weekendNote = getWeekendNote(w) || '—';
 
                 return (
                   <tr key={w.id}>

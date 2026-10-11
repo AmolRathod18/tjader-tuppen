@@ -76,7 +76,7 @@ const EMPTY = {
   date: '', employeeId: '', companyId: '', projectId: '',
   startTime: '', endTime: '', hours: '',
   normalHours: '', normalOvertime: '', weekendOvertime: '',
-  description: '', remarks: '',
+  description: '', dailyDescription: '', remarks: '',
   travelStartPlace: '', travelEndPlace: '', travelKilometers: '', travelHours: '', travelRemarks: '',
 };
 
@@ -287,6 +287,16 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
           {/* ── Section 3: Work Information ── */}
           <SectionLabel icon={FileText} label={t('we_work_information')} />
           <div className="work-entry-form-grid work-entry-form-grid--two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label>{t('we_daily_description')}</label>
+              <textarea
+                placeholder={t('we_daily_description_ph')}
+                value={form.dailyDescription}
+                onChange={e => setField('dailyDescription', e.target.value)}
+                style={{ minHeight: 90, ...fs('dailyDescription') }}
+              />
+              <FieldError message={errors.dailyDescription} />
+            </div>
 
             <div className="form-group">
               <label>{t('we_description')}</label>
@@ -299,20 +309,6 @@ function FormView({ form, errors, submitError, setField, onSave, onCancel, editI
               <FieldError message={errors.description} />
             </div>
 
-            <div className="form-group">
-              <label>
-                {t('we_remarks')}
-                <span style={{ fontWeight: 400, color: 'var(--color-text-muted)', marginLeft: 4 }}>
-                  ({t('ui_optional')})
-                </span>
-              </label>
-              <textarea
-                placeholder={t('we_remarks_ph')}
-                value={form.remarks}
-                onChange={e => setField('remarks', e.target.value)}
-                style={{ minHeight: 90 }}
-              />
-            </div>
           </div>
 
           <SectionLabel icon={Car} label={t('we_expenditure_details')} />
@@ -830,6 +826,7 @@ export default function WorkEntry() {
       normalOvertime: entry.normalOvertime ?? '',
       weekendOvertime: entry.weekendOvertime ?? '',
       description: entry.description || '',
+      dailyDescription: entry.dailyDescription || '',
       remarks: entry.remarks ?? entry.notes ?? '',
       travelStartPlace: travel?.startPlace || '',
       travelEndPlace: travel?.endPlace || '',
@@ -870,6 +867,7 @@ export default function WorkEntry() {
       normalOvertime: item.normalOvertime ?? '',
       weekendOvertime: item.weekendOvertime ?? (getWorkEntryBreakdown(item).weekendOvertime || ''),
       description: item.description || '',
+      dailyDescription: item.dailyDescription || '',
       remarks:     item.remarks     ?? item.notes ?? '',
       travelStartPlace: travel?.startPlace || '',
       travelEndPlace: travel?.endPlace || '',
@@ -893,6 +891,7 @@ export default function WorkEntry() {
     if (!form.projectId)                                                    e.projectId   = t('we_err_project_required');
     if (!form.startTime || !form.endTime)                                    e.hours = t('we_err_time');
     if (form.description?.trim().length > 1000)                              e.description = t('we_err_description_length');
+    if (form.dailyDescription?.trim().length > 1000)                        e.dailyDescription = t('we_err_description_length');
     if (normalHours !== null && (!Number.isFinite(normalHours) || normalHours < 0 || normalHours > 24)) e.normalHours = t('we_err_normal_hours');
     if (!Number.isFinite(normalOvertime) || normalOvertime < 0 || normalOvertime > 24) e.normalOvertime = t('we_err_overtime');
     if (!Number.isFinite(weekendOvertime) || weekendOvertime < 0 || weekendOvertime > 24) e.weekendOvertime = t('we_err_overtime');

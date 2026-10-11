@@ -1037,6 +1037,17 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     pdf.text(`${lang === 'sv' ? 'Sida' : 'Page'} ${page} / ${totalPages}`, pageWidth / 2 + 8, pageHeight - 10);
   };
 
+  const drawTableGrid = (x, y, height, columnWidths, width) => {
+    pdf.setDrawColor(157, 169, 177);
+    pdf.setLineWidth(0.25);
+    pdf.rect(x, y, width, height, 'S');
+    let columnX = x;
+    columnWidths.slice(0, -1).forEach(columnWidth => {
+      columnX += columnWidth;
+      pdf.line(columnX, y, columnX, y + height);
+    });
+  };
+
   const drawPage = (group, isFirstPage) => {
     if (!isFirstPage) pdf.addPage();
     const employee = getEmployeeById(group.employeeId);
@@ -1091,24 +1102,36 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     const monthlySummary = period === 'monthly' ? { totals, totalHours } : null;
     drawHeader(employee, monthlySummary);
     const sectionTitleY = period === 'monthly' ? 40 : 59;
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(16);
-    pdf.setTextColor(15, 23, 42);
-    pdf.text(`${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin + 1, sectionTitleY);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(7.5);
-    pdf.setTextColor(72, 81, 88);
-    weekPeriods.forEach((weekPeriod, index) => {
-      const y = sectionTitleY + 7 + index * 4.2;
-      pdf.text(`${lang === 'sv' ? 'Vecka' : 'Week'} ${String(weekPeriod.week).padStart(2, '0')} (${weekPeriod.weekYear})`, margin + 1, y);
-      const locale = lang === 'sv' ? 'sv-SE' : 'en-GB';
-      const monday = formatIsoCalendarDate(weekPeriod.startDate, locale);
-      const sunday = formatIsoCalendarDate(weekPeriod.endDate, locale);
-      pdf.text(`Period: ${monday} – ${sunday}`, margin + 31, y);
-    });
+    const drawWorkingHoursIntro = (titleY, showWeekPeriods) => {
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(15);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(`${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin + 1, titleY);
 
+      if (!showWeekPeriods || !weekPeriods.length) return titleY + 10;
+
+      const locale = lang === 'sv' ? 'sv-SE' : 'en-GB';
+      const weekX = margin + 2;
+      const periodX = margin + 39;
+      const firstWeekY = titleY + 10;
+      const weekRowHeight = 5.2;
+      weekPeriods.forEach((weekPeriod, index) => {
+        const rowY = firstWeekY + index * weekRowHeight;
+        const monday = formatIsoCalendarDate(weekPeriod.startDate, locale);
+        const sunday = formatIsoCalendarDate(weekPeriod.endDate, locale);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(61, 75, 87);
+        pdf.text(`${lang === 'sv' ? 'Vecka' : 'Week'} ${String(weekPeriod.week).padStart(2, '0')} (${weekPeriod.weekYear})`, weekX, rowY);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8.5);
+        pdf.text(`Period: ${monday} – ${sunday}`, periodX, rowY);
+      });
+      return firstWeekY + weekPeriods.length * weekRowHeight + 1;
+    };
+    const introBottom = drawWorkingHoursIntro(sectionTitleY, true);
     const columns = getWorkHoursColumns(lang, contentWidth);
-    const tableTop = Math.max(period === 'monthly' ? 54 : 73, sectionTitleY + 8 + weekPeriods.length * 4.2);
+    const tableTop = Math.max(period === 'monthly' ? 54 : 73, introBottom);
     const headerHeight = 12;
     const weekendNoteText = entries
       .map(getWeekendNote)
@@ -1133,6 +1156,7 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
         });
         headerX += column.width;
       });
+      drawTableGrid(margin, headerY, headerHeight, columns.map(column => column.width), contentWidth);
       return headerY + headerHeight;
     };
     let y = drawHoursTableHeader(tableTop);
@@ -1160,31 +1184,13 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       if (y + rowHeight + reservedHeight > pageHeight - 18) {
         pdf.addPage();
         drawHeader(employee, monthlySummary, false);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(16);
-        pdf.setTextColor(15, 23, 42);
         const continuationTitleY = period === 'monthly' ? 59 : sectionTitleY;
-        pdf.text(`${periodName} ${lang === 'sv' ? 'arbetstid och resor' : 'Working Hours & Travel'}`, margin + 1, continuationTitleY);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(7.5);
-        pdf.setTextColor(72, 81, 88);
-        if (period !== 'monthly') {
-          weekPeriods.forEach((weekPeriod, weekIndex) => {
-            const weekY = sectionTitleY + 7 + weekIndex * 4.2;
-            pdf.text(`${lang === 'sv' ? 'Vecka' : 'Week'} ${String(weekPeriod.week).padStart(2, '0')} (${weekPeriod.weekYear})`, margin + 1, weekY);
-            const locale = lang === 'sv' ? 'sv-SE' : 'en-GB';
-            const monday = formatIsoCalendarDate(weekPeriod.startDate, locale);
-            const sunday = formatIsoCalendarDate(weekPeriod.endDate, locale);
-            pdf.text(`Period: ${monday} – ${sunday}`, margin + 31, weekY);
-          });
-        }
-        y = drawHoursTableHeader(period === 'monthly' ? 68 : tableTop);
+        const continuationTableTop = drawWorkingHoursIntro(continuationTitleY, period !== 'monthly');
+        y = drawHoursTableHeader(Math.max(period === 'monthly' ? 68 : 73, continuationTableTop));
       }
       pdf.setFillColor(index % 2 === 0 ? 255 : 247, index % 2 === 0 ? 255 : 249, index % 2 === 0 ? 255 : 252);
       pdf.rect(margin, y, contentWidth, rowHeight, 'F');
-      pdf.setDrawColor(220, 226, 230);
-      pdf.setLineWidth(0.2);
-      pdf.rect(margin, y, contentWidth, rowHeight, 'S');
+      drawTableGrid(margin, y, rowHeight, columns.map(column => column.width), contentWidth);
       let cellX = margin;
       cellLines.forEach((lines, cellIndex) => {
         const isNumeric = cellIndex >= 2 && cellIndex < 7;
@@ -1205,7 +1211,8 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       y = tableTop + headerHeight;
     }
     pdf.setFillColor(232, 240, 247);
-    pdf.rect(margin, y + 1, contentWidth, totalRowHeight, 'F');
+    pdf.rect(margin, y, contentWidth, totalRowHeight, 'F');
+    drawTableGrid(margin, y, totalRowHeight, columns.map(column => column.width), contentWidth);
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
     pdf.setTextColor(24, 29, 33);
@@ -1300,10 +1307,11 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
         return pdf.splitTextToSize(String(value), detailColumns[cellIndex].width - 6);
       });
       const lineCount = Math.max(...cellLines.map(lines => lines.length));
-      return { cellLines, rowHeight: Math.max(11, 4 + lineCount * 3.3) };
+      return { cellLines, rowHeight: Math.max(11, 4 + lineCount * 3.3), travelDetails };
     });
     const detailCardHeight = period === 'monthly' ? 27 : 43;
-    const detailFinalBlockHeight = (period === 'monthly' ? 4 : 22) + detailCardHeight;
+    const detailTotalsRowHeight = period === 'monthly' ? 12 : 0;
+    const detailFinalBlockHeight = (period === 'monthly' ? detailTotalsRowHeight + 6 : 22) + detailCardHeight;
     const detailContentHeight = 12 + detailHeaderHeight +
       detailRows.reduce((height, row) => height + row.rowHeight, 0) + detailFinalBlockHeight;
     const pageBottom = pageHeight - 18;
@@ -1327,6 +1335,7 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
     const drawDetailTableHeader = headerY => {
       pdf.setFillColor(31, 48, 65);
       pdf.rect(margin, headerY, contentWidth, detailHeaderHeight, 'F');
+      drawTableGrid(margin, headerY, detailHeaderHeight, detailColumns.map(column => column.width), contentWidth);
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(8.5);
       pdf.setTextColor(255, 255, 255);
@@ -1351,25 +1360,25 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       }
       pdf.setFillColor(index % 2 === 0 ? 255 : 247, index % 2 === 0 ? 255 : 249, index % 2 === 0 ? 255 : 252);
       pdf.rect(margin, detailY, contentWidth, rowHeight, 'F');
-      pdf.setDrawColor(220, 226, 230);
-      pdf.setLineWidth(0.2);
-      pdf.rect(margin, detailY, contentWidth, rowHeight, 'S');
+      drawTableGrid(margin, detailY, rowHeight, detailColumns.map(column => column.width), contentWidth);
       let detailCellX = margin;
       cellLines.forEach((lines, columnIndex) => {
         const isHours = period !== 'monthly' && columnIndex === detailColumns.length - 1;
+        const isTravelNumber = period === 'monthly' && columnIndex >= 4;
+        const isCenteredNumber = isHours || isTravelNumber;
         pdf.setFont('helvetica', isHours ? 'bold' : 'normal');
         pdf.setFontSize(isHours ? 9 : 8.5);
         pdf.setTextColor(24, 29, 33);
         lines.forEach((line, lineIndex) => {
           pdf.text(
             line,
-            isHours ? detailCellX + detailColumns[columnIndex].width - 3 : detailCellX + 3,
+            isCenteredNumber
+              ? detailCellX + detailColumns[columnIndex].width / 2
+              : detailCellX + 3,
             detailY + 4 + lineIndex * 3.3,
-            { align: isHours ? 'right' : 'left' },
+            { align: isCenteredNumber ? 'center' : 'left' },
           );
         });
-        pdf.setDrawColor(220, 226, 230);
-        pdf.line(detailCellX, detailY, detailCellX, detailY + rowHeight);
         detailCellX += detailColumns[columnIndex].width;
       });
       detailY += rowHeight;
@@ -1382,21 +1391,55 @@ async function buildEmployeeReportPDF({ lang, title, subtitle, period, groups, r
       drawDetailTableHeader(detailY);
       detailY += detailHeaderHeight;
     }
-    if (period !== 'monthly') {
+    if (period === 'monthly') {
+      const travelTotals = detailRows.reduce((sum, row) => ({
+        kilometers: sum.kilometers + row.travelDetails.kilometers,
+        travelHours: sum.travelHours + row.travelDetails.travelHours,
+        hasTravelHours: sum.hasTravelHours || row.travelDetails.hasTravelHours,
+      }), { kilometers: 0, travelHours: 0, hasTravelHours: false });
       pdf.setFillColor(232, 240, 247);
-      pdf.rect(margin, detailY, contentWidth, 12, 'F');
+      pdf.rect(margin, detailY, contentWidth, detailTotalsRowHeight, 'F');
+      drawTableGrid(margin, detailY, detailTotalsRowHeight, detailColumns.map(column => column.width), contentWidth);
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(9);
       pdf.setTextColor(24, 29, 33);
       pdf.text(lang === 'sv' ? 'TOTAL' : 'TOTAL', margin + 4, detailY + 8);
+      let totalsCellX = margin;
+      detailColumns.forEach((column, columnIndex) => {
+        if (columnIndex === 4) {
+          pdf.text(String(Math.round(travelTotals.kilometers)), totalsCellX + column.width / 2, detailY + 8, { align: 'center' });
+        } else if (columnIndex === 5) {
+          pdf.text(
+            travelTotals.hasTravelHours ? travelTotals.travelHours.toFixed(2).replace(/\.00$/, '') : '—',
+            totalsCellX + column.width / 2,
+            detailY + 8,
+            { align: 'center' },
+          );
+        }
+        totalsCellX += column.width;
+      });
+      detailY += detailTotalsRowHeight + 6;
+    }
+    if (period !== 'monthly') {
+      pdf.setFillColor(232, 240, 247);
+      pdf.rect(margin, detailY, contentWidth, 12, 'F');
+      drawTableGrid(margin, detailY, 12, detailColumns.map(column => column.width), contentWidth);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(24, 29, 33);
+      pdf.text(lang === 'sv' ? 'TOTAL' : 'TOTAL', margin + 4, detailY + 8);
+      const hoursColumn = detailColumns[detailColumns.length - 1];
+      const hoursColumnX = margin + detailColumns
+        .slice(0, -1)
+        .reduce((sum, column) => sum + column.width, 0);
       pdf.text(
         `${detailRows.reduce((sum, entry) => {
           const breakdown = getWorkEntryBreakdown(entry);
           return sum + breakdown.normalHours + breakdown.normalOvertime + breakdown.weekendOvertime;
         }, 0).toFixed(1)} h`,
-        pageWidth - margin - 3,
+        hoursColumnX + hoursColumn.width / 2,
         detailY + 8,
-        { align: 'right' },
+        { align: 'center' },
       );
     }
     const finalCardY = detailY + (period === 'monthly' ? 4 : 10);
